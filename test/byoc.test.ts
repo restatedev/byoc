@@ -1,0 +1,66 @@
+import * as cdk from "aws-cdk-lib";
+import "jest-cdk-snapshot";
+import { RestateBYOC } from "../lib/byoc";
+
+describe("BYOC", () => {
+  test("Default parameters", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateBYOC(stack, "default", { vpc });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("With volume", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateBYOC(stack, "with-volume", {
+      vpc,
+      statefulNode: {
+        ebsVolume: {
+          enabled: true,
+          sizeInGiB: 200,
+          volumeType: cdk.aws_ec2.EbsDeviceVolumeType.GP3,
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("With too few AZs", () => {
+    const { stack, vpc } = createStack();
+
+    expect(
+      () =>
+        new RestateBYOC(stack, "too-few-azs", {
+          vpc,
+          subnets: {
+            availabilityZones: stack.availabilityZones.slice(0, 2),
+          },
+        }),
+    ).toThrow("not enough to satisfy zone replication property");
+  });
+});
+
+function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {
+  const app = new cdk.App();
+
+  const vpcStack = new cdk.Stack(app, "VPCStack", {
+    env: { account: "account-id", region: "region" },
+  });
+
+  const vpc = new cdk.aws_ec2.Vpc(vpcStack, "vpc");
+
+  const stack = new cdk.Stack(app, "RestateBYOC", {
+    env: { account: "account-id", region: "region" },
+  });
+
+  return { stack, vpc };
+}
