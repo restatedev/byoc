@@ -1,82 +1,18 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { VOLUME_POLICY } from "./volume-policy";
-import { Key } from "aws-cdk-lib/aws-kms";
-
-interface RestateBYOCProps {
-  vpc: cdk.aws_ec2.IVpc;
-  subnets?: cdk.aws_ec2.SubnetSelection;
-  objectStorage?: {
-    bucket: cdk.aws_s3.IBucket;
-    subpath?: string;
-  };
-  // Security groups to apply to the NLB, the restate nodes and the restatectl lambda.
-  // If provided, internal connections on 8080, 9070 and 5122 are assumed to be allowed.
-  // If not provided, a suitable group will be created.
-  // To allow traffic through the NLB from clients outside the security group, additional inbound rules will be needed.
-  securityGroups?: cdk.aws_ec2.ISecurityGroup[];
-  loadBalancer?: RestateBYOCLoadBalancerProps;
-  cluster?: cdk.aws_ecs.ICluster;
-  statelessNode?: RestateBYOCStatelessProps;
-  statefulNode?: RestateBYOCStatefulProps;
-  restateTasks?: Partial<RestateBYOCTaskProps>;
-  controller?: RestateBYOCControllerProps;
-  restatectl?: RestateBYOCRestatectlProps;
-  retirementWatcher?: RestateBYOCRetirementWatcherProps;
-}
-
-interface RestateBYOCLoadBalancerProps {
-  nlb?: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
-  listenerCertificates?: cdk.aws_elasticloadbalancingv2.IListenerCertificate[];
-  sslPolicy?: cdk.aws_elasticloadbalancingv2.SslPolicy;
-}
-
-interface RestateBYOCStatelessProps extends RestateBYOCNodeProps {
-  defaultLogReplication?: { node: number } | { zone: number };
-  defaultPartitionReplication?: { node: number };
-  defaultPartitions?: number;
-  desiredCount?: number;
-}
-
-interface RestateBYOCStatefulProps extends RestateBYOCNodeProps {
-  ebsVolume?: {
-    enabled: true;
-    volumeType?: cdk.aws_ec2.EbsDeviceVolumeType;
-    volumeRole?: cdk.aws_iam.IRole;
-    sizeInGiB: number;
-    iops?: number;
-    throughput?: number;
-  };
-}
-
-interface RestateBYOCNodeProps {
-  restateImage?: string;
-  resources?: { cpu: number; memoryLimitMiB: number };
-}
-
-interface RestateBYOCControllerProps {
-  resources?: { cpu: number; memoryLimitMiB: number };
-  tasks?: RestateBYOCTaskProps;
-}
-
-interface RestateBYOCTaskProps {
-  executionRole: cdk.aws_iam.IRole;
-  taskRole: cdk.aws_iam.IRole;
-  logDriver: cdk.aws_ecs.LogDriver;
-  enableExecuteCommand: boolean;
-  cpuArchitecture: cdk.aws_ecs.CpuArchitecture;
-}
-
-interface RestateBYOCRestatectlProps {
-  disabled?: boolean;
-}
-
-interface RestateBYOCRetirementWatcherProps {
-  executionRole?: cdk.aws_iam.IRole;
-  disabled?: boolean;
-}
-
-const DEFAULT_RESTATE_IMAGE = "docker.restate.dev/restatedev/restate:1.3";
+import {
+  DEFAULT_RESTATE_IMAGE,
+  RestateBYOCControllerProps,
+  RestateBYOCLoadBalancerProps,
+  RestateBYOCProps,
+  RestateBYOCRestatectlProps,
+  RestateBYOCRetirementWatcherProps,
+  RestateBYOCStatefulProps,
+  RestateBYOCStatelessProps,
+  RestateBYOCTaskProps,
+} from "./props";
+import { Volume } from "aws-cdk-lib/aws-ec2";
 
 export class RestateBYOC extends Construct {
   public readonly vpc: cdk.aws_ec2.IVpc;
@@ -188,13 +124,13 @@ export class RestateBYOC extends Construct {
 
     this.restateTaskRole =
       props.restateTasks?.taskRole ??
-      new cdk.aws_iam.Role(this, "task-role", {
+      new cdk.aws_iam.Role(this, "restate-task-role", {
         assumedBy: new cdk.aws_iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
       });
 
     this.restateExecutionRole =
       props.restateTasks?.executionRole ??
-      new cdk.aws_iam.Role(this, "execution-role", {
+      new cdk.aws_iam.Role(this, "restate-execution-role", {
         assumedBy: new cdk.aws_iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
       });
 
@@ -249,6 +185,7 @@ export class RestateBYOC extends Construct {
       subnets,
       this.securityGroups,
       this.statefulDefinition,
+      restateTaskProps,
       props.statefulNode,
       props.controller,
     );
@@ -259,7 +196,7 @@ export class RestateBYOC extends Construct {
       subnets,
       this.securityGroups,
       this.loadBalancer.nlb,
-      !!props.loadBalancer?.listenerCertificates?.length,
+      props.loadBalancer?.ssl?.listenerCertificate !== undefined,
       props.restatectl,
     );
 
@@ -335,9 +272,22 @@ function createStateless(
     }
   }
 
+  let partitionReplication: object = {
+    RESTATE_ADMIN__DEFAULT_PARTITION_REPLICATION: "everywhere",
+  };
+  if (
+    statelessProps?.defaultPartitionReplication &&
+    statelessProps.defaultPartitionReplication !== "everywhere"
+  ) {
+    partitionReplication = {
+      RESTATE_ADMIN__DEFAULT_PARTITION_REPLICATION__LIMIT: `{node: ${statelessProps?.defaultPartitionReplication.node}}`,
+    };
+  }
+
   taskDefinition.addContainer("restate", {
     cpu,
     memoryLimitMiB,
+    entryPoint: ["bash", "-c", restateEntryPointScript],
     image: cdk.aws_ecs.ContainerImage.fromRegistry(
       statelessProps?.restateImage ?? DEFAULT_RESTATE_IMAGE,
     ),
@@ -374,13 +324,12 @@ function createStateless(
       RESTATE_BIFROST__REPLICATED_LOGLET__DEFAULT_LOG_REPLICATION:
         logReplication,
 
-      RESTATE_ADMIN__DEFAULT_PARTITION_REPLICATION__LIMIT: `{node: ${statelessProps?.defaultPartitionReplication?.node ?? 2}}`,
-
       RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE:
         "true",
 
       // why? this isn't a worker! because the admin uses the presence of this flag as a signal of how to trim
       RESTATE_WORKER__SNAPSHOTS__DESTINATION: `${bucketPath}/snapshots`,
+      ...partitionReplication,
     },
   });
 
@@ -425,11 +374,11 @@ function createStatefulDefinition(
         cpuArchitecture: taskProps.cpuArchitecture,
         operatingSystemFamily: cdk.aws_ecs.OperatingSystemFamily.LINUX,
       },
-      ephemeralStorageGiB: statefulProps?.ebsVolume?.enabled ? undefined : 200,
+      ephemeralStorageGiB: statefulProps?.ebsVolume ? undefined : 200,
       volumes: [
         {
           name: "restate-data",
-          configuredAtLaunch: statefulProps?.ebsVolume?.enabled,
+          configuredAtLaunch: statefulProps?.ebsVolume ? true : false,
         },
       ],
       taskRole: taskProps.taskRole,
@@ -444,6 +393,7 @@ function createStatefulDefinition(
     image: cdk.aws_ecs.ContainerImage.fromRegistry(
       statefulProps?.restateImage ?? DEFAULT_RESTATE_IMAGE,
     ),
+    entryPoint: ["bash", "-c", restateEntryPointScript],
     portMappings: [
       {
         name: "node",
@@ -459,7 +409,7 @@ function createStatefulDefinition(
     restartAttemptPeriod: cdk.Duration.seconds(60),
     environment: {
       RESTATE_LOG_FORMAT: "json",
-      RESTATE_ROLES: '["log-server", "worker", "http-ingress"]',
+      RESTATE_ROLES: '["log-server", "worker"]',
       RESTATE_AUTO_PROVISION: "false",
       RESTATE_SHUTDOWN_TIMEOUT: "100s", // fargate allows 120s
 
@@ -556,11 +506,13 @@ function createLoadBalancer(
   cdk.Tags.of(ingressTargetGroup).add("Name", ingressTargetGroup.node.path);
 
   const ingressListener = nlb.addListener("ingress-listener", {
-    port: props?.listenerCertificates?.length ? 443 : 8080,
+    port: props?.ssl?.listenerCertificate ? 443 : 8080,
     defaultTargetGroups: [ingressTargetGroup],
-    certificates: props?.listenerCertificates,
-    sslPolicy: props?.sslPolicy,
-    alpnPolicy: props?.listenerCertificates?.length
+    certificates: props?.ssl?.listenerCertificate
+      ? [props.ssl.listenerCertificate]
+      : undefined,
+    sslPolicy: props?.ssl?.sslPolicy,
+    alpnPolicy: props?.ssl?.listenerCertificate
       ? cdk.aws_elasticloadbalancingv2.AlpnPolicy.HTTP2_PREFERRED
       : undefined,
   });
@@ -595,9 +547,11 @@ function createLoadBalancer(
   const adminListener = nlb.addListener("admin-listener", {
     port: 9070,
     defaultTargetGroups: [adminTargetGroup],
-    certificates: props?.listenerCertificates,
-    sslPolicy: props?.sslPolicy,
-    alpnPolicy: props?.listenerCertificates?.length
+    certificates: props?.ssl?.listenerCertificate
+      ? [props.ssl.listenerCertificate]
+      : undefined,
+    sslPolicy: props?.ssl?.sslPolicy,
+    alpnPolicy: props?.ssl?.listenerCertificate
       ? cdk.aws_elasticloadbalancingv2.AlpnPolicy.HTTP2_PREFERRED
       : undefined,
   });
@@ -632,9 +586,11 @@ function createLoadBalancer(
   const nodeListener = nlb.addListener("node-listener", {
     port: 5122,
     defaultTargetGroups: [nodeTargetGroup],
-    certificates: props?.listenerCertificates,
-    sslPolicy: props?.sslPolicy,
-    alpnPolicy: props?.listenerCertificates?.length
+    certificates: props?.ssl?.listenerCertificate
+      ? [props.ssl.listenerCertificate]
+      : undefined,
+    sslPolicy: props?.ssl?.sslPolicy,
+    alpnPolicy: props?.ssl?.listenerCertificate
       ? cdk.aws_elasticloadbalancingv2.AlpnPolicy.HTTP2_PREFERRED
       : undefined,
   });
@@ -665,12 +621,39 @@ function createController(
   vpcSubnets: cdk.aws_ec2.SelectedSubnets,
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   statefulDefinition: cdk.aws_ecs.IFargateTaskDefinition,
+  restateTaskProps: RestateBYOCTaskProps,
   statefulProps?: RestateBYOCStatefulProps,
   controllerProps?: RestateBYOCControllerProps,
 ): {
   service: cdk.aws_ecs.IFargateService;
   taskDefinition: cdk.aws_ecs.IFargateTaskDefinition;
 } {
+  const taskRole =
+    controllerProps?.tasks?.taskRole ??
+    new cdk.aws_iam.Role(scope, "controller-task-role", {
+      assumedBy: new cdk.aws_iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+    });
+
+  const executionRole =
+    controllerProps?.tasks?.executionRole ??
+    new cdk.aws_iam.Role(scope, "controller-execution-role", {
+      assumedBy: new cdk.aws_iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+    });
+
+  const controllerTaskProps = {
+    taskRole,
+    executionRole,
+    logDriver:
+      controllerProps?.tasks?.logDriver ??
+      cdk.aws_ecs.LogDriver.awsLogs({
+        streamPrefix: "controller",
+      }),
+    enableExecuteCommand: controllerProps?.tasks?.enableExecuteCommand ?? false,
+    cpuArchitecture:
+      controllerProps?.tasks?.cpuArchitecture ??
+      cdk.aws_ecs.CpuArchitecture.ARM64,
+  };
+
   const cpu = controllerProps?.resources?.cpu ?? 1024;
   const memoryLimitMiB = controllerProps?.resources?.memoryLimitMiB ?? 2048;
 
@@ -681,19 +664,17 @@ function createController(
       cpu,
       memoryLimitMiB,
       runtimePlatform: {
-        cpuArchitecture:
-          controllerProps?.tasks?.cpuArchitecture ??
-          cdk.aws_ecs.CpuArchitecture.ARM64,
+        cpuArchitecture: controllerTaskProps.cpuArchitecture,
         operatingSystemFamily: cdk.aws_ecs.OperatingSystemFamily.LINUX,
       },
-      executionRole: controllerProps?.tasks?.executionRole,
-      taskRole: controllerProps?.tasks?.taskRole,
+      executionRole: controllerTaskProps.executionRole,
+      taskRole: controllerTaskProps.taskRole,
     },
   );
   cdk.Tags.of(taskDefinition).add("Name", taskDefinition.node.path);
 
   let volumeRole: cdk.aws_iam.IRole | undefined;
-  if (statefulProps?.ebsVolume?.enabled) {
+  if (statefulProps?.ebsVolume) {
     if (statefulProps.ebsVolume.volumeRole) {
       volumeRole = statefulProps.ebsVolume.volumeRole;
     } else {
@@ -721,6 +702,7 @@ function createController(
         };
       };
 
+      set(["COUNT"], statefulProps?.nodesPerAz ?? 1);
       set(["TASK_DEFINITION_ARN"], statefulDefinition.taskDefinitionArn);
       set(["SUBNETS"], `["${subnetId}"]`);
       set(
@@ -729,10 +711,10 @@ function createController(
       );
       set(
         ["ENABLE_EXECUTE_COMMAND"],
-        `${!!controllerProps?.tasks?.enableExecuteCommand}`,
+        `${restateTaskProps.enableExecuteCommand}`,
       );
 
-      if (statefulProps?.ebsVolume?.enabled) {
+      if (statefulProps?.ebsVolume) {
         set(["VOLUME", "NAME"], "restate-data");
         set(["VOLUME", `VOLUME_TYPE`], statefulProps.ebsVolume.volumeType);
         set(["VOLUME", `ROLE_ARN`], volumeRole?.roleArn);
@@ -761,12 +743,10 @@ function createController(
   taskDefinition.addContainer("controller", {
     cpu,
     memoryLimitMiB,
-    image: cdk.aws_ecs.ContainerImage.fromTarball(".cache/controller.tar"),
-    logging:
-      controllerProps?.tasks?.logDriver ??
-      cdk.aws_ecs.LogDriver.awsLogs({
-        streamPrefix: "controller",
-      }),
+    image: cdk.aws_ecs.ContainerImage.fromTarball(
+      controllerProps?.controllerImageTarball ?? "controller.tar",
+    ),
+    logging: controllerTaskProps.logDriver,
     stopTimeout: cdk.Duration.seconds(120), // the max
     healthCheck: {
       command: ["curl", "--fail", "http://127.0.0.1:8080/health"],
@@ -792,6 +772,15 @@ function createController(
     }),
   );
 
+  taskDefinition.taskRole.addToPrincipalPolicy(
+    new cdk.aws_iam.PolicyStatement({
+      actions: ["ecs:TagResource"],
+      resources: [`${clusterTaskPrefix}*`],
+      effect: cdk.aws_iam.Effect.ALLOW,
+      sid: "TagTasks",
+    }),
+  );
+
   const unversionedStatefulTaskDefinition =
     // task definition arns have 7 components in between ':', the last being a version. we want to use the first 6 only.
     `${cdk.Fn.join(
@@ -802,13 +791,10 @@ function createController(
   taskDefinition.taskRole.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
       actions: ["ecs:RunTask"],
-      resources: ["*"],
+      resources: [unversionedStatefulTaskDefinition],
       conditions: {
         ArnEquals: {
           "ecs:cluster": cluster.clusterArn,
-        },
-        ArnLike: {
-          "ecs:task-definition": unversionedStatefulTaskDefinition,
         },
       },
       effect: cdk.aws_iam.Effect.ALLOW,
@@ -816,14 +802,13 @@ function createController(
     }),
   );
 
-  const passTaskRoles: cdk.aws_iam.IRole[] = [statefulDefinition.taskRole];
-  if (statefulDefinition.executionRole)
-    passTaskRoles.push(statefulDefinition.executionRole);
-
   taskDefinition.taskRole.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
       actions: ["iam:PassRole"],
-      resources: passTaskRoles.map((role) => role.roleArn),
+      resources: [
+        restateTaskProps.taskRole.roleArn,
+        restateTaskProps.executionRole.roleArn,
+      ],
       conditions: {
         StringEquals: {
           "iam:PassedToService": "ecs-tasks.amazonaws.com",
@@ -853,7 +838,7 @@ function createController(
   const service = new cdk.aws_ecs.FargateService(scope, "controller-service", {
     cluster,
     taskDefinition,
-    enableExecuteCommand: controllerProps?.tasks?.enableExecuteCommand,
+    enableExecuteCommand: controllerTaskProps.enableExecuteCommand,
     securityGroups,
     desiredCount: 1,
     // its ok for no controllers to be running sometimes, but we'd like to avoid two where we can.
@@ -886,28 +871,45 @@ function createRetirementWatcher(
   | undefined {
   if (retirementWatcherProps?.disabled) return;
 
+  const role =
+    retirementWatcherProps?.executionRole ??
+    new cdk.aws_iam.Role(scope, "retirement-watcher-lambda-execution-role", {
+      assumedBy: new cdk.aws_iam.ServicePrincipal("lambda.amazonaws.com"),
+    });
+
+  role.addToPrincipalPolicy(
+    new cdk.aws_iam.PolicyStatement({
+      actions: [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+      ],
+      resources: ["*"],
+      effect: cdk.aws_iam.Effect.ALLOW,
+      sid: "AWSLambdaBasicExecutionPermissions",
+    }),
+  );
+
+  role.addToPrincipalPolicy(
+    new cdk.aws_iam.PolicyStatement({
+      actions: ["ecs:TagResource"],
+      resources: [`${clusterTaskPrefix}*`],
+      effect: cdk.aws_iam.Effect.ALLOW,
+      sid: "TagTasks",
+    }),
+  );
+
   const fn = new cdk.aws_lambda.Function(scope, "retirement-watcher-lambda", {
-    role: retirementWatcherProps?.executionRole,
+    role,
     runtime: cdk.aws_lambda.Runtime.NODEJS_22_X,
     architecture: cdk.aws_lambda.Architecture.ARM_64,
     handler: "index.handler",
-    code: cdk.aws_lambda.Code.fromAsset("lib/lambda/retirement-watcher"),
-    environment: {
-      CLUSTER_ARN: cluster.clusterArn,
-      NODE_OPTIONS: "--experimental-strip-types", // so that we can import a .ts file
-    },
+    code: cdk.aws_lambda.Code.fromAsset(
+      `${__dirname}/lambda/retirement-watcher`,
+    ),
     timeout: cdk.Duration.seconds(60),
   });
   cdk.Tags.of(fn).add("Name", fn.node.path);
-
-  fn.grantPrincipal.addToPrincipalPolicy(
-    new cdk.aws_iam.PolicyStatement({
-      actions: ["ecs:DescribeClusters", "ecs:TagResource"],
-      resources: [cluster.clusterArn],
-      effect: cdk.aws_iam.Effect.ALLOW,
-      sid: "ClusterActions",
-    }),
-  );
 
   // We use SQS so that we get infinite retries - if we go straight to lambda from eventbridge you only
   // get two retries. We could have a dead letter here and then alert when events go into it.
@@ -973,15 +975,37 @@ function createRestatectl(
 
   const address = `${ssl ? "https" : "http"}://${nlb.loadBalancerDnsName}:5122`;
 
+  const role =
+    restatectlProps?.executionRole ??
+    new cdk.aws_iam.Role(scope, "restatectl-lambda-execution-role", {
+      assumedBy: new cdk.aws_iam.ServicePrincipal("lambda.amazonaws.com"),
+    });
+
+  role.addToPrincipalPolicy(
+    new cdk.aws_iam.PolicyStatement({
+      actions: [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeSubnets",
+        "ec2:DeleteNetworkInterface",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses",
+      ],
+      resources: ["*"],
+      effect: cdk.aws_iam.Effect.ALLOW,
+      sid: "AWSLambdaVPCAccessExecutionPermissions",
+    }),
+  );
+
   const fn = new cdk.aws_lambda.Function(scope, "restatectl-lambda", {
+    role,
     runtime: cdk.aws_lambda.Runtime.PROVIDED_AL2023,
     handler: "restatectl", // irrelevant
     architecture: cdk.aws_lambda.Architecture.ARM_64,
-    code: cdk.aws_lambda.Code.fromCustomCommand(".cache/restatectl/lambda", [
-      "bash",
-      "./scripts/download-restatectl.sh",
-      "https://restate.gateway.scarf.sh/v1.3.0-rc.1/restatectl-aarch64-unknown-linux-musl.tar.xz",
-    ]),
+    code: cdk.aws_lambda.Code.fromAsset(`${__dirname}/lambda/restatectl`),
     environment: {
       RESTATECTL_ADDRESS: address,
     },
@@ -994,3 +1018,13 @@ function createRestatectl(
 
   return fn;
 }
+
+const restateEntryPointScript = String.raw`
+curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o task-metadata && \
+export \
+  RESTATE_CLUSTER_NAME=$(jq -r '.Cluster' task-metadata) \
+  RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \
+  RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \
+  RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
+exec restate-server
+`;

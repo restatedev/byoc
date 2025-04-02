@@ -8,3 +8,7 @@ node_modules
 cdk.out
 
 .cache
+dist
+bootstrap
+*.tgz
+controller.tar
