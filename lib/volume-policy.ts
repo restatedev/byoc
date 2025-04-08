@@ -65,12 +65,15 @@ export const VOLUME_POLICY = new cdk.aws_iam.PolicyDocument({
         },
       },
     }),
-    // new cdk.aws_iam.PolicyStatement({
-    //   sid: "ManageVolumeAttachmentsForEC2",
-    //   effect: cdk.aws_iam.Effect.ALLOW,
-    //   actions: ["ec2:AttachVolume", "ec2:DetachVolume"],
-    //   resources: ["arn:aws:ec2:*:*:instance/*"],
-    // }),
+    new cdk.aws_iam.PolicyStatement({
+      sid: "ManageVolumeAttachmentsForEC2",
+      effect: cdk.aws_iam.Effect.ALLOW,
+      actions: ["ec2:AttachVolume", "ec2:DetachVolume"],
+      resources: [
+        // has to be * for account id as the instance is not in our account, but is the fargate host, managed by AWS
+        `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:*:instance/*`,
+      ],
+    }),
     new cdk.aws_iam.PolicyStatement({
       sid: "DeleteEBSManagedVolume",
       effect: cdk.aws_iam.Effect.ALLOW,

@@ -21,7 +21,6 @@ describe("BYOC", () => {
       vpc,
       statefulNode: {
         ebsVolume: {
-          enabled: true,
           sizeInGiB: 200,
           volumeType: cdk.aws_ec2.EbsDeviceVolumeType.GP3,
         },
@@ -46,6 +45,25 @@ describe("BYOC", () => {
           },
         }),
     ).toThrow("not enough to satisfy zone replication property");
+  });
+
+  test("With one az", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateBYOC(stack, "one-az", {
+      vpc,
+      statelessNode: {
+        defaultLogReplication: { node: 2 },
+      },
+      subnets: {
+        availabilityZones: [stack.availabilityZones[0]],
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
   });
 });
 

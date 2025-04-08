@@ -110,7 +110,7 @@ exports[`BYOC Default parameters 1`] = `
       Cluster:
         Ref: defaultcluster07071299
       DefaultCapacityProviderStrategy: []
-  defaulttaskrole39EA6E04:
+  defaultrestatetaskrole1A7BDFBB:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -120,7 +120,7 @@ exports[`BYOC Default parameters 1`] = `
             Principal:
               Service: ecs-tasks.amazonaws.com
         Version: '2012-10-17'
-  defaulttaskroleDefaultPolicy2C003450:
+  defaultrestatetaskroleDefaultPolicy58736B8D:
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyDocument:
@@ -145,10 +145,10 @@ exports[`BYOC Default parameters 1`] = `
                 - Arn
             Sid: ListBucket
         Version: '2012-10-17'
-      PolicyName: defaulttaskroleDefaultPolicy2C003450
+      PolicyName: defaultrestatetaskroleDefaultPolicy58736B8D
       Roles:
-        - Ref: defaulttaskrole39EA6E04
-  defaultexecutionrole239C15A1:
+        - Ref: defaultrestatetaskrole1A7BDFBB
+  defaultrestateexecutionrole4009B294:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -158,7 +158,7 @@ exports[`BYOC Default parameters 1`] = `
             Principal:
               Service: ecs-tasks.amazonaws.com
         Version: '2012-10-17'
-  defaultexecutionroleDefaultPolicyB8CC6C01:
+  defaultrestateexecutionroleDefaultPolicy3E1E0421:
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyDocument:
@@ -180,14 +180,28 @@ exports[`BYOC Default parameters 1`] = `
                 - defaultstatefuldefinitionrestateLogGroup3CA44D5E
                 - Arn
         Version: '2012-10-17'
-      PolicyName: defaultexecutionroleDefaultPolicyB8CC6C01
+      PolicyName: defaultrestateexecutionroleDefaultPolicy3E1E0421
       Roles:
-        - Ref: defaultexecutionrole239C15A1
+        - Ref: defaultrestateexecutionrole4009B294
   defaultstatelessdefinitionDCB0B7C0:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
       ContainerDefinitions:
         - Cpu: 16384
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_CLUSTER_NAME=$(jq -r '.Cluster' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
+              exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
               Value: json
@@ -212,8 +226,6 @@ exports[`BYOC Default parameters 1`] = `
               Value: replicated
             - Name: RESTATE_BIFROST__REPLICATED_LOGLET__DEFAULT_LOG_REPLICATION
               Value: '{zone: 2}'
-            - Name: RESTATE_ADMIN__DEFAULT_PARTITION_REPLICATION__LIMIT
-              Value: '{node: 2}'
             - Name: >-
                 RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE
               Value: 'true'
@@ -224,6 +236,8 @@ exports[`BYOC Default parameters 1`] = `
                   - - 's3://'
                     - Ref: defaultbucket65304C97
                     - /snapshots
+            - Name: RESTATE_ADMIN__DEFAULT_PARTITION_REPLICATION
+              Value: everywhere
           Essential: true
           HealthCheck:
             Command:
@@ -258,7 +272,7 @@ exports[`BYOC Default parameters 1`] = `
       Cpu: '16384'
       ExecutionRoleArn:
         'Fn::GetAtt':
-          - defaultexecutionrole239C15A1
+          - defaultrestateexecutionrole4009B294
           - Arn
       Family: RestateBYOCdefaultstatelessdefinitionFF58C79A
       Memory: '32768'
@@ -273,7 +287,7 @@ exports[`BYOC Default parameters 1`] = `
           Value: RestateBYOC/default/stateless-definition
       TaskRoleArn:
         'Fn::GetAtt':
-          - defaulttaskrole39EA6E04
+          - defaultrestatetaskrole1A7BDFBB
           - Arn
   defaultstatelessdefinitionrestateLogGroup49FB832E:
     Type: 'AWS::Logs::LogGroup'
@@ -336,8 +350,8 @@ exports[`BYOC Default parameters 1`] = `
       - defaultnlbadminlistenerB272EE23
       - defaultnlbingresslistenerBF2A8AE1
       - defaultnlbnodelistener6893AA62
-      - defaulttaskroleDefaultPolicy2C003450
-      - defaulttaskrole39EA6E04
+      - defaultrestatetaskroleDefaultPolicy58736B8D
+      - defaultrestatetaskrole1A7BDFBB
   defaultnlbAE3530CD:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
@@ -459,11 +473,25 @@ exports[`BYOC Default parameters 1`] = `
     Properties:
       ContainerDefinitions:
         - Cpu: 16384
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_CLUSTER_NAME=$(jq -r '.Cluster' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
+              exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
               Value: json
             - Name: RESTATE_ROLES
-              Value: '["log-server", "worker", "http-ingress"]'
+              Value: '["log-server", "worker"]'
             - Name: RESTATE_AUTO_PROVISION
               Value: 'false'
             - Name: RESTATE_SHUTDOWN_TIMEOUT
@@ -536,7 +564,7 @@ exports[`BYOC Default parameters 1`] = `
         SizeInGiB: 200
       ExecutionRoleArn:
         'Fn::GetAtt':
-          - defaultexecutionrole239C15A1
+          - defaultrestateexecutionrole4009B294
           - Arn
       Family: RestateBYOCdefaultstatefuldefinition4D62F21B
       Memory: '32768'
@@ -551,10 +579,11 @@ exports[`BYOC Default parameters 1`] = `
           Value: RestateBYOC/default/stateful-definition
       TaskRoleArn:
         'Fn::GetAtt':
-          - defaulttaskrole39EA6E04
+          - defaultrestatetaskrole1A7BDFBB
           - Arn
       Volumes:
-        - Name: restate-data
+        - ConfiguredAtLaunch: false
+          Name: restate-data
   defaultstatefuldefinitionrestateLogGroup3CA44D5E:
     Type: 'AWS::Logs::LogGroup'
     Properties:
@@ -563,7 +592,7 @@ exports[`BYOC Default parameters 1`] = `
           Value: RestateBYOC/default/stateful-definition
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
-  defaultcontrollerdefinitionTaskRoleB580A23C:
+  defaultcontrollertaskrole7B120178:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -573,10 +602,7 @@ exports[`BYOC Default parameters 1`] = `
             Principal:
               Service: ecs-tasks.amazonaws.com
         Version: '2012-10-17'
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/default/controller-definition
-  defaultcontrollerdefinitionTaskRoleDefaultPolicy387DF178:
+  defaultcontrollertaskroleDefaultPolicy328ED952:
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyDocument:
@@ -594,6 +620,81 @@ exports[`BYOC Default parameters 1`] = `
             Effect: Allow
             Resource: '*'
             Sid: TaskActions
+          - Action: 'ecs:TagResource'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - defaultcluster07071299
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TagTasks
           - Action: 'ecs:RunTask'
             Condition:
               ArnEquals:
@@ -601,45 +702,43 @@ exports[`BYOC Default parameters 1`] = `
                   'Fn::GetAtt':
                     - defaultcluster07071299
                     - Arn
-              ArnLike:
-                'ecs:task-definition':
-                  'Fn::Join':
-                    - ''
-                    - - 'Fn::Join':
-                          - ':'
-                          - - 'Fn::Select':
-                                - 0
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: defaultstatefuldefinition4CD55F35
-                            - 'Fn::Select':
-                                - 1
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: defaultstatefuldefinition4CD55F35
-                            - 'Fn::Select':
-                                - 2
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: defaultstatefuldefinition4CD55F35
-                            - 'Fn::Select':
-                                - 3
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: defaultstatefuldefinition4CD55F35
-                            - 'Fn::Select':
-                                - 4
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: defaultstatefuldefinition4CD55F35
-                            - 'Fn::Select':
-                                - 5
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: defaultstatefuldefinition4CD55F35
-                      - ':*'
             Effect: Allow
-            Resource: '*'
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - ':'
+                      - - 'Fn::Select':
+                            - 0
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: defaultstatefuldefinition4CD55F35
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: defaultstatefuldefinition4CD55F35
+                        - 'Fn::Select':
+                            - 2
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: defaultstatefuldefinition4CD55F35
+                        - 'Fn::Select':
+                            - 3
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: defaultstatefuldefinition4CD55F35
+                        - 'Fn::Select':
+                            - 4
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: defaultstatefuldefinition4CD55F35
+                        - 'Fn::Select':
+                            - 5
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: defaultstatefuldefinition4CD55F35
+                  - ':*'
             Sid: RunTask
           - Action: 'iam:PassRole'
             Condition:
@@ -648,10 +747,10 @@ exports[`BYOC Default parameters 1`] = `
             Effect: Allow
             Resource:
               - 'Fn::GetAtt':
-                  - defaulttaskrole39EA6E04
+                  - defaultrestatetaskrole1A7BDFBB
                   - Arn
               - 'Fn::GetAtt':
-                  - defaultexecutionrole239C15A1
+                  - defaultrestateexecutionrole4009B294
                   - Arn
             Sid: RunTaskPassRole
           - Action:
@@ -674,9 +773,51 @@ exports[`BYOC Default parameters 1`] = `
                 - Arn
             Sid: ListBucket
         Version: '2012-10-17'
-      PolicyName: defaultcontrollerdefinitionTaskRoleDefaultPolicy387DF178
+      PolicyName: defaultcontrollertaskroleDefaultPolicy328ED952
       Roles:
-        - Ref: defaultcontrollerdefinitionTaskRoleB580A23C
+        - Ref: defaultcontrollertaskrole7B120178
+  defaultcontrollerexecutionrole67636991:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  defaultcontrollerexecutionroleDefaultPolicy53CE4FA0:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'ecr:BatchCheckLayerAvailability'
+              - 'ecr:GetDownloadUrlForLayer'
+              - 'ecr:BatchGetImage'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - >-
+                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
+          - Action: 'ecr:GetAuthorizationToken'
+            Effect: Allow
+            Resource: '*'
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - defaultcontrollerdefinitioncontrollerLogGroup60752F65
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: defaultcontrollerexecutionroleDefaultPolicy53CE4FA0
+      Roles:
+        - Ref: defaultcontrollerexecutionrole67636991
   defaultcontrollerdefinition66AD165F:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
@@ -841,6 +982,13 @@ exports[`BYOC Default parameters 1`] = `
                   - ''
                   - - CONTROLLER_ECS_CLUSTERS__
                     - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__COUNT
+              Value: '1'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
                     - __ZONES__dummy1b__ENABLE_EXECUTE_COMMAND
               Value: 'false'
             - Name:
@@ -883,6 +1031,13 @@ exports[`BYOC Default parameters 1`] = `
                   - ''
                   - - CONTROLLER_ECS_CLUSTERS__
                     - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__COUNT
+              Value: '1'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
                     - __ZONES__dummy1c__ENABLE_EXECUTE_COMMAND
               Value: 'false'
             - Name:
@@ -920,6 +1075,13 @@ exports[`BYOC Default parameters 1`] = `
                     - __ZONES__dummy1c__TASK_DEFINITION_ARN
               Value:
                 Ref: defaultstatefuldefinition4CD55F35
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__COUNT
+              Value: '1'
           Essential: true
           HealthCheck:
             Command:
@@ -945,7 +1107,7 @@ exports[`BYOC Default parameters 1`] = `
       Cpu: '1024'
       ExecutionRoleArn:
         'Fn::GetAtt':
-          - defaultcontrollerdefinitionExecutionRoleD4FBD64B
+          - defaultcontrollerexecutionrole67636991
           - Arn
       Family: RestateBYOCdefaultcontrollerdefinition426584A5
       Memory: '2048'
@@ -960,7 +1122,7 @@ exports[`BYOC Default parameters 1`] = `
           Value: RestateBYOC/default/controller-definition
       TaskRoleArn:
         'Fn::GetAtt':
-          - defaultcontrollerdefinitionTaskRoleB580A23C
+          - defaultcontrollertaskrole7B120178
           - Arn
   defaultcontrollerdefinitioncontrollerLogGroup60752F65:
     Type: 'AWS::Logs::LogGroup'
@@ -970,51 +1132,6 @@ exports[`BYOC Default parameters 1`] = `
           Value: RestateBYOC/default/controller-definition
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
-  defaultcontrollerdefinitionExecutionRoleD4FBD64B:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: 'sts:AssumeRole'
-            Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-        Version: '2012-10-17'
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/default/controller-definition
-  defaultcontrollerdefinitionExecutionRoleDefaultPolicy9D0A0573:
-    Type: 'AWS::IAM::Policy'
-    Properties:
-      PolicyDocument:
-        Statement:
-          - Action:
-              - 'ecr:BatchCheckLayerAvailability'
-              - 'ecr:GetDownloadUrlForLayer'
-              - 'ecr:BatchGetImage'
-            Effect: Allow
-            Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - >-
-                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
-          - Action: 'ecr:GetAuthorizationToken'
-            Effect: Allow
-            Resource: '*'
-          - Action:
-              - 'logs:CreateLogStream'
-              - 'logs:PutLogEvents'
-            Effect: Allow
-            Resource:
-              'Fn::GetAtt':
-                - defaultcontrollerdefinitioncontrollerLogGroup60752F65
-                - Arn
-        Version: '2012-10-17'
-      PolicyName: defaultcontrollerdefinitionExecutionRoleDefaultPolicy9D0A0573
-      Roles:
-        - Ref: defaultcontrollerdefinitionExecutionRoleD4FBD64B
   defaultcontrollerserviceService18139D09:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -1032,6 +1149,7 @@ exports[`BYOC Default parameters 1`] = `
         MinimumHealthyPercent: 0
       DesiredCount: 1
       EnableECSManagedTags: false
+      EnableExecuteCommand: false
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -1049,9 +1167,9 @@ exports[`BYOC Default parameters 1`] = `
       TaskDefinition:
         Ref: defaultcontrollerdefinition66AD165F
     DependsOn:
-      - defaultcontrollerdefinitionTaskRoleDefaultPolicy387DF178
-      - defaultcontrollerdefinitionTaskRoleB580A23C
-  defaultrestatectllambdaServiceRoleA08794D1:
+      - defaultcontrollertaskroleDefaultPolicy328ED952
+      - defaultcontrollertaskrole7B120178
+  defaultrestatectllambdaexecutionrole68199B2A:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -1061,20 +1179,28 @@ exports[`BYOC Default parameters 1`] = `
             Principal:
               Service: lambda.amazonaws.com
         Version: '2012-10-17'
-      ManagedPolicyArns:
-        - 'Fn::Join':
-            - ''
-            - - 'arn:'
-              - Ref: 'AWS::Partition'
-              - ':iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-        - 'Fn::Join':
-            - ''
-            - - 'arn:'
-              - Ref: 'AWS::Partition'
-              - ':iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/default/restatectl-lambda
+  defaultrestatectllambdaexecutionroleDefaultPolicy52B70971:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:DescribeNetworkInterfaces'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DeleteNetworkInterface'
+              - 'ec2:AssignPrivateIpAddresses'
+              - 'ec2:UnassignPrivateIpAddresses'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCAccessExecutionPermissions
+        Version: '2012-10-17'
+      PolicyName: defaultrestatectllambdaexecutionroleDefaultPolicy52B70971
+      Roles:
+        - Ref: defaultrestatectllambdaexecutionrole68199B2A
   defaultrestatectllambda05E7B262:
     Type: 'AWS::Lambda::Function'
     Properties:
@@ -1094,7 +1220,7 @@ exports[`BYOC Default parameters 1`] = `
       Handler: restatectl
       Role:
         'Fn::GetAtt':
-          - defaultrestatectllambdaServiceRoleA08794D1
+          - defaultrestatectllambdaexecutionrole68199B2A
           - Arn
       Runtime: provided.al2023
       Tags:
@@ -1111,8 +1237,9 @@ exports[`BYOC Default parameters 1`] = `
           - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
           - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
     DependsOn:
-      - defaultrestatectllambdaServiceRoleA08794D1
-  retirementwatcherlambdaServiceRoleE4E2E3CB:
+      - defaultrestatectllambdaexecutionroleDefaultPolicy52B70971
+      - defaultrestatectllambdaexecutionrole68199B2A
+  retirementwatcherlambdaexecutionrole9E85BCA1:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -1122,29 +1249,93 @@ exports[`BYOC Default parameters 1`] = `
             Principal:
               Service: lambda.amazonaws.com
         Version: '2012-10-17'
-      ManagedPolicyArns:
-        - 'Fn::Join':
-            - ''
-            - - 'arn:'
-              - Ref: 'AWS::Partition'
-              - ':iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/retirement-watcher-lambda
-  retirementwatcherlambdaServiceRoleDefaultPolicyDB1E9C90:
+  retirementwatcherlambdaexecutionroleDefaultPolicy2BC6E96C:
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyDocument:
         Statement:
           - Action:
-              - 'ecs:DescribeClusters'
-              - 'ecs:TagResource'
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaBasicExecutionPermissions
+          - Action: 'ecs:TagResource'
             Effect: Allow
             Resource:
-              'Fn::GetAtt':
-                - defaultcluster07071299
-                - Arn
-            Sid: ClusterActions
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - defaultcluster07071299
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TagTasks
           - Action:
               - 'sqs:ReceiveMessage'
               - 'sqs:ChangeMessageVisibility'
@@ -1157,26 +1348,19 @@ exports[`BYOC Default parameters 1`] = `
                 - retirementwatcherqueueBAD18BB8
                 - Arn
         Version: '2012-10-17'
-      PolicyName: retirementwatcherlambdaServiceRoleDefaultPolicyDB1E9C90
+      PolicyName: retirementwatcherlambdaexecutionroleDefaultPolicy2BC6E96C
       Roles:
-        - Ref: retirementwatcherlambdaServiceRoleE4E2E3CB
+        - Ref: retirementwatcherlambdaexecutionrole9E85BCA1
   retirementwatcherlambda6732274F:
     Type: 'AWS::Lambda::Function'
     Properties:
       Architectures:
         - arm64
       Code: Any<Object>
-      Environment:
-        Variables:
-          CLUSTER_ARN:
-            'Fn::GetAtt':
-              - defaultcluster07071299
-              - Arn
-          NODE_OPTIONS: '--experimental-strip-types'
       Handler: index.handler
       Role:
         'Fn::GetAtt':
-          - retirementwatcherlambdaServiceRoleE4E2E3CB
+          - retirementwatcherlambdaexecutionrole9E85BCA1
           - Arn
       Runtime: nodejs22.x
       Tags:
@@ -1184,8 +1368,8 @@ exports[`BYOC Default parameters 1`] = `
           Value: RestateBYOC/retirement-watcher-lambda
       Timeout: 60
     DependsOn:
-      - retirementwatcherlambdaServiceRoleDefaultPolicyDB1E9C90
-      - retirementwatcherlambdaServiceRoleE4E2E3CB
+      - retirementwatcherlambdaexecutionroleDefaultPolicy2BC6E96C
+      - retirementwatcherlambdaexecutionrole9E85BCA1
   retirementwatcherlambdaSqsEventSourceRestateBYOCretirementwatcherqueueC0B122FB68CBA159:
     Type: 'AWS::Lambda::EventSourceMapping'
     Properties:
@@ -1324,6 +1508,1408 @@ exports[`BYOC Default parameters 1`] = `
 "
 `;
 
+exports[`BYOC With one az 1`] = `
+"Resources:
+  oneazsecuritygroup3EBC43A7:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: RestateBYOC/one-az/security-group
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: '-1'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/security-group
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  oneazsecuritygroupfromRestateBYOConeazsecuritygroup044152E980808B74ECD0:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: 'from RestateBYOConeazsecuritygroup044152E9:8080'
+      FromPort: 8080
+      GroupId:
+        'Fn::GetAtt':
+          - oneazsecuritygroup3EBC43A7
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - oneazsecuritygroup3EBC43A7
+          - GroupId
+      ToPort: 8080
+  oneazsecuritygroupfromRestateBYOConeazsecuritygroup044152E99070AAE9493A:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: 'from RestateBYOConeazsecuritygroup044152E9:9070'
+      FromPort: 9070
+      GroupId:
+        'Fn::GetAtt':
+          - oneazsecuritygroup3EBC43A7
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - oneazsecuritygroup3EBC43A7
+          - GroupId
+      ToPort: 9070
+  oneazsecuritygroupfromRestateBYOConeazsecuritygroup044152E95122B819ECBD:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: 'from RestateBYOConeazsecuritygroup044152E9:5122'
+      FromPort: 5122
+      GroupId:
+        'Fn::GetAtt':
+          - oneazsecuritygroup3EBC43A7
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - oneazsecuritygroup3EBC43A7
+          - GroupId
+      ToPort: 5122
+  oneazbucket84454759:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  oneazbucketPolicy9AEA2C98:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket:
+        Ref: oneazbucket84454759
+      PolicyDocument:
+        Statement:
+          - Action: 's3:*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Resource:
+              - 'Fn::GetAtt':
+                  - oneazbucket84454759
+                  - Arn
+              - 'Fn::Join':
+                  - ''
+                  - - 'Fn::GetAtt':
+                        - oneazbucket84454759
+                        - Arn
+                    - /*
+        Version: '2012-10-17'
+  oneazcluster64058501:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/cluster
+  oneazcluster78EED31A:
+    Type: 'AWS::ECS::ClusterCapacityProviderAssociations'
+    Properties:
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      Cluster:
+        Ref: oneazcluster64058501
+      DefaultCapacityProviderStrategy: []
+  oneazrestatetaskroleED26DCA9:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  oneazrestatetaskroleDefaultPolicy75353BFC:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::GetAtt':
+                      - oneazbucket84454759
+                      - Arn
+                  - /*
+            Sid: ReadWriteBucket
+          - Action: 's3:ListBucket'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - oneazbucket84454759
+                - Arn
+            Sid: ListBucket
+        Version: '2012-10-17'
+      PolicyName: oneazrestatetaskroleDefaultPolicy75353BFC
+      Roles:
+        - Ref: oneazrestatetaskroleED26DCA9
+  oneazrestateexecutionrole28BB1A47:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  oneazrestateexecutionroleDefaultPolicy73A40FE6:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - oneazstatelessdefinitionrestateLogGroup43B4F616
+                - Arn
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - oneazstatefuldefinitionrestateLogGroupB1728FF3
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: oneazrestateexecutionroleDefaultPolicy73A40FE6
+      Roles:
+        - Ref: oneazrestateexecutionrole28BB1A47
+  oneazstatelessdefinition33395BD6:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 16384
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_CLUSTER_NAME=$(jq -r '.Cluster' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
+              exec restate-server
+          Environment:
+            - Name: RESTATE_LOG_FORMAT
+              Value: json
+            - Name: RESTATE_ROLES
+              Value: '["admin","http-ingress"]'
+            - Name: RESTATE_AUTO_PROVISION
+              Value: 'true'
+            - Name: RESTATE_SHUTDOWN_TIMEOUT
+              Value: 100s
+            - Name: RESTATE_DEFAULT_NUM_PARTITIONS
+              Value: '128'
+            - Name: RESTATE_METADATA_CLIENT__TYPE
+              Value: object-store
+            - Name: RESTATE_METADATA_CLIENT__PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: oneazbucket84454759
+                    - /metadata
+            - Name: RESTATE_BIFROST__DEFAULT_PROVIDER
+              Value: replicated
+            - Name: RESTATE_BIFROST__REPLICATED_LOGLET__DEFAULT_LOG_REPLICATION
+              Value: '{node: 2}'
+            - Name: >-
+                RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE
+              Value: 'true'
+            - Name: RESTATE_WORKER__SNAPSHOTS__DESTINATION
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: oneazbucket84454759
+                    - /snapshots
+            - Name: RESTATE_ADMIN__DEFAULT_PARTITION_REPLICATION
+              Value: everywhere
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:8080/restate/health'
+            Interval: 30
+            Retries: 3
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: oneazstatelessdefinitionrestateLogGroup43B4F616
+              awslogs-stream-prefix: restate
+              awslogs-region: region
+          Memory: 32768
+          Name: restate
+          PortMappings:
+            - ContainerPort: 8080
+              Name: ingress
+              Protocol: tcp
+            - ContainerPort: 9070
+              Name: admin
+              Protocol: tcp
+            - ContainerPort: 5122
+              Name: node
+              Protocol: tcp
+          StopTimeout: 120
+      Cpu: '16384'
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - oneazrestateexecutionrole28BB1A47
+          - Arn
+      Family: RestateBYOConeazstatelessdefinition6087330A
+      Memory: '32768'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/stateless-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - oneazrestatetaskroleED26DCA9
+          - Arn
+  oneazstatelessdefinitionrestateLogGroup43B4F616:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/stateless-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  oneazstatelessserviceServiceB8B226F2:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      CapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+      Cluster:
+        Ref: oneazcluster64058501
+      DeploymentConfiguration:
+        Alarms:
+          AlarmNames: []
+          Enable: false
+          Rollback: false
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DesiredCount: 3
+      EnableECSManagedTags: false
+      EnableExecuteCommand: false
+      HealthCheckGracePeriodSeconds: 60
+      LoadBalancers:
+        - ContainerName: restate
+          ContainerPort: 8080
+          TargetGroupArn:
+            Ref: oneazingresstarget406F98A3
+        - ContainerName: restate
+          ContainerPort: 9070
+          TargetGroupArn:
+            Ref: oneazadmintargetBDBAC1F7
+        - ContainerName: restate
+          ContainerPort: 5122
+          TargetGroupArn:
+            Ref: oneaznodetarget4177E6ED
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - 'Fn::GetAtt':
+                - oneazsecuritygroup3EBC43A7
+                - GroupId
+          Subnets:
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+      PropagateTags: SERVICE
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/stateless-service
+      TaskDefinition:
+        Ref: oneazstatelessdefinition33395BD6
+    DependsOn:
+      - oneaznlbadminlistener056D38E8
+      - oneaznlbingresslistener36CF6472
+      - oneaznlbnodelistenerA39F0EED
+      - oneazrestatetaskroleDefaultPolicy75353BFC
+      - oneazrestatetaskroleED26DCA9
+  oneaznlbE683643A:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      LoadBalancerAttributes:
+        - Key: deletion_protection.enabled
+          Value: 'false'
+        - Key: load_balancing.cross_zone.enabled
+          Value: 'false'
+        - Key: dns_record.client_routing_policy
+          Value: availability_zone_affinity
+      Scheme: internal
+      SecurityGroups:
+        - 'Fn::GetAtt':
+            - oneazsecuritygroup3EBC43A7
+            - GroupId
+      Subnets:
+        - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/nlb
+      Type: network
+  oneaznlbingresslistener36CF6472:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: oneazingresstarget406F98A3
+          Type: forward
+      LoadBalancerArn:
+        Ref: oneaznlbE683643A
+      Port: 8080
+      Protocol: TCP
+  oneaznlbadminlistener056D38E8:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: oneazadmintargetBDBAC1F7
+          Type: forward
+      LoadBalancerArn:
+        Ref: oneaznlbE683643A
+      Port: 9070
+      Protocol: TCP
+  oneaznlbnodelistenerA39F0EED:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: oneaznodetarget4177E6ED
+          Type: forward
+      LoadBalancerArn:
+        Ref: oneaznlbE683643A
+      Port: 5122
+      Protocol: TCP
+  oneazingresstarget406F98A3:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /restate/health
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 8080
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/ingress-target
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '10'
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  oneazadmintargetBDBAC1F7:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /health
+      HealthCheckPort: '9070'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 9070
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/admin-target
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '10'
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  oneaznodetarget4177E6ED:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /health
+      HealthCheckPort: '5122'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Name: restate-bluegreen-node
+      Port: 5122
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/node-target
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '10'
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  oneazstatefuldefinition8395A3A6:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 16384
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_CLUSTER_NAME=$(jq -r '.Cluster' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
+              exec restate-server
+          Environment:
+            - Name: RESTATE_LOG_FORMAT
+              Value: json
+            - Name: RESTATE_ROLES
+              Value: '["log-server", "worker"]'
+            - Name: RESTATE_AUTO_PROVISION
+              Value: 'false'
+            - Name: RESTATE_SHUTDOWN_TIMEOUT
+              Value: 100s
+            - Name: RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE
+              Value: 24576MiB
+            - Name: RESTATE_METADATA_CLIENT__TYPE
+              Value: object-store
+            - Name: RESTATE_METADATA_CLIENT__PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: oneazbucket84454759
+                    - /metadata
+            - Name: RESTATE_WORKER__SNAPSHOTS__DESTINATION
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: oneazbucket84454759
+                    - /snapshots
+            - Name: RESTATE_WORKER__SNAPSHOTS__SNAPSHOT_INTERVAL_NUM_RECORDS
+              Value: '1000000'
+            - Name: RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS
+              Value: 'true'
+            - Name: RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_WAL_FSYNC
+              Value: 'true'
+            - Name: RESTATE_LOG_SERVER__ROCKSDB_DISABLE_WAL_FSYNC
+              Value: 'true'
+            - Name: RESTATE_LOG_SERVER__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS
+              Value: 'true'
+            - Name: >-
+                RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE
+              Value: 'true'
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:5122/health'
+            Interval: 30
+            Retries: 3
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: oneazstatefuldefinitionrestateLogGroupB1728FF3
+              awslogs-stream-prefix: restate
+              awslogs-region: region
+          Memory: 32768
+          MountPoints:
+            - ContainerPath: /restate-data
+              ReadOnly: false
+              SourceVolume: restate-data
+          Name: restate
+          PortMappings:
+            - ContainerPort: 5122
+              Name: node
+              Protocol: tcp
+          RestartPolicy:
+            Enabled: true
+            RestartAttemptPeriod: 60
+          StopTimeout: 120
+      Cpu: '16384'
+      EphemeralStorage:
+        SizeInGiB: 200
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - oneazrestateexecutionrole28BB1A47
+          - Arn
+      Family: RestateBYOConeazstatefuldefinition17638845
+      Memory: '32768'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/stateful-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - oneazrestatetaskroleED26DCA9
+          - Arn
+      Volumes:
+        - ConfiguredAtLaunch: false
+          Name: restate-data
+  oneazstatefuldefinitionrestateLogGroupB1728FF3:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/stateful-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  oneazcontrollertaskroleBDE4B7AC:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  oneazcontrollertaskroleDefaultPolicyE5418FA5:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'ecs:ListTasks'
+              - 'ecs:DescribeTasks'
+              - 'ecs:StopTask'
+            Condition:
+              ArnEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - oneazcluster64058501
+                    - Arn
+            Effect: Allow
+            Resource: '*'
+            Sid: TaskActions
+          - Action: 'ecs:TagResource'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - oneazcluster64058501
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - oneazcluster64058501
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - oneazcluster64058501
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - oneazcluster64058501
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - oneazcluster64058501
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - oneazcluster64058501
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TagTasks
+          - Action: 'ecs:RunTask'
+            Condition:
+              ArnEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - oneazcluster64058501
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - ':'
+                      - - 'Fn::Select':
+                            - 0
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: oneazstatefuldefinition8395A3A6
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: oneazstatefuldefinition8395A3A6
+                        - 'Fn::Select':
+                            - 2
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: oneazstatefuldefinition8395A3A6
+                        - 'Fn::Select':
+                            - 3
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: oneazstatefuldefinition8395A3A6
+                        - 'Fn::Select':
+                            - 4
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: oneazstatefuldefinition8395A3A6
+                        - 'Fn::Select':
+                            - 5
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: oneazstatefuldefinition8395A3A6
+                  - ':*'
+            Sid: RunTask
+          - Action: 'iam:PassRole'
+            Condition:
+              StringEquals:
+                'iam:PassedToService': ecs-tasks.amazonaws.com
+            Effect: Allow
+            Resource:
+              - 'Fn::GetAtt':
+                  - oneazrestatetaskroleED26DCA9
+                  - Arn
+              - 'Fn::GetAtt':
+                  - oneazrestateexecutionrole28BB1A47
+                  - Arn
+            Sid: RunTaskPassRole
+          - Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::GetAtt':
+                      - oneazbucket84454759
+                      - Arn
+                  - /*
+            Sid: ReadWriteBucket
+          - Action: 's3:ListBucket'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - oneazbucket84454759
+                - Arn
+            Sid: ListBucket
+        Version: '2012-10-17'
+      PolicyName: oneazcontrollertaskroleDefaultPolicyE5418FA5
+      Roles:
+        - Ref: oneazcontrollertaskroleBDE4B7AC
+  oneazcontrollerexecutionrole0484C60A:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  oneazcontrollerexecutionroleDefaultPolicy4AFAAA9F:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'ecr:BatchCheckLayerAvailability'
+              - 'ecr:GetDownloadUrlForLayer'
+              - 'ecr:BatchGetImage'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - >-
+                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
+          - Action: 'ecr:GetAuthorizationToken'
+            Effect: Allow
+            Resource: '*'
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - oneazcontrollerdefinitioncontrollerLogGroup0F18651A
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: oneazcontrollerexecutionroleDefaultPolicy4AFAAA9F
+      Roles:
+        - Ref: oneazcontrollerexecutionrole0484C60A
+  oneazcontrollerdefinition4A9153FC:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 1024
+          Environment:
+            - Name: RUST_LOG
+              Value: 'info,restate_fargate_controller=debug'
+            - Name: CONTROLLER_LOG_FORMAT
+              Value: json
+            - Name: CONTROLLER_METADATA_PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: oneazbucket84454759
+                    - /metadata
+            - Name: CONTROLLER_RECONCILE_INTERVAL
+              Value: 10s
+            - Name: CONTROLLER_CLUSTER__CLUSTER_ARN
+              Value:
+                'Fn::GetAtt':
+                  - oneazcluster64058501
+                  - Arn
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __REGION
+              Value:
+                Ref: 'AWS::Region'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __CLUSTER_ARN
+              Value:
+                'Fn::GetAtt':
+                  - oneazcluster64058501
+                  - Arn
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __TASK_PREFIX
+              Value:
+                'Fn::Join':
+                  - /
+                  - - 'Fn::Join':
+                        - ':'
+                        - - 'Fn::Select':
+                              - 0
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - oneazcluster64058501
+                                              - Arn
+                          - 'Fn::Select':
+                              - 1
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - oneazcluster64058501
+                                              - Arn
+                          - 'Fn::Select':
+                              - 2
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - oneazcluster64058501
+                                              - Arn
+                          - 'Fn::Select':
+                              - 3
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - oneazcluster64058501
+                                              - Arn
+                          - 'Fn::Select':
+                              - 4
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - oneazcluster64058501
+                                              - Arn
+                          - task
+                    - 'Fn::Select':
+                        - 1
+                        - 'Fn::Split':
+                            - /
+                            - 'Fn::GetAtt':
+                                - oneazcluster64058501
+                                - Arn
+                    - ''
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__ENABLE_EXECUTE_COMMAND
+              Value: 'false'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__SECURITY_GROUPS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::GetAtt':
+                        - oneazsecuritygroup3EBC43A7
+                        - GroupId
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__SUBNETS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::ImportValue': >-
+                        VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__TASK_DEFINITION_ARN
+              Value:
+                Ref: oneazstatefuldefinition8395A3A6
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__COUNT
+              Value: '1'
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:8080/health'
+            Interval: 30
+            Retries: 10
+            StartPeriod: 300
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: oneazcontrollerdefinitioncontrollerLogGroup0F18651A
+              awslogs-stream-prefix: controller
+              awslogs-region: region
+          Memory: 2048
+          Name: controller
+          StopTimeout: 120
+      Cpu: '1024'
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - oneazcontrollerexecutionrole0484C60A
+          - Arn
+      Family: RestateBYOConeazcontrollerdefinition8E758A24
+      Memory: '2048'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/controller-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - oneazcontrollertaskroleBDE4B7AC
+          - Arn
+  oneazcontrollerdefinitioncontrollerLogGroup0F18651A:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/controller-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  oneazcontrollerserviceService687CA4B7:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      CapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+      Cluster:
+        Ref: oneazcluster64058501
+      DeploymentConfiguration:
+        Alarms:
+          AlarmNames: []
+          Enable: false
+          Rollback: false
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      DesiredCount: 1
+      EnableECSManagedTags: false
+      EnableExecuteCommand: false
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - 'Fn::GetAtt':
+                - oneazsecuritygroup3EBC43A7
+                - GroupId
+          Subnets:
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/controller-service
+      TaskDefinition:
+        Ref: oneazcontrollerdefinition4A9153FC
+    DependsOn:
+      - oneazcontrollertaskroleDefaultPolicyE5418FA5
+      - oneazcontrollertaskroleBDE4B7AC
+  oneazrestatectllambdaexecutionroleB8EEEC4E:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  oneazrestatectllambdaexecutionroleDefaultPolicyC1275182:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:DescribeNetworkInterfaces'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DeleteNetworkInterface'
+              - 'ec2:AssignPrivateIpAddresses'
+              - 'ec2:UnassignPrivateIpAddresses'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCAccessExecutionPermissions
+        Version: '2012-10-17'
+      PolicyName: oneazrestatectllambdaexecutionroleDefaultPolicyC1275182
+      Roles:
+        - Ref: oneazrestatectllambdaexecutionroleB8EEEC4E
+  oneazrestatectllambdaE8A79621:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Environment:
+        Variables:
+          RESTATECTL_ADDRESS:
+            'Fn::Join':
+              - ''
+              - - 'http://'
+                - 'Fn::GetAtt':
+                    - oneaznlbE683643A
+                    - DNSName
+                - ':5122'
+      Handler: restatectl
+      Role:
+        'Fn::GetAtt':
+          - oneazrestatectllambdaexecutionroleB8EEEC4E
+          - Arn
+      Runtime: provided.al2023
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/one-az/restatectl-lambda
+      Timeout: 10
+      VpcConfig:
+        SecurityGroupIds:
+          - 'Fn::GetAtt':
+              - oneazsecuritygroup3EBC43A7
+              - GroupId
+        SubnetIds:
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+    DependsOn:
+      - oneazrestatectllambdaexecutionroleDefaultPolicyC1275182
+      - oneazrestatectllambdaexecutionroleB8EEEC4E
+  retirementwatcherlambdaexecutionrole9E85BCA1:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  retirementwatcherlambdaexecutionroleDefaultPolicy2BC6E96C:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaBasicExecutionPermissions
+          - Action: 'ecs:TagResource'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - oneazcluster64058501
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - oneazcluster64058501
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - oneazcluster64058501
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - oneazcluster64058501
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - oneazcluster64058501
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - oneazcluster64058501
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TagTasks
+          - Action:
+              - 'sqs:ReceiveMessage'
+              - 'sqs:ChangeMessageVisibility'
+              - 'sqs:GetQueueUrl'
+              - 'sqs:DeleteMessage'
+              - 'sqs:GetQueueAttributes'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - retirementwatcherqueueBAD18BB8
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: retirementwatcherlambdaexecutionroleDefaultPolicy2BC6E96C
+      Roles:
+        - Ref: retirementwatcherlambdaexecutionrole9E85BCA1
+  retirementwatcherlambda6732274F:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Handler: index.handler
+      Role:
+        'Fn::GetAtt':
+          - retirementwatcherlambdaexecutionrole9E85BCA1
+          - Arn
+      Runtime: nodejs22.x
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/retirement-watcher-lambda
+      Timeout: 60
+    DependsOn:
+      - retirementwatcherlambdaexecutionroleDefaultPolicy2BC6E96C
+      - retirementwatcherlambdaexecutionrole9E85BCA1
+  retirementwatcherlambdaSqsEventSourceRestateBYOCretirementwatcherqueueC0B122FB68CBA159:
+    Type: 'AWS::Lambda::EventSourceMapping'
+    Properties:
+      BatchSize: 1
+      EventSourceArn:
+        'Fn::GetAtt':
+          - retirementwatcherqueueBAD18BB8
+          - Arn
+      FunctionName:
+        Ref: retirementwatcherlambda6732274F
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/retirement-watcher-lambda
+  retirementwatcherqueueBAD18BB8:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/retirement-watcher-queue
+      VisibilityTimeout: 60
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  retirementwatcherqueuePolicy5522DE00:
+    Type: 'AWS::SQS::QueuePolicy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'sqs:SendMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
+            Condition:
+              ArnEquals:
+                'aws:SourceArn':
+                  'Fn::GetAtt':
+                    - retirementwatcherrule0D8877EE
+                    - Arn
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Resource:
+              'Fn::GetAtt':
+                - retirementwatcherqueueBAD18BB8
+                - Arn
+        Version: '2012-10-17'
+      Queues:
+        - Ref: retirementwatcherqueueBAD18BB8
+  retirementwatcherrule0D8877EE:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        detail:
+          eventTypeCode:
+            - equals-ignore-case: AWS_ECS_TASK_PATCHING_RETIREMENT
+          service:
+            - equals-ignore-case: ecs
+        resources:
+          - prefix:
+              'Fn::Join':
+                - /
+                - - 'Fn::Join':
+                      - ':'
+                      - - 'Fn::Select':
+                            - 0
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - oneazcluster64058501
+                                            - Arn
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - oneazcluster64058501
+                                            - Arn
+                        - 'Fn::Select':
+                            - 2
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - oneazcluster64058501
+                                            - Arn
+                        - 'Fn::Select':
+                            - 3
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - oneazcluster64058501
+                                            - Arn
+                        - 'Fn::Select':
+                            - 4
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - oneazcluster64058501
+                                            - Arn
+                        - task
+                  - 'Fn::Select':
+                      - 1
+                      - 'Fn::Split':
+                          - /
+                          - 'Fn::GetAtt':
+                              - oneazcluster64058501
+                              - Arn
+                  - ''
+        detail-type:
+          - equals-ignore-case: AWS Health Event
+      State: ENABLED
+      Targets:
+        - Arn:
+            'Fn::GetAtt':
+              - retirementwatcherqueueBAD18BB8
+              - Arn
+          Id: Target0
+"
+`;
+
 exports[`BYOC With volume 1`] = `
 "Resources:
   withvolumesecuritygroup6DBAA33E:
@@ -1434,7 +3020,7 @@ exports[`BYOC With volume 1`] = `
       Cluster:
         Ref: withvolumecluster05BAFA05
       DefaultCapacityProviderStrategy: []
-  withvolumetaskrole261905B6:
+  withvolumerestatetaskroleEAE4F95E:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -1444,7 +3030,7 @@ exports[`BYOC With volume 1`] = `
             Principal:
               Service: ecs-tasks.amazonaws.com
         Version: '2012-10-17'
-  withvolumetaskroleDefaultPolicyCC3F2AA1:
+  withvolumerestatetaskroleDefaultPolicyB2F6578B:
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyDocument:
@@ -1469,10 +3055,10 @@ exports[`BYOC With volume 1`] = `
                 - Arn
             Sid: ListBucket
         Version: '2012-10-17'
-      PolicyName: withvolumetaskroleDefaultPolicyCC3F2AA1
+      PolicyName: withvolumerestatetaskroleDefaultPolicyB2F6578B
       Roles:
-        - Ref: withvolumetaskrole261905B6
-  withvolumeexecutionrole3E3B4648:
+        - Ref: withvolumerestatetaskroleEAE4F95E
+  withvolumerestateexecutionroleBCDE318D:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -1482,7 +3068,7 @@ exports[`BYOC With volume 1`] = `
             Principal:
               Service: ecs-tasks.amazonaws.com
         Version: '2012-10-17'
-  withvolumeexecutionroleDefaultPolicyC4D3F6D5:
+  withvolumerestateexecutionroleDefaultPolicy00C7C566:
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyDocument:
@@ -1504,14 +3090,28 @@ exports[`BYOC With volume 1`] = `
                 - withvolumestatefuldefinitionrestateLogGroupD4893BD3
                 - Arn
         Version: '2012-10-17'
-      PolicyName: withvolumeexecutionroleDefaultPolicyC4D3F6D5
+      PolicyName: withvolumerestateexecutionroleDefaultPolicy00C7C566
       Roles:
-        - Ref: withvolumeexecutionrole3E3B4648
+        - Ref: withvolumerestateexecutionroleBCDE318D
   withvolumestatelessdefinition6EEBEF17:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
       ContainerDefinitions:
         - Cpu: 16384
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_CLUSTER_NAME=$(jq -r '.Cluster' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
+              exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
               Value: json
@@ -1536,8 +3136,6 @@ exports[`BYOC With volume 1`] = `
               Value: replicated
             - Name: RESTATE_BIFROST__REPLICATED_LOGLET__DEFAULT_LOG_REPLICATION
               Value: '{zone: 2}'
-            - Name: RESTATE_ADMIN__DEFAULT_PARTITION_REPLICATION__LIMIT
-              Value: '{node: 2}'
             - Name: >-
                 RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE
               Value: 'true'
@@ -1548,6 +3146,8 @@ exports[`BYOC With volume 1`] = `
                   - - 's3://'
                     - Ref: withvolumebucketE6C6250B
                     - /snapshots
+            - Name: RESTATE_ADMIN__DEFAULT_PARTITION_REPLICATION
+              Value: everywhere
           Essential: true
           HealthCheck:
             Command:
@@ -1582,7 +3182,7 @@ exports[`BYOC With volume 1`] = `
       Cpu: '16384'
       ExecutionRoleArn:
         'Fn::GetAtt':
-          - withvolumeexecutionrole3E3B4648
+          - withvolumerestateexecutionroleBCDE318D
           - Arn
       Family: RestateBYOCwithvolumestatelessdefinition93235A6B
       Memory: '32768'
@@ -1597,7 +3197,7 @@ exports[`BYOC With volume 1`] = `
           Value: RestateBYOC/with-volume/stateless-definition
       TaskRoleArn:
         'Fn::GetAtt':
-          - withvolumetaskrole261905B6
+          - withvolumerestatetaskroleEAE4F95E
           - Arn
   withvolumestatelessdefinitionrestateLogGroup9C462383:
     Type: 'AWS::Logs::LogGroup'
@@ -1660,8 +3260,8 @@ exports[`BYOC With volume 1`] = `
       - withvolumenlbadminlistenerCE9B4D30
       - withvolumenlbingresslistenerE8D58B65
       - withvolumenlbnodelistener3608123A
-      - withvolumetaskroleDefaultPolicyCC3F2AA1
-      - withvolumetaskrole261905B6
+      - withvolumerestatetaskroleDefaultPolicyB2F6578B
+      - withvolumerestatetaskroleEAE4F95E
   withvolumenlb9E255615:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
@@ -1783,11 +3383,25 @@ exports[`BYOC With volume 1`] = `
     Properties:
       ContainerDefinitions:
         - Cpu: 16384
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_CLUSTER_NAME=$(jq -r '.Cluster' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
+              exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
               Value: json
             - Name: RESTATE_ROLES
-              Value: '["log-server", "worker", "http-ingress"]'
+              Value: '["log-server", "worker"]'
             - Name: RESTATE_AUTO_PROVISION
               Value: 'false'
             - Name: RESTATE_SHUTDOWN_TIMEOUT
@@ -1858,7 +3472,7 @@ exports[`BYOC With volume 1`] = `
       Cpu: '16384'
       ExecutionRoleArn:
         'Fn::GetAtt':
-          - withvolumeexecutionrole3E3B4648
+          - withvolumerestateexecutionroleBCDE318D
           - Arn
       Family: RestateBYOCwithvolumestatefuldefinition4F5A9794
       Memory: '32768'
@@ -1873,7 +3487,7 @@ exports[`BYOC With volume 1`] = `
           Value: RestateBYOC/with-volume/stateful-definition
       TaskRoleArn:
         'Fn::GetAtt':
-          - withvolumetaskrole261905B6
+          - withvolumerestatetaskroleEAE4F95E
           - Arn
       Volumes:
         - ConfiguredAtLaunch: true
@@ -1886,7 +3500,7 @@ exports[`BYOC With volume 1`] = `
           Value: RestateBYOC/with-volume/stateful-definition
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
-  withvolumecontrollerdefinitionTaskRoleE869D831:
+  withvolumecontrollertaskrole96D31345:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -1896,10 +3510,7 @@ exports[`BYOC With volume 1`] = `
             Principal:
               Service: ecs-tasks.amazonaws.com
         Version: '2012-10-17'
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-volume/controller-definition
-  withvolumecontrollerdefinitionTaskRoleDefaultPolicy4696F330:
+  withvolumecontrollertaskroleDefaultPolicyCC286394:
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyDocument:
@@ -1917,6 +3528,81 @@ exports[`BYOC With volume 1`] = `
             Effect: Allow
             Resource: '*'
             Sid: TaskActions
+          - Action: 'ecs:TagResource'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvolumecluster05BAFA05
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvolumecluster05BAFA05
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvolumecluster05BAFA05
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvolumecluster05BAFA05
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvolumecluster05BAFA05
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - withvolumecluster05BAFA05
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TagTasks
           - Action: 'ecs:RunTask'
             Condition:
               ArnEquals:
@@ -1924,45 +3610,43 @@ exports[`BYOC With volume 1`] = `
                   'Fn::GetAtt':
                     - withvolumecluster05BAFA05
                     - Arn
-              ArnLike:
-                'ecs:task-definition':
-                  'Fn::Join':
-                    - ''
-                    - - 'Fn::Join':
-                          - ':'
-                          - - 'Fn::Select':
-                                - 0
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: withvolumestatefuldefinitionF7A5C84B
-                            - 'Fn::Select':
-                                - 1
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: withvolumestatefuldefinitionF7A5C84B
-                            - 'Fn::Select':
-                                - 2
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: withvolumestatefuldefinitionF7A5C84B
-                            - 'Fn::Select':
-                                - 3
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: withvolumestatefuldefinitionF7A5C84B
-                            - 'Fn::Select':
-                                - 4
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: withvolumestatefuldefinitionF7A5C84B
-                            - 'Fn::Select':
-                                - 5
-                                - 'Fn::Split':
-                                    - ':'
-                                    - Ref: withvolumestatefuldefinitionF7A5C84B
-                      - ':*'
             Effect: Allow
-            Resource: '*'
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - ':'
+                      - - 'Fn::Select':
+                            - 0
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvolumestatefuldefinitionF7A5C84B
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvolumestatefuldefinitionF7A5C84B
+                        - 'Fn::Select':
+                            - 2
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvolumestatefuldefinitionF7A5C84B
+                        - 'Fn::Select':
+                            - 3
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvolumestatefuldefinitionF7A5C84B
+                        - 'Fn::Select':
+                            - 4
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvolumestatefuldefinitionF7A5C84B
+                        - 'Fn::Select':
+                            - 5
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvolumestatefuldefinitionF7A5C84B
+                  - ':*'
             Sid: RunTask
           - Action: 'iam:PassRole'
             Condition:
@@ -1971,10 +3655,10 @@ exports[`BYOC With volume 1`] = `
             Effect: Allow
             Resource:
               - 'Fn::GetAtt':
-                  - withvolumetaskrole261905B6
+                  - withvolumerestatetaskroleEAE4F95E
                   - Arn
               - 'Fn::GetAtt':
-                  - withvolumeexecutionrole3E3B4648
+                  - withvolumerestateexecutionroleBCDE318D
                   - Arn
             Sid: RunTaskPassRole
           - Action: 'iam:PassRole'
@@ -2007,9 +3691,51 @@ exports[`BYOC With volume 1`] = `
                 - Arn
             Sid: ListBucket
         Version: '2012-10-17'
-      PolicyName: withvolumecontrollerdefinitionTaskRoleDefaultPolicy4696F330
+      PolicyName: withvolumecontrollertaskroleDefaultPolicyCC286394
       Roles:
-        - Ref: withvolumecontrollerdefinitionTaskRoleE869D831
+        - Ref: withvolumecontrollertaskrole96D31345
+  withvolumecontrollerexecutionrole2832B829:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  withvolumecontrollerexecutionroleDefaultPolicyEE2C9936:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'ecr:BatchCheckLayerAvailability'
+              - 'ecr:GetDownloadUrlForLayer'
+              - 'ecr:BatchGetImage'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - >-
+                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
+          - Action: 'ecr:GetAuthorizationToken'
+            Effect: Allow
+            Resource: '*'
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withvolumecontrollerdefinitioncontrollerLogGroupF7CEE299
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: withvolumecontrollerexecutionroleDefaultPolicyEE2C9936
+      Roles:
+        - Ref: withvolumecontrollerexecutionrole2832B829
   withvolumecontrollerdefinitionD81EB134:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
@@ -2205,6 +3931,13 @@ exports[`BYOC With volume 1`] = `
                   - ''
                   - - CONTROLLER_ECS_CLUSTERS__
                     - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__COUNT
+              Value: '1'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
                     - __ZONES__dummy1b__VOLUME__SIZE_IN_GIB
               Value: '200'
             - Name:
@@ -2278,6 +4011,13 @@ exports[`BYOC With volume 1`] = `
                   - ''
                   - - CONTROLLER_ECS_CLUSTERS__
                     - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__COUNT
+              Value: '1'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
                     - __ZONES__dummy1c__VOLUME__SIZE_IN_GIB
               Value: '200'
             - Name:
@@ -2346,6 +4086,13 @@ exports[`BYOC With volume 1`] = `
                     - __ZONES__dummy1c__TASK_DEFINITION_ARN
               Value:
                 Ref: withvolumestatefuldefinitionF7A5C84B
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__COUNT
+              Value: '1'
           Essential: true
           HealthCheck:
             Command:
@@ -2371,7 +4118,7 @@ exports[`BYOC With volume 1`] = `
       Cpu: '1024'
       ExecutionRoleArn:
         'Fn::GetAtt':
-          - withvolumecontrollerdefinitionExecutionRoleFC6EEBC8
+          - withvolumecontrollerexecutionrole2832B829
           - Arn
       Family: RestateBYOCwithvolumecontrollerdefinitionC10AEDF7
       Memory: '2048'
@@ -2386,7 +4133,7 @@ exports[`BYOC With volume 1`] = `
           Value: RestateBYOC/with-volume/controller-definition
       TaskRoleArn:
         'Fn::GetAtt':
-          - withvolumecontrollerdefinitionTaskRoleE869D831
+          - withvolumecontrollertaskrole96D31345
           - Arn
   withvolumecontrollerdefinitioncontrollerLogGroupF7CEE299:
     Type: 'AWS::Logs::LogGroup'
@@ -2396,51 +4143,6 @@ exports[`BYOC With volume 1`] = `
           Value: RestateBYOC/with-volume/controller-definition
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
-  withvolumecontrollerdefinitionExecutionRoleFC6EEBC8:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: 'sts:AssumeRole'
-            Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-        Version: '2012-10-17'
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-volume/controller-definition
-  withvolumecontrollerdefinitionExecutionRoleDefaultPolicy51E639F4:
-    Type: 'AWS::IAM::Policy'
-    Properties:
-      PolicyDocument:
-        Statement:
-          - Action:
-              - 'ecr:BatchCheckLayerAvailability'
-              - 'ecr:GetDownloadUrlForLayer'
-              - 'ecr:BatchGetImage'
-            Effect: Allow
-            Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - >-
-                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
-          - Action: 'ecr:GetAuthorizationToken'
-            Effect: Allow
-            Resource: '*'
-          - Action:
-              - 'logs:CreateLogStream'
-              - 'logs:PutLogEvents'
-            Effect: Allow
-            Resource:
-              'Fn::GetAtt':
-                - withvolumecontrollerdefinitioncontrollerLogGroupF7CEE299
-                - Arn
-        Version: '2012-10-17'
-      PolicyName: withvolumecontrollerdefinitionExecutionRoleDefaultPolicy51E639F4
-      Roles:
-        - Ref: withvolumecontrollerdefinitionExecutionRoleFC6EEBC8
   withvolumevolumerole7B81BA6D:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -2537,6 +4239,19 @@ exports[`BYOC With volume 1`] = `
                       - Ref: 'AWS::AccountId'
                       - ':volume/*'
                 Sid: ManageEBSVolumeLifecycle
+              - Action:
+                  - 'ec2:AttachVolume'
+                  - 'ec2:DetachVolume'
+                Effect: Allow
+                Resource:
+                  'Fn::Join':
+                    - ''
+                    - - 'arn:'
+                      - Ref: 'AWS::Partition'
+                      - ':ec2:'
+                      - Ref: 'AWS::Region'
+                      - ':*:instance/*'
+                Sid: ManageVolumeAttachmentsForEC2
               - Action: 'ec2:DeleteVolume'
                 Condition:
                   ArnLike:
@@ -2586,6 +4301,7 @@ exports[`BYOC With volume 1`] = `
         MinimumHealthyPercent: 0
       DesiredCount: 1
       EnableECSManagedTags: false
+      EnableExecuteCommand: false
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -2603,9 +4319,9 @@ exports[`BYOC With volume 1`] = `
       TaskDefinition:
         Ref: withvolumecontrollerdefinitionD81EB134
     DependsOn:
-      - withvolumecontrollerdefinitionTaskRoleDefaultPolicy4696F330
-      - withvolumecontrollerdefinitionTaskRoleE869D831
-  withvolumerestatectllambdaServiceRole10FA5C1D:
+      - withvolumecontrollertaskroleDefaultPolicyCC286394
+      - withvolumecontrollertaskrole96D31345
+  withvolumerestatectllambdaexecutionrole9F033DC5:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -2615,20 +4331,28 @@ exports[`BYOC With volume 1`] = `
             Principal:
               Service: lambda.amazonaws.com
         Version: '2012-10-17'
-      ManagedPolicyArns:
-        - 'Fn::Join':
-            - ''
-            - - 'arn:'
-              - Ref: 'AWS::Partition'
-              - ':iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-        - 'Fn::Join':
-            - ''
-            - - 'arn:'
-              - Ref: 'AWS::Partition'
-              - ':iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-volume/restatectl-lambda
+  withvolumerestatectllambdaexecutionroleDefaultPolicy04A6D03E:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:DescribeNetworkInterfaces'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DeleteNetworkInterface'
+              - 'ec2:AssignPrivateIpAddresses'
+              - 'ec2:UnassignPrivateIpAddresses'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCAccessExecutionPermissions
+        Version: '2012-10-17'
+      PolicyName: withvolumerestatectllambdaexecutionroleDefaultPolicy04A6D03E
+      Roles:
+        - Ref: withvolumerestatectllambdaexecutionrole9F033DC5
   withvolumerestatectllambdaE21E648A:
     Type: 'AWS::Lambda::Function'
     Properties:
@@ -2648,7 +4372,7 @@ exports[`BYOC With volume 1`] = `
       Handler: restatectl
       Role:
         'Fn::GetAtt':
-          - withvolumerestatectllambdaServiceRole10FA5C1D
+          - withvolumerestatectllambdaexecutionrole9F033DC5
           - Arn
       Runtime: provided.al2023
       Tags:
@@ -2665,8 +4389,9 @@ exports[`BYOC With volume 1`] = `
           - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
           - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
     DependsOn:
-      - withvolumerestatectllambdaServiceRole10FA5C1D
-  retirementwatcherlambdaServiceRoleE4E2E3CB:
+      - withvolumerestatectllambdaexecutionroleDefaultPolicy04A6D03E
+      - withvolumerestatectllambdaexecutionrole9F033DC5
+  retirementwatcherlambdaexecutionrole9E85BCA1:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -2676,29 +4401,93 @@ exports[`BYOC With volume 1`] = `
             Principal:
               Service: lambda.amazonaws.com
         Version: '2012-10-17'
-      ManagedPolicyArns:
-        - 'Fn::Join':
-            - ''
-            - - 'arn:'
-              - Ref: 'AWS::Partition'
-              - ':iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/retirement-watcher-lambda
-  retirementwatcherlambdaServiceRoleDefaultPolicyDB1E9C90:
+  retirementwatcherlambdaexecutionroleDefaultPolicy2BC6E96C:
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyDocument:
         Statement:
           - Action:
-              - 'ecs:DescribeClusters'
-              - 'ecs:TagResource'
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaBasicExecutionPermissions
+          - Action: 'ecs:TagResource'
             Effect: Allow
             Resource:
-              'Fn::GetAtt':
-                - withvolumecluster05BAFA05
-                - Arn
-            Sid: ClusterActions
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvolumecluster05BAFA05
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvolumecluster05BAFA05
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvolumecluster05BAFA05
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvolumecluster05BAFA05
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvolumecluster05BAFA05
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - withvolumecluster05BAFA05
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TagTasks
           - Action:
               - 'sqs:ReceiveMessage'
               - 'sqs:ChangeMessageVisibility'
@@ -2711,26 +4500,19 @@ exports[`BYOC With volume 1`] = `
                 - retirementwatcherqueueBAD18BB8
                 - Arn
         Version: '2012-10-17'
-      PolicyName: retirementwatcherlambdaServiceRoleDefaultPolicyDB1E9C90
+      PolicyName: retirementwatcherlambdaexecutionroleDefaultPolicy2BC6E96C
       Roles:
-        - Ref: retirementwatcherlambdaServiceRoleE4E2E3CB
+        - Ref: retirementwatcherlambdaexecutionrole9E85BCA1
   retirementwatcherlambda6732274F:
     Type: 'AWS::Lambda::Function'
     Properties:
       Architectures:
         - arm64
       Code: Any<Object>
-      Environment:
-        Variables:
-          CLUSTER_ARN:
-            'Fn::GetAtt':
-              - withvolumecluster05BAFA05
-              - Arn
-          NODE_OPTIONS: '--experimental-strip-types'
       Handler: index.handler
       Role:
         'Fn::GetAtt':
-          - retirementwatcherlambdaServiceRoleE4E2E3CB
+          - retirementwatcherlambdaexecutionrole9E85BCA1
           - Arn
       Runtime: nodejs22.x
       Tags:
@@ -2738,8 +4520,8 @@ exports[`BYOC With volume 1`] = `
           Value: RestateBYOC/retirement-watcher-lambda
       Timeout: 60
     DependsOn:
-      - retirementwatcherlambdaServiceRoleDefaultPolicyDB1E9C90
-      - retirementwatcherlambdaServiceRoleE4E2E3CB
+      - retirementwatcherlambdaexecutionroleDefaultPolicy2BC6E96C
+      - retirementwatcherlambdaexecutionrole9E85BCA1
   retirementwatcherlambdaSqsEventSourceRestateBYOCretirementwatcherqueueC0B122FB68CBA159:
     Type: 'AWS::Lambda::EventSourceMapping'
     Properties:
