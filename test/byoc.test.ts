@@ -65,6 +65,42 @@ describe("BYOC", () => {
       yaml: true,
     });
   });
+
+  test("Without dashboard", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateBYOC(stack, "one-az", {
+      vpc,
+      monitoring: {
+        dashboard: {
+          disabled: true,
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("Without custom widget lambda", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateBYOC(stack, "one-az", {
+      vpc,
+      monitoring: {
+        dashboard: {
+          customWidgets: { disabled: true },
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
 });
 
 function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {

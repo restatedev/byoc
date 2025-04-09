@@ -2,7 +2,13 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { VOLUME_POLICY } from "./volume-policy";
 import {
+  DEFAULT_CONTROLLER_CPU,
+  DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB,
+  DEFAULT_RESTATE_CPU,
   DEFAULT_RESTATE_IMAGE,
+  DEFAULT_RESTATE_MEMORY_LIMIT_MIB,
+  DEFAULT_STATEFUL_NODES_PER_AZ,
+  DEFAULT_STATELESS_DESIRED_COUNT,
   RestateBYOCControllerProps,
   RestateBYOCLoadBalancerProps,
   RestateBYOCProps,
@@ -12,7 +18,7 @@ import {
   RestateBYOCStatelessProps,
   RestateBYOCTaskProps,
 } from "./props";
-import { Volume } from "aws-cdk-lib/aws-ec2";
+import { createMonitoring } from "./monitoring";
 
 export class RestateBYOC extends Construct {
   public readonly vpc: cdk.aws_ec2.IVpc;
@@ -50,6 +56,11 @@ export class RestateBYOC extends Construct {
     fn: cdk.aws_lambda.IFunction;
     queue: cdk.aws_sqs.IQueue;
     rule: cdk.aws_events.IRule;
+  };
+  public readonly monitoring: {
+    metricsDashboard?: cdk.aws_cloudwatch.Dashboard;
+    controlPanelDashboard?: cdk.aws_cloudwatch.Dashboard;
+    customWidgetFn?: cdk.aws_lambda.IFunction;
   };
 
   constructor(scope: Construct, id: string, props: RestateBYOCProps) {
@@ -168,16 +179,17 @@ export class RestateBYOC extends Construct {
       props.loadBalancer,
     );
 
-    this.statefulDefinition = createStatefulDefinition(
+    const statefulDefinition = createStatefulDefinition(
       this,
       bucketPath,
       restateTaskProps,
       props.statefulNode,
     );
+    this.statefulDefinition = statefulDefinition;
 
     const ctPrefix = clusterTaskPrefix(this.cluster.clusterArn);
 
-    this.controller = createController(
+    const controller = createController(
       this,
       bucketPath,
       this.cluster,
@@ -189,6 +201,7 @@ export class RestateBYOC extends Construct {
       props.statefulNode,
       props.controller,
     );
+    this.controller = controller;
 
     this.restatectl = createRestatectl(
       this,
@@ -201,11 +214,22 @@ export class RestateBYOC extends Construct {
     );
 
     this.retirementWatcher = createRetirementWatcher(
-      scope,
+      this,
       this.cluster,
       ctPrefix,
       props.retirementWatcher,
     );
+
+    const monitoring = createMonitoring(
+      this,
+      this.cluster,
+      stateless.taskDefinition,
+      statefulDefinition,
+      controller.taskDefinition,
+      this.restatectl,
+      props,
+    );
+    if (monitoring) this.monitoring = monitoring;
 
     for (const bucketRole of [
       restateTaskProps.taskRole,
@@ -242,10 +266,12 @@ function createStateless(
   statelessProps?: RestateBYOCStatelessProps,
 ): {
   service: cdk.aws_ecs.FargateService;
-  taskDefinition: cdk.aws_ecs.IFargateTaskDefinition;
+  taskDefinition: cdk.aws_ecs.FargateTaskDefinition;
 } {
-  const cpu = statelessProps?.resources?.cpu ?? 16384;
-  const memoryLimitMiB = statelessProps?.resources?.memoryLimitMiB ?? 32768;
+  const cpu = statelessProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
+  const memoryLimitMiB =
+    statelessProps?.resources?.memoryLimitMiB ??
+    DEFAULT_RESTATE_MEMORY_LIMIT_MIB;
 
   const taskDefinition = new cdk.aws_ecs.FargateTaskDefinition(
     scope,
@@ -270,18 +296,6 @@ function createStateless(
     } else {
       logReplication = `{node: ${statelessProps?.defaultLogReplication.node}}`;
     }
-  }
-
-  let partitionReplication: object = {
-    RESTATE_ADMIN__DEFAULT_PARTITION_REPLICATION: "everywhere",
-  };
-  if (
-    statelessProps?.defaultPartitionReplication &&
-    statelessProps.defaultPartitionReplication !== "everywhere"
-  ) {
-    partitionReplication = {
-      RESTATE_ADMIN__DEFAULT_PARTITION_REPLICATION__LIMIT: `{node: ${statelessProps?.defaultPartitionReplication.node}}`,
-    };
   }
 
   taskDefinition.addContainer("restate", {
@@ -316,6 +330,7 @@ function createStateless(
       RESTATE_AUTO_PROVISION: "true",
       RESTATE_SHUTDOWN_TIMEOUT: "100s", // fargate allows 120s
       RESTATE_DEFAULT_NUM_PARTITIONS: `${statelessProps?.defaultPartitions ?? 128}`,
+      RESTATE_DEFAULT_REPLICATION: `{node: ${statelessProps?.defaultPartitionReplication?.node ?? 3} }`,
 
       RESTATE_METADATA_CLIENT__TYPE: "object-store",
       RESTATE_METADATA_CLIENT__PATH: `${bucketPath}/metadata`,
@@ -329,7 +344,6 @@ function createStateless(
 
       // why? this isn't a worker! because the admin uses the presence of this flag as a signal of how to trim
       RESTATE_WORKER__SNAPSHOTS__DESTINATION: `${bucketPath}/snapshots`,
-      ...partitionReplication,
     },
   });
 
@@ -339,7 +353,8 @@ function createStateless(
     enableExecuteCommand: taskProps.enableExecuteCommand,
     vpcSubnets,
     securityGroups,
-    desiredCount: statelessProps?.desiredCount ?? 3,
+    desiredCount:
+      statelessProps?.desiredCount ?? DEFAULT_STATELESS_DESIRED_COUNT,
     maxHealthyPercent: 200,
     minHealthyPercent: 100,
     propagateTags: cdk.aws_ecs.PropagatedTagSource.SERVICE,
@@ -361,8 +376,10 @@ function createStatefulDefinition(
   taskProps: RestateBYOCTaskProps,
   statefulProps?: RestateBYOCStatefulProps,
 ) {
-  const cpu = statefulProps?.resources?.cpu ?? 16384;
-  const memoryLimitMiB = statefulProps?.resources?.memoryLimitMiB ?? 32768;
+  const cpu = statefulProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
+  const memoryLimitMiB =
+    statefulProps?.resources?.memoryLimitMiB ??
+    DEFAULT_RESTATE_MEMORY_LIMIT_MIB;
 
   const taskDefinition = new cdk.aws_ecs.FargateTaskDefinition(
     scope,
@@ -626,7 +643,7 @@ function createController(
   controllerProps?: RestateBYOCControllerProps,
 ): {
   service: cdk.aws_ecs.IFargateService;
-  taskDefinition: cdk.aws_ecs.IFargateTaskDefinition;
+  taskDefinition: cdk.aws_ecs.FargateTaskDefinition;
 } {
   const taskRole =
     controllerProps?.tasks?.taskRole ??
@@ -654,8 +671,10 @@ function createController(
       cdk.aws_ecs.CpuArchitecture.ARM64,
   };
 
-  const cpu = controllerProps?.resources?.cpu ?? 1024;
-  const memoryLimitMiB = controllerProps?.resources?.memoryLimitMiB ?? 2048;
+  const cpu = controllerProps?.resources?.cpu ?? DEFAULT_CONTROLLER_CPU;
+  const memoryLimitMiB =
+    controllerProps?.resources?.memoryLimitMiB ??
+    DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB;
 
   const taskDefinition = new cdk.aws_ecs.FargateTaskDefinition(
     scope,
@@ -702,7 +721,10 @@ function createController(
         };
       };
 
-      set(["COUNT"], statefulProps?.nodesPerAz ?? 1);
+      set(
+        ["COUNT"],
+        statefulProps?.nodesPerAz ?? DEFAULT_STATEFUL_NODES_PER_AZ,
+      );
       set(["TASK_DEFINITION_ARN"], statefulDefinition.taskDefinitionArn);
       set(["SUBNETS"], `["${subnetId}"]`);
       set(
