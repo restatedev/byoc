@@ -1,9 +1,12 @@
 import type { Context } from "aws-lambda";
 import { EMBER_BOLD, EMBER_ITALIC, EMBER_REGULAR } from "./static.mjs";
-import { ControlPanelProps } from "./control-panel.mjs";
 import { ControlPanelWidgetEvent } from "./index.mjs";
 
-export function css(maxTabs: number, maxPages: number): string {
+export function css(
+  maxTabs: number,
+  maxTableRows: number,
+  maxTableColumns: number,
+): string {
   return `
 <div class="cwdb-no-default-styles"></div>
 <style>
@@ -382,23 +385,40 @@ export function css(maxTabs: number, maxPages: number): string {
         display: none;
     }
 
-    .awsui_pagination-content {
+    .awsui_paginated-table [type="radio"] {
         display: none;
     }
 
-    ${[...Array(maxPages).keys()]
+
+    ${[...Array(Math.ceil(maxTableRows / 10)).keys()]
       .map(
         (i) => `
-      .awsui_pagination
-          [type="radio"]:nth-of-type(${i + 1}):checked
-          ~ .awsui_pagination-content-wrapper
-          .awsui_pagination-content:nth-of-type(${i + 1})
+      .page-radio-${i}:checked
+          ~ .awsui_content-wrapper {
+            --page-flex-${i}: flex;
+            --page-contents-${i}: contents;
+          }
       `,
       )
-      .join(",")} {
-      display: block;
-      opacity: 1;
-    }
+      .join("\n")}
+
+    ${[...Array(maxTableColumns * 2).keys()]
+      .map(
+        (i) => `
+      .sort-column-radio-${i}:checked
+          ~ .awsui_content-wrapper {
+          ${[...Array(maxTableColumns * 2).keys()]
+            .map(
+              (j) =>
+                j == i
+                  ? `--sort-column-block-${j}: block; --sort-column-none-${j}: none;`
+                  : `--sort-column-not-${j}: var(--idontexist,);`, // set all but the selected col to an empty value
+            )
+            .join("\n")}
+          }
+      `,
+      )
+      .join("\n")}
 
     .awsui_icon-wrapper {
       white-space: nowrap;
@@ -410,14 +430,19 @@ export function css(maxTabs: number, maxPages: number): string {
 
     .awsui_icon-inner {
       color: currentColor;
-    }
-
-    .awsui_icon-inner.awsui_size-normal {
       inline-size: 16px;
       box-sizing: border-box;
     }
 
-    .awsui_icon-inner.awsui_size-normal > svg {
+    .awsui_icon-inner > svg .filled {
+      fill: currentColor;
+    }
+
+    .awsui_icon-inner > svg.stroke-linejoin-round {
+      stroke-linejoin: round;
+    }
+
+    .awsui_icon-inner > svg {
       fill: none;
       stroke: currentColor;
       stroke-width: 2px;
@@ -435,6 +460,11 @@ export function css(maxTabs: number, maxPages: number): string {
     .awsui_icon-flex-height {
       display: inline-flex;
       align-items: center;
+    }
+
+    .awsui_sorting_icon {
+      padding-inline-start: 10px;
+      cursor: pointer;
     }
 
     .ecs-horizontal-attachment {
@@ -593,7 +623,8 @@ export function css(maxTabs: number, maxPages: number): string {
       text-align: start;
       border-inline-start: 1px solid #0000;
       padding-block: 8px;
-      padding-inline: 20px;
+      padding-inline-start: 20px;
+      padding-inline-end: 10px;
       resize: horizontal;
       overflow: auto;
     }
@@ -602,7 +633,7 @@ export function css(maxTabs: number, maxPages: number): string {
       display: none;
     }
 
-    th:not(:last-child) > .awsui_divider {
+    .awsui_header-cell:not(:last-child) > .awsui_divider {
         position: absolute;
         outline: none;
         pointer-events: none;
@@ -615,6 +646,11 @@ export function css(maxTabs: number, maxPages: number): string {
         margin-inline: auto;
         border-inline-start: 2px solid #8c8c94;
         box-sizing: border-box;
+    }
+
+    .awsui_header-cell-content {
+      display: flex;
+      justify-content: space-between;
     }
 
     .awsui_body-cell {
@@ -638,6 +674,10 @@ export function css(maxTabs: number, maxPages: number): string {
 
     .awsui_row:nth-of-type(1) .awsui_body-cell {
       border-block-start: 2px solid #0000;
+    }
+
+    .awsui_row {
+      display: none;
     }
 
     .awsui_button {
@@ -939,7 +979,7 @@ export function buttonLink(href: string, inner: string): string {
 }
 
 const NEW_TAB_ICON = `<span class="awsui_icon-wrapper">&nbsp;<span class="awsui_icon" aria-label="Opens in new tab" role="img">
-  <span class="awsui_icon-inner awsui_icon-flex-height awsui_size-normal" style="height: 20px;">
+  <span class="awsui_icon-inner awsui_icon-flex-height" style="height: 20px;">
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
       <path d="M14 8.01v-6H8M14.02 2 8 8.01M6 2.01H2v12h12v-3.99" class="stroke-linejoin-round">
       </path>
@@ -1015,36 +1055,66 @@ ${inner.join("\n")}
 </div>`;
 }
 
-const ANGLE_LEFT_ICON = `<span class="awsui_icon-inner awsui_size-normal">
+const ANGLE_LEFT_ICON = `<span class="awsui_icon-inner">
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
       <path d="M11 2 5 8l6 6" class="stroke-linejoin-round"></path>
     </svg>
 </span>`;
 
-const ANGLE_RIGHT_ICON = `<span class="awsui_icon-inner awsui_size-normal">
+const ANGLE_RIGHT_ICON = `<span class="awsui_icon-inner">
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
       <path d="m5 2 6 6-6 6" class="stroke-linejoin-round"></path>
     </svg>
 </span>`;
 
-export function paginatedContent(
+export interface TableHeader {
+  name: string;
+  width: number;
+  compare?: (a: string, b: string) => number;
+}
+
+export function paginatedTable(
   context: Context,
   event: ControlPanelWidgetEvent,
   name: string,
   header: string,
-  pageCount: number,
-  pageContent: (i: number) => string,
-  actions?: string[],
+  tableHeaders: TableHeader[],
+  rows: string[][],
+  ifNone?: string,
+  checkedRadios?: { [name: string]: string },
+  extraActions?: string[],
 ): string {
-  const pageIDs = [...Array(pageCount).keys()].map((i) => `${name}-page-${i}`);
+  const pageIDs = [...Array(Math.ceil(rows.length / 10)).keys()].map(
+    (_, i) => `${name}-page-${i}`,
+  );
+
+  const pageRadioName = `${name}-page`;
   const checkedPage =
-    event.checkedRadios?.[name] && pageIDs.includes(event.checkedRadios[name])
-      ? event.checkedRadios[name]
+    event.checkedRadios?.[pageRadioName] &&
+    pageIDs.includes(event.checkedRadios[pageRadioName])
+      ? event.checkedRadios[pageRadioName]
       : pageIDs[0];
 
   const pageRadios = pageIDs.map(
-    (pageID) =>
-      `<input type="radio" id="${pageID}" name="${name}" ${pageID === checkedPage ? "checked" : ""} />`,
+    (pageID, i) =>
+      `<input type="radio" class="page-radio-${i}" id="${pageID}" name="${pageRadioName}" ${pageID === checkedPage ? "checked" : ""} />`,
+  );
+
+  const sortColumnIDs = [...Array(tableHeaders.length)].flatMap((_, i) => [
+    `${name}-sort-${i}-asc`,
+    `${name}-sort-${i}-desc`,
+  ]);
+
+  const sortColumnRadioName = `${name}-sort`;
+  const checkedSortColumn =
+    event.checkedRadios?.[sortColumnRadioName] &&
+    sortColumnIDs.includes(event.checkedRadios[sortColumnRadioName])
+      ? event.checkedRadios[sortColumnRadioName]
+      : sortColumnIDs[0];
+
+  const sortColumnRadios = sortColumnIDs.map(
+    (sortColumnID, i) =>
+      `<input type="radio" class="sort-column-radio-${i}" id="${sortColumnID}" name="${sortColumnRadioName}" ${sortColumnID === checkedSortColumn ? "checked" : ""} />`,
   );
 
   const pageButtons = pageIDs.map((_, i) => {
@@ -1096,75 +1166,155 @@ export function paginatedContent(
 
   const pageControls = pageIDs.map(
     (_, i) => `
-<ul class="awsui_tools-pagination">
-  <li class="awsui_page-item">
-    <label for="${pageIDs[i - 1]}"  class="awsui_page-button ${i <= 0 ? "awsui_page-button-disabled" : ""}">
-      ${ANGLE_LEFT_ICON}
-    </label>
-  </li>
-  ${pageButtons[i].join("\n")}
-  <li class="awsui_page-item">
-    <label for="${pageIDs[i + 1]}" class="awsui_page-button ${i >= pageIDs.length - 1 ? "awsui_page-button-disabled" : ""}">
-      ${ANGLE_RIGHT_ICON}
-    </label>
-  </li>
-</ul>
-    `,
+  <ul class="awsui_tools-pagination">
+    <li class="awsui_page-item">
+      <label for="${pageIDs[i - 1]}"  class="awsui_page-button ${i <= 0 ? "awsui_page-button-disabled" : ""}">
+        ${ANGLE_LEFT_ICON}
+      </label>
+    </li>
+    ${pageButtons[i].join("\n")}
+    <li class="awsui_page-item">
+      <label for="${pageIDs[i + 1]}" class="awsui_page-button ${i >= pageIDs.length - 1 ? "awsui_page-button-disabled" : ""}">
+        ${ANGLE_RIGHT_ICON}
+      </label>
+    </li>
+  </ul>
+      `,
   );
 
-  const contents = pageIDs.map(
-    (pageID, i) =>
-      `<div class="awsui_pagination-content">
-        ${contentWrapper(true, header, pageContent(i), false, [
-          ...(actions ?? []),
-          pageControls[i],
-          refresh(context, event, { mainTabs: "mainTabs3", [name]: pageID }),
-        ])}
-      </div>`,
-  );
-
-  const paginatedTable = `<div class="awsui_pagination">
-  ${pageRadios.join("\n")}
-  <div class="awsui_pagination-content-wrapper">
-  ${contents.join("\n")}
-  </div>
+  const actions = `<div class="awsui_actions awsui_horizontal awsui_horizontal-xs">
+${pageIDs
+  .map(
+    (
+      pageID,
+      i,
+    ) => `<div style="display: var(--page-flex-${i}, none)">${pageControls[i]}</div>
+<div style="display: var(--page-flex-${i}, none)">${refresh(context, event, {
+      ...(checkedRadios ?? {}),
+      [pageRadioName]: pageID,
+    })}</div>`,
+  )
+  .join("\n")}
+${(extraActions ?? []).join("\n")}
 </div>`;
 
-  return paginatedTable;
-}
-
-export function table(
-  headers: { name: string; width: number }[],
-  rows?: string[][],
-  ifNone?: string,
-) {
-  const headerCells = headers.map(
-    ({ name, width }) =>
-      `<th class="awsui_header-cell" style="width: ${width}px">` +
-      `<div class="awsui_header-cell-content">${name}</div>` +
+  const headerCells = tableHeaders.map(
+    ({ name: headerName, width }, i) =>
+      `<div class="awsui_header-cell" style="min-width: 100%;">` +
+      `<div class="awsui_header-cell-content">` +
+      `<div class="awsui_header-cell-text">` +
+      `${headerName}` +
+      `</div>` +
+      // show the unfilled asc if neither the desc nor the asc is selected - clicking takes us to asc
+      `<label for="${name}-sort-${i}-asc" class="awsui_sorting_icon" style="color: #424650; display: var(--sort-column-none-${i * 2 + 1}, var(--sort-column-none-${i * 2}, block));">
+      <span class="awsui_icon-inner">
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+          <path d="m8 5 4 6H4l4-6Z" class="stroke-linejoin-round"></path>
+        </svg>
+      </span>
+      </label>` +
+      // show the filled asc if its selected - clicking takes it to desc
+      `<label for="${name}-sort-${i}-desc" class="awsui_sorting_icon" style="color: #0f141a; display: var(--sort-column-block-${i * 2}, none);">
+      <span class="awsui_icon-inner">
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+          <path d="m8 5 4 6H4l4-6Z" class="filled stroke-linejoin-round"></path>
+        </svg>
+      </span>
+      </label>` +
+      // show the filled desc if its selected - clicking takes us to asc
+      `<label for="${name}-sort-${i}-asc" class="awsui_sorting_icon" style="color: #0f141a; display: var(--sort-column-block-${i * 2 + 1}, none)">
+        <span class="awsui_icon-inner">
+          <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+            <path d="m8 11 4-6H4l4 6Z" class="filled stroke-linejoin-round"></path>
+          </svg>
+        </span>
+      </label>` +
+      `</div>` +
       `<span class="awsui_divider"></span>` +
-      `</th>`,
+      `</div>`,
   );
-  const body = rows
+
+  const columnIndices: number[][] = tableHeaders.flatMap((header, col) => {
+    const compare = header.compare ?? ((a, b) => a.localeCompare(b));
+
+    // an array where the first index is the first row index by this sort order, etc
+    const sortedAsc = [...Array(rows.length).keys()].sort(
+      (leftRow, rightRow) => {
+        return compare(rows[leftRow][col], rows[rightRow][col]);
+      },
+    );
+    const sortedDesc = [...Array(rows.length).keys()].sort(
+      (leftRow, rightRow) => {
+        return 0 - compare(rows[leftRow][col], rows[rightRow][col]);
+      },
+    );
+    // we instead want an array where the first index is the index of row one by this sort order
+    const lookupAsc: number[] = Array(sortedAsc.length);
+    const lookupDesc: number[] = Array(sortedAsc.length);
+    sortedAsc.forEach(
+      (lookupIndex, sortIndex) => (lookupAsc[lookupIndex] = sortIndex),
+    );
+    sortedDesc.forEach(
+      (lookupIndex, sortIndex) => (lookupDesc[lookupIndex] = sortIndex),
+    );
+    return [lookupAsc, lookupDesc];
+  });
+
+  const body = rows.length
     ? rows
         .map((row, i) => {
           const rowCells = row.map(
-            (cell) => `<td class="awsui_body-cell">${cell}</td>`,
+            (cell, column) =>
+              `<div style="order: inherit;" class="awsui_body-cell">${cell}</div>`,
           );
-          return `<tr class="awsui_row">${rowCells.join("")}</tr>`;
+          const orderVars = columnIndices
+            .map(
+              (rows, columnIndex) =>
+                `var(--sort-column-not-${columnIndex}, ${rows[i]})`,
+            )
+            .join("");
+          const displayVars = columnIndices
+            .map(
+              (rows, columnIndex) =>
+                `var(--sort-column-not-${columnIndex}, var(--page-contents-${Math.floor(rows[i] / 10)}, none))`,
+            )
+            .join("");
+          return `<div style="order: ${orderVars}; display: ${displayVars};" class="awsui_row">${rowCells.join("")}</div>`;
         })
         .join("")
     : ``;
 
-  return (
+  const table =
     `<div class="awsui_wrapper">` +
-    `<table class="awsui_table awsui_table-layout-fixed">` +
-    `<thead><tr>${headerCells.join("")}</tr></thead>` +
-    `<tbody>${body}</tbody>` +
-    `</table>` +
-    `${rows ? `` : `<span class="awsui_no-rows">${ifNone ?? `No rows`}</span>`}` +
-    `</div>`
-  );
+    `<div class="awsui_table awsui_table-layout-fixed" style="display: grid; grid-template-columns: repeat(${tableHeaders.length}, minmax(max-content, 1fr));">` +
+    `<div class="awsui_table-header" style="display: contents;">${headerCells.join("")}</div>` +
+    `<div class="awsui_table-body" style="display: contents;">${body}</div>` +
+    `</div>` +
+    `${rows.length ? `` : `<span class="awsui_no-rows">${ifNone ?? `No rows`}</span>`}` +
+    `</div>`;
+
+  return `
+<div id="paginated-table-${name}" class="awsui_paginated-table">
+  ${pageRadios.join("\n")}
+  ${sortColumnRadios.join("\n")}
+  <div class="awsui_content-wrapper awsui_border">
+    <div class="awsui_header_container">
+      <div class="awsui_title">
+        <div class="awsui_header awsui_with-paddings">
+          ${heading("h2", header)}
+        </div>
+      </div>
+      ${actions}
+    </div>
+    <div class="awsui_content">
+      <div
+          class="awsui_content-inner awsui_with-header"
+      >
+        ${table}
+      </div>
+    </div>
+  </div>
+</div>`;
 }
 
 function textStatus(
@@ -1325,7 +1475,7 @@ ${JSON.stringify(nextEvent)}
 </cwdb-action>`;
 }
 
-const REFRESH_ICON = `<span class="awsui_icon-inner awsui_size-normal">
+const REFRESH_ICON = `<span class="awsui_icon-inner">
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
       <path d="M15 0v5l-5-.04" class="stroke-linejoin-round"></path>
       <path d="M15 8c0 3.87-3.13 7-7 7s-7-3.13-7-7 3.13-7 7-7c2.79 0 5.2 1.63 6.33 4"></path>

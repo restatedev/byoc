@@ -4806,54 +4806,60 @@ export function controlPanel(context: Context, event: ControlPanelWidgetEvent) {
     ),
   );
 
-  const statefulNodes = styles.contentWrapper(
-    true,
-    "Stateful nodes",
-    styles.table(
-      [
-        { name: "Node ID", width: 100 },
-        { name: "Task", width: 350 },
-        { name: "Availability zone", width: 200 },
-        { name: "Storage state", width: 165 },
-        { name: "Leader", width: 120 },
-        { name: "Follower", width: 120 },
-        { name: "Nodeset member", width: 165 },
-        { name: "Last status", width: 165 },
-        { name: "Desired status", width: 165 },
-        { name: "Health status", width: 165 },
-        { name: "Task definition", width: 639 },
-        { name: "CPU", width: 120 },
-        { name: "Memory", width: 120 },
-        { name: "Storage", width: 120 },
-        { name: "Started at", width: 140 },
-      ],
-      props.nodes.stateful.tasks.map((node) => [
-        node.nodeID,
-        styles.link(
-          `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
-          node.taskID,
-        ),
-        node.availabilityZone,
-        styles.storageState(node.storageState),
-        node.leader,
-        node.follower,
-        node.nodesetMember,
-        styles.ecsLastStatus(node.lastStatus),
-        styles.ecsDesiredStatus(node.desiredStatus),
-        styles.healthStatus(node.healthStatus),
-        styles.link(
-          `/ecs/v2/task-definitions/${node.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
-          node.taskDefinition,
-        ),
-        node.cpu,
-        node.memory,
-        node.storage,
-        node.startedAt,
-      ]),
+  const numericCompare = (a: string, b: string) => Number(a) - Number(b);
+
+  const statefulNodesHeaders: styles.TableHeader[] = [
+    { name: "Node ID", width: 100 },
+    { name: "Task", width: 350 },
+    { name: "Availability zone", width: 200 },
+    { name: "Storage state", width: 165 },
+    { name: "Leader", width: 120, compare: numericCompare },
+    { name: "Follower", width: 120, compare: numericCompare },
+    { name: "Nodeset member", width: 165, compare: numericCompare },
+    { name: "Last status", width: 165 },
+    { name: "Desired status", width: 165 },
+    { name: "Health status", width: 165 },
+    { name: "Task definition", width: 639 },
+    { name: "CPU", width: 120 },
+    { name: "Memory", width: 120 },
+    { name: "Storage", width: 120 },
+    { name: "Started at", width: 140 },
+  ];
+
+  const statefulNodesRows = props.nodes.stateful.tasks.map((node) => [
+    node.nodeID,
+    styles.link(
+      `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
+      node.taskID,
     ),
-    false,
+    node.availabilityZone,
+    styles.storageState(node.storageState),
+    node.leader,
+    node.follower,
+    node.nodesetMember,
+    styles.ecsLastStatus(node.lastStatus),
+    styles.ecsDesiredStatus(node.desiredStatus),
+    styles.healthStatus(node.healthStatus),
+    styles.link(
+      `/ecs/v2/task-definitions/${node.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
+      node.taskDefinition,
+    ),
+    node.cpu,
+    node.memory,
+    node.storage,
+    node.startedAt,
+  ]);
+
+  const statefulNodes = styles.paginatedTable(
+    context,
+    event,
+    "statefulNodes",
+    "Stateful nodes",
+    statefulNodesHeaders,
+    statefulNodesRows,
+    "No nodes",
+    { mainTabs: "mainTabs1" },
     [
-      styles.refresh(context, event, { mainTabs: "mainTabs1" }),
       styles.buttonLink(
         `/ecs/v2/task-definitions/${props.nodes.stateful.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
         "Task Definition",
@@ -4869,44 +4875,48 @@ export function controlPanel(context: Context, event: ControlPanelWidgetEvent) {
     ],
   );
 
-  const statelessNodes = styles.contentWrapper(
-    true,
-    "Stateless nodes",
-    styles.table(
-      [
-        { name: "Node ID", width: 100 },
-        { name: "Task", width: 350 },
-        { name: "Availability zone", width: 200 },
-        { name: "Last status", width: 165 },
-        { name: "Desired status", width: 165 },
-        { name: "Health status", width: 165 },
-        { name: "Task definition", width: 639 },
-        { name: "CPU", width: 120 },
-        { name: "Memory", width: 120 },
-        { name: "Started at", width: 140 },
-      ],
-      props.nodes.stateless.tasks.map((node) => [
-        node.nodeID,
-        styles.link(
-          `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
-          node.taskID,
-        ),
-        node.availabilityZone,
-        styles.ecsLastStatus(node.lastStatus),
-        styles.ecsDesiredStatus(node.desiredStatus),
-        styles.healthStatus(node.healthStatus),
-        styles.link(
-          `/ecs/v2/task-definitions/${node.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
-          node.taskDefinition,
-        ),
-        node.cpu,
-        node.memory,
-        node.startedAt,
-      ]),
+  const statelessNodesHeaders: styles.TableHeader[] = [
+    { name: "Node ID", width: 100 },
+    { name: "Task", width: 350 },
+    { name: "Availability zone", width: 200 },
+    { name: "Last status", width: 165 },
+    { name: "Desired status", width: 165 },
+    { name: "Health status", width: 165 },
+    { name: "Task definition", width: 639 },
+    { name: "CPU", width: 120 },
+    { name: "Memory", width: 120 },
+    { name: "Started at", width: 140 },
+  ];
+
+  const statelessNodesRows = props.nodes.stateless.tasks.map((node) => [
+    node.nodeID,
+    styles.link(
+      `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
+      node.taskID,
     ),
-    false,
+    node.availabilityZone,
+    styles.ecsLastStatus(node.lastStatus),
+    styles.ecsDesiredStatus(node.desiredStatus),
+    styles.healthStatus(node.healthStatus),
+    styles.link(
+      `/ecs/v2/task-definitions/${node.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
+      node.taskDefinition,
+    ),
+    node.cpu,
+    node.memory,
+    node.startedAt,
+  ]);
+
+  const statelessNodes = styles.paginatedTable(
+    context,
+    event,
+    "statelessNodes",
+    "Stateless nodes",
+    statelessNodesHeaders,
+    statelessNodesRows,
+    "No nodes",
+    { mainTabs: "mainTabs1" },
     [
-      styles.refresh(context, event, { mainTabs: "mainTabs1" }),
       styles.buttonLink(
         `/ecs/v2/clusters/${props.nodes.clusterName}/services/${props.nodes.stateless.serviceName}/health?region=${props.connectivityAndSecurity.region}`,
         "Service",
@@ -4926,42 +4936,46 @@ export function controlPanel(context: Context, event: ControlPanelWidgetEvent) {
     ],
   );
 
-  const controllerTasks = styles.contentWrapper(
-    true,
-    "Controller tasks",
-    styles.table(
-      [
-        { name: "Task", width: 350 },
-        { name: "Availability zone", width: 180 },
-        { name: "Last status", width: 165 },
-        { name: "Desired status", width: 165 },
-        { name: "Health status", width: 165 },
-        { name: "Task definition", width: 639 },
-        { name: "CPU", width: 120 },
-        { name: "Memory", width: 120 },
-        { name: "Started at", width: 140 },
-      ],
-      props.nodes.controller.tasks.map((node) => [
-        styles.link(
-          `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
-          node.taskID,
-        ),
-        node.availabilityZone,
-        styles.ecsLastStatus(node.lastStatus),
-        styles.ecsDesiredStatus(node.desiredStatus),
-        styles.healthStatus(node.healthStatus),
-        styles.link(
-          `/ecs/v2/task-definitions/${node.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
-          node.taskDefinition,
-        ),
-        node.cpu,
-        node.memory,
-        node.startedAt,
-      ]),
+  const controllerHeaders = [
+    { name: "Task", width: 350 },
+    { name: "Availability zone", width: 180 },
+    { name: "Last status", width: 165 },
+    { name: "Desired status", width: 165 },
+    { name: "Health status", width: 165 },
+    { name: "Task definition", width: 639 },
+    { name: "CPU", width: 120 },
+    { name: "Memory", width: 120 },
+    { name: "Started at", width: 140 },
+  ];
+
+  const controllerRows = props.nodes.controller.tasks.map((node) => [
+    styles.link(
+      `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
+      node.taskID,
     ),
-    false,
+    node.availabilityZone,
+    styles.ecsLastStatus(node.lastStatus),
+    styles.ecsDesiredStatus(node.desiredStatus),
+    styles.healthStatus(node.healthStatus),
+    styles.link(
+      `/ecs/v2/task-definitions/${node.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
+      node.taskDefinition,
+    ),
+    node.cpu,
+    node.memory,
+    node.startedAt,
+  ]);
+
+  const controllerTasks = styles.paginatedTable(
+    context,
+    event,
+    "controllerTasks",
+    "Controller tasks",
+    controllerHeaders,
+    controllerRows,
+    "No tasks",
+    { mainTabs: "mainTabs1" },
     [
-      styles.refresh(context, event, { mainTabs: "mainTabs1" }),
       styles.buttonLink(
         `/ecs/v2/clusters/${props.nodes.clusterName}/services/${props.nodes.controller.serviceName}/health?region=${props.connectivityAndSecurity.region}`,
         "Service",
@@ -5003,43 +5017,46 @@ export function controlPanel(context: Context, event: ControlPanelWidgetEvent) {
     ),
   );
 
-  const volumes = styles.contentWrapper(
-    true,
-    "Volumes",
-    styles.table(
-      [
-        { name: "Volume", width: 350 },
-        { name: "Type", width: 100 },
-        { name: "Size", width: 120 },
-        { name: "IOPS", width: 120 },
-        { name: "Throughput", width: 140 },
-        { name: "Availability zone", width: 180 },
-        { name: "Volume state", width: 140 },
-        { name: "Status check", width: 140 },
-      ],
-      props.storage.volumes.map((volume) => [
-        "volumeID" in volume
-          ? styles.link(
-              `/ec2/home?region=${props.connectivityAndSecurity.region}#VolumeDetails:volumeId=${volume.volumeID}`,
-              volume.volumeID,
-            )
-          : styles.link(
-              `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${volume.taskID}?region=${props.connectivityAndSecurity.region}`,
-              `${volume.taskID} (ephemeral)`,
-            ),
-        volume.type,
-        volume.size,
-        volume.iops,
-        volume.throughput,
-        volume.availabilityZone,
-        styles.volumeState(volume.state),
-        styles.volumeStatus(volume.statusCheck),
-      ]),
-    ),
-    false,
-    [styles.refresh(context, event, { mainTabs: "mainTabs2" })],
-  );
+  const volumeHeaders: styles.TableHeader[] = [
+    { name: "Volume", width: 350 },
+    { name: "Type", width: 100 },
+    { name: "Size", width: 120 },
+    { name: "IOPS", width: 120, compare: numericCompare },
+    { name: "Throughput", width: 140, compare: numericCompare },
+    { name: "Availability zone", width: 180 },
+    { name: "Volume state", width: 140 },
+    { name: "Status check", width: 140 },
+  ];
 
+  const volumeRows = props.storage.volumes.map((volume) => [
+    "volumeID" in volume
+      ? styles.link(
+          `/ec2/home?region=${props.connectivityAndSecurity.region}#VolumeDetails:volumeId=${volume.volumeID}`,
+          volume.volumeID,
+        )
+      : styles.link(
+          `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${volume.taskID}?region=${props.connectivityAndSecurity.region}`,
+          `${volume.taskID} (ephemeral)`,
+        ),
+    volume.type,
+    volume.size,
+    volume.iops,
+    volume.throughput,
+    volume.availabilityZone,
+    styles.volumeState(volume.state),
+    styles.volumeStatus(volume.statusCheck),
+  ]);
+
+  const volumes = styles.paginatedTable(
+    context,
+    event,
+    "volumes",
+    "Volumes",
+    volumeHeaders,
+    volumeRows,
+    "No volumes",
+    { mainTabs: "mainTabs2" },
+  );
   const storage = styles.vertical("l", s3Bucket, volumes);
 
   const replicationFactor = (
@@ -5060,18 +5077,27 @@ export function controlPanel(context: Context, event: ControlPanelWidgetEvent) {
     }
   };
 
-  const partitionHeaders = [
-    { name: "Partition ID", width: 80 },
+  const partitionHeaders: styles.TableHeader[] = [
+    { name: "Partition ID", width: 120, compare: numericCompare },
     { name: "Node ID", width: 100 },
     { name: "Mode", width: 100 },
     { name: "Status", width: 100 },
     { name: "Leader", width: 100 },
-    { name: "Sequencer", width: 100 },
-    { name: "Applied LSN", width: 120 },
-    { name: "Persisted LSN", width: 120 },
-    { name: "Archived LSN", width: 120 },
-    { name: "LSN Lag", width: 80 },
-    { name: "Last update", width: 160 },
+    { name: "Sequencer", width: 120 },
+    { name: "Applied LSN", width: 140, compare: numericCompare },
+    { name: "Persisted LSN", width: 140, compare: numericCompare },
+    {
+      name: "Archived LSN",
+      width: 140,
+      compare: (a: string, b: string) => {
+        if (a == "-" && b == "-") return 0;
+        if (a == "-" && b != "-") return -1;
+        if (a != "-" && b == "-") return 1;
+        return numericCompare(a, b);
+      },
+    },
+    { name: "LSN Lag", width: 100, compare: numericCompare },
+    { name: "Last update", width: 200 },
   ];
 
   function chunk<T>(arr: T[], chunkSize: number): T[][] {
@@ -5082,30 +5108,29 @@ export function controlPanel(context: Context, event: ControlPanelWidgetEvent) {
     return R;
   }
 
-  const partitionPages = chunk(
-    props.replication.partitions.info.map((partition) => [
-      partition.partitionID,
-      partition.nodeID,
-      partition.mode,
-      partition.status,
-      partition.leader,
-      partition.sequencer,
-      partition.appliedLSN,
-      partition.persistedLSN,
-      partition.archivedLSN,
-      partition.lsnLag,
-      partition.lastUpdate,
-    ]),
-    10,
-  );
+  const partitionRows = props.replication.partitions.info.map((partition) => [
+    partition.partitionID,
+    partition.nodeID,
+    partition.mode,
+    partition.status,
+    partition.leader,
+    partition.sequencer,
+    partition.appliedLSN,
+    partition.persistedLSN,
+    partition.archivedLSN,
+    partition.lsnLag,
+    partition.lastUpdate,
+  ]);
 
-  const partitions = styles.paginatedContent(
+  const partitions = styles.paginatedTable(
     context,
     event,
     "partitions",
     `<span>Partitions ${styles.counter(`(${props.replication.partitions.count})`)}</span><span style="color: #656871; font-weight: normal; line-height: 16px; margin: 6px; font-size: 12px">Replicated over ${replicationFactor(props.replication.partitions.replication)}</span>`,
-    partitionPages.length || 1,
-    (i) => styles.table(partitionHeaders, partitionPages[i], `No partitions`),
+    partitionHeaders,
+    partitionRows,
+    "No partitions",
+    { mainTabs: "mainTabs3" },
   );
 
   const logHeaders = [
@@ -5116,24 +5141,23 @@ export function controlPanel(context: Context, event: ControlPanelWidgetEvent) {
     { name: "Nodeset", width: 140 },
   ];
 
-  const logPages = chunk(
-    props.replication.logs.info.map((log) => [
-      log.logID,
-      log.fromLSN,
-      log.logletID,
-      log.sequencer,
-      log.nodeSet,
-    ]),
-    10,
-  );
+  const logRows = props.replication.logs.info.map((log) => [
+    log.logID,
+    log.fromLSN,
+    log.logletID,
+    log.sequencer,
+    log.nodeSet,
+  ]);
 
-  const logs = styles.paginatedContent(
+  const logs = styles.paginatedTable(
     context,
     event,
     "logs",
     `<span>Logs ${styles.counter(`(${props.replication.logs.count})`)}</span><span style="color: #656871; font-weight: normal; line-height: 16px; margin: 6px; font-size: 12px">Replicated over ${replicationFactor(props.replication.logs.replication)}</span>`,
-    logPages.length || 1,
-    (i) => styles.table(logHeaders, logPages[i], `No logs`),
+    logHeaders,
+    logRows,
+    "No logs",
+    { mainTabs: "mainTabs3" },
   );
 
   const replication = styles.vertical("l", partitions, logs);
@@ -5162,7 +5186,7 @@ export function controlPanel(context: Context, event: ControlPanelWidgetEvent) {
   const body = styles.vertical("m", summary, tabs);
 
   return `
-${styles.css(4, Math.max(partitionPages.length))}
+${styles.css(4, Math.max(statefulNodesRows.length, statelessNodesRows.length, controllerRows.length, volumeRows.length, logRows.length, partitionRows.length), Math.max(statefulNodesHeaders.length, statelessNodesHeaders.length, controllerHeaders.length, volumeHeaders.length, logHeaders.length, partitionHeaders.length))}
 ${body}
 `;
 }
