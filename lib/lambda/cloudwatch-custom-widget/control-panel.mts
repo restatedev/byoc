@@ -5124,9 +5124,9 @@ export function controlPanel(context: Context, event: ControlPanelWidgetEvent) {
     { mainTabs: "mainTabs3" },
   );
 
-  const logHeaders = [
-    { name: "Log ID", width: 80 },
-    { name: "From LSN", width: 120 },
+  const logHeaders: styles.TableHeader[] = [
+    { name: "Log ID", width: 80, compare: numericCompare },
+    { name: "From LSN", width: 120, compare: numericCompare },
     { name: "Loglet ID", width: 80 },
     { name: "Sequencer", width: 100 },
     { name: "Nodeset", width: 140 },
