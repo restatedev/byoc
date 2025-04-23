@@ -71,12 +71,6 @@ export type ControlPanelWidgetEvent = {
   checkedRadios?: { [name: string]: string | undefined };
 };
 
-interface VolumeGraphWidget {
-  metrics: Metric[];
-}
-
-type Metric = [...string[], Record<string, unknown>];
-
 interface WidgetContext {
   dashboardName: string;
   widgetId: string;
@@ -146,7 +140,7 @@ export const handler = async (
     if (eventType == "GetMetricData") {
       return await customDataSourceHandler(event);
     } else if (eventType == "DescribeGetMetricData") {
-      return await customDataSourceDescribeHandler(event);
+      return await customDataSourceDescribeHandler();
     } else {
       throw new Error(`Unexpected event type ${eventType}`);
     }
@@ -157,13 +151,12 @@ export const handler = async (
   }
 };
 
-export const customDataSourceDescribeHandler = async (
-  _event: CustomDataSourceDescribeEvent,
-): Promise<CustomDataSourceDescribeResponse> => {
-  return {
-    Description: "Obtain Restate cluster metric data",
+export const customDataSourceDescribeHandler =
+  async (): Promise<CustomDataSourceDescribeResponse> => {
+    return {
+      Description: "Obtain Restate cluster metric data",
+    };
   };
-};
 
 export const widgetHandler = async (
   event: WidgetEvent,
@@ -193,7 +186,7 @@ async function nodesList() {
   const nodesConfig: NodesConfig = JSON.parse(output);
 
   const nodes = nodesConfig.nodes
-    .map(([_, node]) => (node !== "Tombstone" ? node.Node : undefined))
+    .map((node) => (node[1] !== "Tombstone" ? node[1].Node : undefined))
     .filter((node) => node !== undefined);
 
   nodes.sort((left, right) => {

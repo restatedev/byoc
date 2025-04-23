@@ -128,7 +128,7 @@ export class RestateBYOC extends Construct {
         vpc: this.vpc,
         enableFargateCapacityProviders: true,
         containerInsightsV2: "enhanced", // this field may not exist in earlier cdk versions, hence 'as any'
-      } as any);
+      } as object);
       cdk.Tags.of(cluster).add("Name", cluster.node.path);
       this.cluster = cluster;
     }
@@ -291,7 +291,7 @@ function createStateless(
 
   let logReplication = "{zone: 2}";
   if (statelessProps?.defaultLogReplication) {
-    if ("zone" in statelessProps?.defaultLogReplication) {
+    if ("zone" in statelessProps.defaultLogReplication) {
       logReplication = `{zone: ${statelessProps?.defaultLogReplication.zone}}`;
     } else {
       logReplication = `{node: ${statelessProps?.defaultLogReplication.node}}`;

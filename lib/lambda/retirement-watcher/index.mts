@@ -33,7 +33,7 @@ export const handler: SQSHandler = async (event) => {
     try {
       healthEvent = JSON.parse(record?.body);
     } catch (e) {
-      console.log("Failed to parse record body; ignoring", record?.body);
+      console.log("Failed to parse record body; ignoring", record?.body, e);
       continue;
     }
 

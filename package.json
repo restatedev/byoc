@@ -4,7 +4,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "download-restatectl": "curl -L https://restate.gateway.scarf.sh/v1.3.0-rc.1/restatectl-aarch64-unknown-linux-musl.tar.xz | tar -zx --strip-components=1 -C lib/lambda/restatectl restatectl-aarch64-unknown-linux-musl/restatectl && mv lib/lambda/restatectl/restatectl lib/lambda/restatectl/bootstrap",
+    "download-restatectl": "curl -L https://restate.gateway.scarf.sh/v1.3.2/restatectl-aarch64-unknown-linux-musl.tar.xz | tar -zx --strip-components=1 -C lib/lambda/restatectl restatectl-aarch64-unknown-linux-musl/restatectl && mv lib/lambda/restatectl/restatectl lib/lambda/restatectl/bootstrap",
+    "lint": "eslint",
     "build": "tsc && mkdir -p ./dist/lambda/restatectl && cp ./lib/lambda/restatectl/bootstrap ./dist/lambda/restatectl/bootstrap",
     "watch": "tsc -w",
     "test": "jest",

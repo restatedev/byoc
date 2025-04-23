@@ -2,16 +2,11 @@ import { Construct } from "constructs";
 import * as cdk from "aws-cdk-lib";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import {
-  DEFAULT_CONTROLLER_CPU,
-  DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB,
   DEFAULT_RESTATE_CPU,
   DEFAULT_RESTATE_MEMORY_LIMIT_MIB,
-  DEFAULT_STATEFUL_NODES_PER_AZ,
-  DEFAULT_STATELESS_DESIRED_COUNT,
   RestateBYOCMonitoringProps,
   RestateBYOCProps,
 } from "./props";
-import { RESTATE_LOGO } from "./logo";
 
 export function createMonitoring(
   scope: Construct,
@@ -165,8 +160,8 @@ export function createMetricsDashboard(
   const ebsVolume = props?.statefulNode?.ebsVolume;
   const volumeSize = ebsVolume?.sizeInGiB ?? 200;
 
-  var iopsLimit: number;
-  var throughputLimit: number;
+  let iopsLimit: number;
+  let throughputLimit: number;
   switch (ebsVolume?.volumeType) {
     case undefined: // default ephemeral volume
       iopsLimit = 600;
@@ -176,9 +171,10 @@ export function createMetricsDashboard(
       if (!ebsVolume?.iops)
         throw new Error("io1 volumes must have an iops configured");
       iopsLimit = ebsVolume.iops;
-      const limit256 = Math.min(iopsLimit / 2000, 500);
-      const limit16 = Math.min(iopsLimit / 64000, 1000);
-      throughputLimit = Math.max(limit256, limit16);
+      throughputLimit = Math.max(
+        /* limit256 = */ Math.min(iopsLimit / 2000, 500),
+        /* limit16 = */ Math.min(iopsLimit / 64000, 1000),
+      );
       break;
     case cdk.aws_ec2.EbsDeviceVolumeType.IO2:
       if (!ebsVolume?.iops)

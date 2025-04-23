@@ -2,7 +2,6 @@ import * as styles from "./styles.mjs";
 import type { Context } from "aws-lambda";
 import { RESTATE_LOGO } from "./static.mjs";
 import { ControlPanelWidgetEvent } from "./index.mjs";
-import { REPLServer } from "repl";
 
 export interface ControlPanelProps {
   summary: {
@@ -5099,14 +5098,6 @@ export function controlPanel(context: Context, event: ControlPanelWidgetEvent) {
     { name: "LSN Lag", width: 100, compare: numericCompare },
     { name: "Last update", width: 200 },
   ];
-
-  function chunk<T>(arr: T[], chunkSize: number): T[][] {
-    if (chunkSize <= 0) throw "Invalid chunk size";
-    var R = [];
-    for (var i = 0, len = arr.length; i < len; i += chunkSize)
-      R.push(arr.slice(i, i + chunkSize));
-    return R;
-  }
 
   const partitionRows = props.replication.partitions.info.map((partition) => [
     partition.partitionID,

@@ -929,7 +929,7 @@ export function tabs(
   const checked = checkedRadios[name] ?? ids[0];
 
   const radios = ids.map(
-    (id, i) =>
+    (id) =>
       `<input type="radio" id="${id}" name="${name}" ${id === checked ? "checked" : ""} />`,
   );
 
@@ -1199,7 +1199,7 @@ ${(extraActions ?? []).join("\n")}
 </div>`;
 
   const headerCells = tableHeaders.map(
-    ({ name: headerName, width }, i) =>
+    ({ name: headerName }, i) =>
       `<div class="awsui_header-cell" style="min-width: 100%;">` +
       `<div class="awsui_header-cell-content">` +
       `<div class="awsui_header-cell-text">` +
@@ -1264,7 +1264,7 @@ ${(extraActions ?? []).join("\n")}
     ? rows
         .map((row, i) => {
           const rowCells = row.map(
-            (cell, column) =>
+            (cell) =>
               `<div style="order: inherit;" class="awsui_body-cell">${cell}</div>`,
           );
           const orderVars = columnIndices
