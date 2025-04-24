@@ -66,14 +66,36 @@ describe("BYOC", () => {
     });
   });
 
-  test("Without dashboard", () => {
+  test("Without metrics dashboard", () => {
     const { stack, vpc } = createStack();
 
     new RestateBYOC(stack, "one-az", {
       vpc,
       monitoring: {
         dashboard: {
-          disabled: true,
+          metrics: {
+            disabled: true,
+          },
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("Without control panel", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateBYOC(stack, "one-az", {
+      vpc,
+      monitoring: {
+        dashboard: {
+          controlPanel: {
+            disabled: true,
+          },
         },
       },
     });

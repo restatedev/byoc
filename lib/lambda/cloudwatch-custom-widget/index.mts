@@ -1,17 +1,12 @@
 import type { Context } from "aws-lambda";
-import * as lambda from "@aws-sdk/client-lambda";
 import * as ec2 from "@aws-sdk/client-ec2";
 import * as cloudwatch from "@aws-sdk/client-cloudwatch";
 
-import { controlPanel, type ControlPanelProps } from "./control-panel.mjs";
+import { controlPanel, controlPanelRefresh } from "./control-panel.mjs";
+import { ControlPanelInput } from "./readers.mjs";
 
-const lambdaClient = new lambda.LambdaClient({});
 const ec2Client = new ec2.EC2Client({});
 const cloudwatchClient = new cloudwatch.CloudWatchClient({});
-
-if (!process.env.RESTATECTL_LAMBDA_ARN)
-  throw new Error("Missing RESTATECTL_LAMBDA_ARN");
-const RESTATECTL_LAMBDA_ARN = process.env.RESTATECTL_LAMBDA_ARN;
 
 type CustomDataSourceEvent = {
   EventType: "GetMetricData";
@@ -63,15 +58,21 @@ type WidgetEvent = {
   | { command: "nodesList" }
   | { command: "echo"; echo: string }
   | ControlPanelWidgetEvent
+  | ControlPanelWidgetRefreshEvent
 );
 
 export type ControlPanelWidgetEvent = {
   command: "controlPanel";
-  props?: ControlPanelProps;
+  input: ControlPanelInput;
   checkedRadios?: { [name: string]: string | undefined };
 };
 
-interface WidgetContext {
+export type ControlPanelWidgetRefreshEvent = {
+  command: "controlPanelRefresh";
+  checkedRadios?: { [name: string]: string | undefined };
+};
+
+export interface WidgetContext {
   dashboardName: string;
   widgetId: string;
   accountId: string;
@@ -95,32 +96,9 @@ interface WidgetContext {
   };
   theme: string;
   title: string;
+  params: unknown;
   width: number;
   height: number;
-}
-
-interface NodesConfig {
-  cluster_name: string;
-  nodes: [
-    number,
-    (
-      | "Tombstone"
-      | {
-          Node: Node;
-        }
-    ),
-  ][];
-}
-
-interface Node {
-  address: string;
-  current_generation: [number, number];
-  location: string;
-  log_server_config: {
-    storage_state: string;
-  };
-  name: string;
-  roles: string[];
 }
 
 const DOCS = `
@@ -170,53 +148,16 @@ export const widgetHandler = async (
 
   const command = event.command;
   switch (command) {
-    case "nodesList":
-      return nodesList();
     case "echo":
       return event.echo || '<pre>No "echo" parameter specified</pre>';
     case "controlPanel":
-      return controlPanel(context, event);
+      return await controlPanel(context, event);
+    case "controlPanelRefresh":
+      return await controlPanelRefresh(context, event.widgetContext, event);
     default:
       throw new Error(`Unexpected widget command: ${command}`);
   }
 };
-
-async function nodesList() {
-  const output = await restatectl(["metadata", "get", "--key", "nodes_config"]);
-  const nodesConfig: NodesConfig = JSON.parse(output);
-
-  const nodes = nodesConfig.nodes
-    .map((node) => (node[1] !== "Tombstone" ? node[1].Node : undefined))
-    .filter((node) => node !== undefined);
-
-  nodes.sort((left, right) => {
-    return left.current_generation[0] - right.current_generation[0];
-  });
-
-  const rows = nodes
-    .map((node) => {
-      const [taskPrefix, clusterName, taskID] = node.name.split("/");
-
-      const taskRegion = taskPrefix.split(":")[3];
-
-      return `<tr>
-                <td>N${node.current_generation[0]}:${node.current_generation[1]}</td>
-                <td><a href="/ecs/v2/clusters/${clusterName}/tasks/${taskID}?region=${taskRegion}" target=_blank>${node.name}</a></td>
-                <td>${node.address}</td>
-                <td>${node.location}</td>
-                <td>${node.roles.join(" | ")}</td>
-                <td>${node.roles.includes("log-server") ? node.log_server_config.storage_state : "N/A"}</td>
-              </tr>`;
-    })
-    .join("");
-
-  return `<table>
-          <tr>
-            <th>Node</th><th>Name</th><th>Address</th><th>Location</th><th>Roles</th><th>Storage State</th>
-          </tr>
-          ${rows}
-          </table>`;
-}
 
 export const customDataSourceHandler = async (
   event: CustomDataSourceEvent,
@@ -322,32 +263,3 @@ export const customDataSourceHandler = async (
     return { Error: { Code: "GetMetricDataFailed", Value: `${e}` } };
   }
 };
-
-async function restatectl(args: string[]): Promise<string> {
-  const result = await lambdaClient.send(
-    new lambda.InvokeCommand({
-      FunctionName: RESTATECTL_LAMBDA_ARN,
-      Payload: JSON.stringify({
-        args,
-      }),
-    }),
-  );
-
-  if (result.FunctionError)
-    throw new Error(
-      `Failed to invoke restatectl lambda: ${result.FunctionError}`,
-    );
-
-  if (!result.Payload)
-    throw new Error("restatectl lambda did not return a payload");
-
-  const payload: { status: number; stdout: string; stderr: string } =
-    JSON.parse(result.Payload.transformToString());
-
-  if (payload.status !== 0)
-    throw new Error(
-      `restatectl returned exit status ${payload.status}. Stdout: '${payload.stdout}. Stderr: '${payload.stderr}'`,
-    );
-
-  return payload.stdout;
-}

@@ -1,6 +1,9 @@
 import type { Context } from "aws-lambda";
 import { EMBER_BOLD, EMBER_ITALIC, EMBER_REGULAR } from "./static.mjs";
-import { ControlPanelWidgetEvent } from "./index.mjs";
+import {
+  ControlPanelWidgetEvent,
+  ControlPanelWidgetRefreshEvent,
+} from "./index.mjs";
 
 const FLEX_IF_PAGE = (i: number) => `--a${i}`;
 const CONTENTS_IF_PAGE = (i: number) => `--b${i}`;
@@ -626,8 +629,8 @@ ${[...Array(maxTableColumns * 2).keys()]
   box-sizing: border-box;
   margin-block-end: -2px;
   margin-block-start: -2px;
-  padding-block-end: 19px;
-  padding-block-start: 9px;
+  padding-block-start: 10px;
+  padding-block-end: 10px;
   padding-inline-start: 19px;
   padding-inline-end: 19px;
   order: inherit;
@@ -930,6 +933,8 @@ export function taskStats(
 export function usageIndicators(
   ...inner: { title: string; usagePercent: number }[]
 ): string {
+  if (inner.length == 0) return "";
+
   const items = inner.map(({ title, usagePercent }) => {
     const rounded = Math.round((usagePercent + Number.EPSILON) * 100) / 100;
     let bluePixels = Math.round((usagePercent / 100) * 50);
@@ -1027,7 +1032,7 @@ export function paginatedTable(
       `<input type="radio" class="sort-column-radio-${i}" id="${sortColumnID}" name="${sortColumnRadioName}" ${sortColumnID === checkedSortColumn ? "checked" : ""} />`,
   );
 
-  const pageButtons = pageIDs.map((_, i) => {
+  const pageButtons: string[][] = pageIDs.map((_, i) => {
     const pageSet: Set<number> = new Set();
     const add = (...is: number[]) =>
       is.forEach((i) =>
@@ -1074,37 +1079,57 @@ export function paginatedTable(
     );
   });
 
-  const pageControls = pageIDs.map(
-    (_, i) =>
-      `<ul class="awsui_tools-pagination">` +
-      `<li class="awsui_page-item">` +
-      `<label for="${pageIDs[i - 1]}"  class="awsui_page-button ${i <= 0 ? "awsui_page-button-disabled" : ""}">` +
-      ANGLE_LEFT_ICON +
-      `</label>` +
-      `</li>` +
-      pageButtons[i].join("\n") +
-      `<li class="awsui_page-item">` +
-      `<label for="${pageIDs[i + 1]}" class="awsui_page-button ${i >= pageIDs.length - 1 ? "awsui_page-button-disabled" : ""}">` +
-      ANGLE_RIGHT_ICON +
-      `</label>` +
-      `</li>` +
-      `</ul>`,
-  );
+  const pageControls = pageIDs.length
+    ? pageIDs.map(
+        (_, i) =>
+          `<ul class="awsui_tools-pagination">` +
+          `<li class="awsui_page-item">` +
+          `<label for="${pageIDs[i - 1]}"  class="awsui_page-button ${i <= 0 ? "awsui_page-button-disabled" : ""}">` +
+          ANGLE_LEFT_ICON +
+          `</label>` +
+          `</li>` +
+          pageButtons[i].join("\n") +
+          `<li class="awsui_page-item">` +
+          `<label for="${pageIDs[i + 1]}" class="awsui_page-button ${i >= pageIDs.length - 1 ? "awsui_page-button-disabled" : ""}">` +
+          ANGLE_RIGHT_ICON +
+          `</label>` +
+          `</li>` +
+          `</ul>`,
+      )
+    : [
+        `<ul class="awsui_tools-pagination">` +
+          `<li class="awsui_page-item">` +
+          `<label class="awsui_page-button awsui_page-button-disabled">` +
+          ANGLE_LEFT_ICON +
+          `</label>` +
+          `</li>` +
+          `<li class="awsui_page-item"><label class="awsui_page-number awsui_page-number-active">1</label></li>` +
+          `<li class="awsui_page-item">` +
+          `<label class="awsui_page-button awsui_page-button-disabled">` +
+          ANGLE_RIGHT_ICON +
+          `</label>` +
+          `</li>` +
+          `</ul>`,
+      ];
 
   const actions =
     `<div class="awsui_actions awsui_horizontal awsui_horizontal-xs">` +
-    pageIDs
-      .map(
-        (pageID, i) =>
-          `<div style="display: var(${FLEX_IF_PAGE(i)}, none)">${pageControls[i]}</div>` +
-          `<div style="display: var(${FLEX_IF_PAGE(i)}, none)">` +
-          refresh(context, event, {
-            ...(checkedRadios ?? {}),
-            [pageRadioName]: pageID,
-          }) +
-          `</div>`,
-      )
-      .join("") +
+    (pageIDs.length
+      ? pageIDs
+          .map(
+            (pageID, i) =>
+              `<div style="display: var(${FLEX_IF_PAGE(i)}, none)">${pageControls[i]}</div>` +
+              `<div style="display: var(${FLEX_IF_PAGE(i)}, none)">` +
+              refresh(context, event, {
+                ...(checkedRadios ?? {}),
+                [pageRadioName]: pageID,
+              }) +
+              `</div>`,
+          )
+          .join("")
+      : `<div>${pageControls[0]}</div><div>${refresh(context, event, {
+          ...(checkedRadios ?? {}),
+        })}</div>`) +
     (extraActions ?? []).join("") +
     `</div>`;
 
@@ -1242,7 +1267,8 @@ export function ecsLastStatus(
     | "STOPPING"
     | "DEPROVISIONING"
     | "STOPPED"
-    | "DELETED",
+    | "DELETED"
+    | string,
 ): string {
   switch (status) {
     case "PROVISIONING":
@@ -1269,7 +1295,7 @@ export function ecsLastStatus(
 }
 
 export function ecsDesiredStatus(
-  status: "PENDING" | "RUNNING" | "STOPPED" | "DELETED",
+  status: "PENDING" | "RUNNING" | "STOPPED" | "DELETED" | string,
 ): string {
   switch (status) {
     case "RUNNING":
@@ -1292,7 +1318,8 @@ export function storageState(
     | "read-only"
     | "gone"
     | "read-write"
-    | "data-loss",
+    | "data-loss"
+    | string,
 ): string {
   switch (state) {
     case "provisioning":
@@ -1370,8 +1397,8 @@ export function refresh(
   event: ControlPanelWidgetEvent,
   checkedRadios?: { [name: string]: string },
 ): string {
-  const nextEvent: ControlPanelWidgetEvent = {
-    command: event.command,
+  const nextEvent: ControlPanelWidgetRefreshEvent = {
+    command: "controlPanelRefresh",
     checkedRadios: {
       ...(event.checkedRadios ?? {}),
       ...checkedRadios,

@@ -2,6 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { VOLUME_POLICY } from "./volume-policy";
 import {
+  assertSupportedRestateVersion,
   DEFAULT_CONTROLLER_CPU,
   DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB,
   DEFAULT_RESTATE_CPU,
@@ -11,12 +12,14 @@ import {
   DEFAULT_STATELESS_DESIRED_COUNT,
   RestateBYOCControllerProps,
   RestateBYOCLoadBalancerProps,
+  RestateBYOCNodeProps,
   RestateBYOCProps,
   RestateBYOCRestatectlProps,
   RestateBYOCRetirementWatcherProps,
   RestateBYOCStatefulProps,
   RestateBYOCStatelessProps,
   RestateBYOCTaskProps,
+  SupportedRestateVersion,
 } from "./props";
 import { createMonitoring } from "./monitoring";
 
@@ -89,6 +92,9 @@ export class RestateBYOC extends Construct {
         );
       }
     }
+
+    const statelessRestateVersion = validateRestateVersion(props.statelessNode);
+    validateRestateVersion(props.statefulNode);
 
     if (props.securityGroups?.length) {
       this.securityGroups = props.securityGroups;
@@ -170,7 +176,7 @@ export class RestateBYOC extends Construct {
     );
     this.stateless = stateless;
 
-    this.loadBalancer = createLoadBalancer(
+    const loadBalancer = createLoadBalancer(
       this,
       this.vpc,
       this.securityGroups,
@@ -178,6 +184,7 @@ export class RestateBYOC extends Construct {
       stateless.service,
       props.loadBalancer,
     );
+    this.loadBalancer = loadBalancer;
 
     const statefulDefinition = createStatefulDefinition(
       this,
@@ -222,10 +229,18 @@ export class RestateBYOC extends Construct {
 
     const monitoring = createMonitoring(
       this,
+      this.vpc,
+      subnets,
+      this.securityGroups,
+      this.bucket,
       this.cluster,
+      stateless.service,
       stateless.taskDefinition,
+      statelessRestateVersion,
       statefulDefinition,
+      controller.service,
       controller.taskDefinition,
+      { ingress: loadBalancer.nlb, admin: loadBalancer.nlb },
       this.restatectl,
       props,
     );
@@ -468,11 +483,11 @@ function createLoadBalancer(
 ): {
   nlb: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
   ingress: {
-    targetGroup: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
+    targetGroup: cdk.aws_elasticloadbalancingv2.NetworkTargetGroup;
     listener: cdk.aws_elasticloadbalancingv2.INetworkListener;
   };
   admin: {
-    targetGroup: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
+    targetGroup: cdk.aws_elasticloadbalancingv2.NetworkTargetGroup;
     listener: cdk.aws_elasticloadbalancingv2.INetworkListener;
   };
   node: {
@@ -503,7 +518,6 @@ function createLoadBalancer(
       "ingress-target",
       {
         vpc,
-        deregistrationDelay: cdk.Duration.seconds(10), // todo remove
         healthCheck: {
           enabled: true,
           interval: cdk.Duration.seconds(5),
@@ -541,7 +555,6 @@ function createLoadBalancer(
       "admin-target",
       {
         vpc,
-        deregistrationDelay: cdk.Duration.seconds(10), // todo remove
         healthCheck: {
           enabled: true,
           interval: cdk.Duration.seconds(5),
@@ -579,7 +592,6 @@ function createLoadBalancer(
     "node-target",
     {
       vpc,
-      deregistrationDelay: cdk.Duration.seconds(10), // todo remove
       targetGroupName: "restate-bluegreen-node",
       healthCheck: {
         enabled: true,
@@ -1050,3 +1062,19 @@ export \
   RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
 exec restate-server
 `;
+
+function validateRestateVersion(
+  node?: RestateBYOCNodeProps,
+): SupportedRestateVersion {
+  const restateVersion =
+    node?.restateVersion ??
+    (node?.restateImage ?? DEFAULT_RESTATE_IMAGE).split(":").pop();
+
+  if (!restateVersion)
+    throw new Error(
+      `Could not derive the version of restate from the provided image ${node?.restateImage ?? DEFAULT_RESTATE_IMAGE}, a restateVersion parameter must be provided`,
+    );
+
+  assertSupportedRestateVersion(restateVersion);
+  return restateVersion;
+}
