@@ -33,6 +33,54 @@ describe("BYOC", () => {
     });
   });
 
+  test("With alb for admin", () => {
+    const { stack, vpc } = createStack();
+
+    const alb = new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
+      stack,
+      "alb",
+      {
+        vpc,
+      },
+    );
+
+    new RestateBYOC(stack, "with-admin-alb", {
+      vpc,
+      loadBalancer: {
+        admin: {
+          applicationListenerProps: {
+            loadBalancer: alb,
+            protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
+            port: 9070,
+          },
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("With shared alb", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateBYOC(stack, "with-shared-alb", {
+      vpc,
+      loadBalancer: {
+        shared: {
+          albProps: { vpc },
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
   test("With too few AZs", () => {
     const { stack, vpc } = createStack();
 
@@ -53,7 +101,7 @@ describe("BYOC", () => {
     new RestateBYOC(stack, "one-az", {
       vpc,
       statelessNode: {
-        defaultLogReplication: { node: 2 },
+        defaultReplication: { node: 2 },
       },
       subnets: {
         availabilityZones: [stack.availabilityZones[0]],
@@ -69,7 +117,7 @@ describe("BYOC", () => {
   test("Without metrics dashboard", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "one-az", {
+    new RestateBYOC(stack, "without-metrics-dashboard", {
       vpc,
       monitoring: {
         dashboard: {
@@ -89,7 +137,7 @@ describe("BYOC", () => {
   test("Without control panel", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "one-az", {
+    new RestateBYOC(stack, "without-control-panel", {
       vpc,
       monitoring: {
         dashboard: {
@@ -109,7 +157,7 @@ describe("BYOC", () => {
   test("Without custom widget lambda", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "one-az", {
+    new RestateBYOC(stack, "without-custom-widget-lambda", {
       vpc,
       monitoring: {
         dashboard: {

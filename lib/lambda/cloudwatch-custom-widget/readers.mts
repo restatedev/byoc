@@ -355,6 +355,11 @@ export async function getControlPanel(
     lambdaClient,
     input.resources.restatectlLambdaArn,
   );
+  const nodeState = restatectlSql(
+    lambdaClient,
+    input.resources.restatectlLambdaArn,
+    "select * from node_state",
+  );
   const bifrostConfig = getBifrostConfig(
     lambdaClient,
     input.resources.restatectlLambdaArn,
@@ -363,26 +368,30 @@ export async function getControlPanel(
     lambdaClient,
     input.resources.restatectlLambdaArn,
   );
-  const partitionList = getPartitionList(
+  const partitionState = restatectlSql(
     lambdaClient,
     input.resources.restatectlLambdaArn,
+    "select * from partition_state order by PARTITION_ID asc, EFFECTIVE_MODE desc, PLAIN_NODE_ID asc",
   );
 
   const nodes = Promise.all([
     nodesConfig,
+    nodeState,
     bifrostConfig,
     partitionTable,
     tasks,
     volumes,
-  ]).then(([nodesConfig, bifrostConfig, partitionTable, tasks, volumes]) =>
-    getNodes(
-      nodesConfig,
-      bifrostConfig,
-      partitionTable,
-      tasks.statelessTasks,
-      tasks.statefulTasks,
-      volumes,
-    ),
+  ]).then(
+    ([nodesConfig, nodeState, bifrostConfig, partitionTable, tasks, volumes]) =>
+      getNodes(
+        nodesConfig,
+        nodeState,
+        bifrostConfig,
+        partitionTable,
+        tasks.statelessTasks,
+        tasks.statefulTasks,
+        volumes,
+      ),
   );
   const statefulNodes = nodes.then((nodes) => nodes.statefulNodes);
   const statelessNodes = nodes.then((nodes) => nodes.statelessNodes);
@@ -407,9 +416,9 @@ export async function getControlPanel(
 
   const logs = bifrostConfig.then(getLogs);
 
-  const partitions = Promise.all([partitionTable, partitionList]).then(
-    ([partitionTable, partitionList]) =>
-      getPartitions(partitionTable, partitionList),
+  const partitions = Promise.all([partitionTable, partitionState]).then(
+    ([partitionTable, partitionState]) =>
+      getPartitions(partitionTable, partitionState),
   );
 
   return {
@@ -491,19 +500,16 @@ export async function getControlPanel(
     nodes: {
       clusterName: input.resources.ecsClusterArn.split("/").pop()!,
       stateful: {
-        taskDefinition: (await statefulTaskDefinition).family!,
         logGroup: await statefulContainerDefinition.then(logGroup),
         tasks: await statefulNodes,
       },
       stateless: {
         serviceName: statelessServiceName,
-        taskDefinition: (await statelessTaskDefinition).family!,
         logGroup: await statelessContainerDefinition.then(logGroup),
         tasks: await statelessNodes,
       },
       controller: {
         serviceName: controllerServiceName,
-        taskDefinition: (await controllerTaskDefinition).family!,
         logGroup: await controllerContainerDefinition.then(logGroup),
         tasks: await controllerTasks,
       },
@@ -946,16 +952,21 @@ async function describeTasks(
     })(),
   ]);
 
-  const tasksDescriptionResponses = await Promise.all(
-    taskPages.map((taskPage) =>
+  const tasks = taskPages.flatMap((page) => page.taskArns ?? []);
+
+  const taskDescriptionPromises = [];
+  for (let i = 0; i < tasks.length; i += 95) {
+    taskDescriptionPromises.push(
       ecsClient.send(
         new ecs.DescribeTasksCommand({
           cluster: ecsClusterArn,
-          tasks: taskPage.taskArns,
+          tasks: tasks.slice(i, i + 95),
         }),
       ),
-    ),
-  );
+    );
+  }
+
+  const tasksDescriptionResponses = await Promise.all(taskDescriptionPromises);
 
   for (const tasksDescriptionResponse of tasksDescriptionResponses) {
     const failures = tasksDescriptionResponse.failures?.filter(
@@ -1176,6 +1187,7 @@ async function getPartitionTable(
 
 function getNodes(
   nodesConfig: NodesConfig,
+  nodeState: RestatectlSqlOutput,
   bifrostConfig: BifrostConfig,
   partitionTable: PartitionTable,
   statelessTasks: ecs.Task[],
@@ -1189,6 +1201,18 @@ function getNodes(
   const nodesByName = Object.fromEntries<Node | undefined>(
     nodes.map((node) => [node.name, node]),
   );
+
+  let nodeStatusByID: { [k: string]: string | undefined } = {};
+  const nodeStateIDCol = nodeState.headers.get("PLAIN_NODE_ID");
+  const nodeStateStatusCol = nodeState.headers.get("STATUS");
+  if (nodeStateIDCol !== undefined && nodeStateStatusCol !== undefined) {
+    nodeStatusByID = Object.fromEntries<string | undefined>(
+      nodeState.rows.map((row) => [
+        row[nodeStateIDCol],
+        row[nodeStateStatusCol],
+      ]),
+    );
+  }
 
   const volumesByTaskArn = Object.fromEntries<Volume | undefined>(
     volumes.map((volume) => [volume.taskArn, volume]),
@@ -1228,6 +1252,14 @@ function getNodes(
     const node = nodesByName[task.taskArn!];
     delete nodesByName[task.taskArn!];
 
+    const nodeID = node?.current_generation
+      ? `N${node.current_generation[0]}`
+      : undefined;
+    const genNodeID = nodeID
+      ? `${nodeID}:${node?.current_generation[1]}`
+      : undefined;
+    const nodeStatus = nodeID ? nodeStatusByID[nodeID] : undefined;
+
     // we only show stopped tasks as nodes if they are still present in nodes config. otherwise, its just confusing
     if (!node && task.lastStatus == "STOPPED") return;
 
@@ -1241,9 +1273,8 @@ function getNodes(
       cpu: task.cpu ?? "",
       memory: task.memory ?? "",
       startedAt: task.startedAt?.toISOString() ?? "Not Started",
-      nodeID: node?.current_generation
-        ? `N${node.current_generation[0]}:${node.current_generation[1]}`
-        : "",
+      nodeID: genNodeID ?? "",
+      nodeStatus: nodeStatus ?? "",
       storageState: node?.log_server_config.storage_state ?? "",
       leader: node?.current_generation
         ? (leadersByNode.get(node.current_generation[0]) ?? 0)
@@ -1267,6 +1298,14 @@ function getNodes(
     const node = nodesByName[task.taskArn!];
     delete nodesByName[task.taskArn!];
 
+    const nodeID = node?.current_generation
+      ? `N${node.current_generation[0]}`
+      : undefined;
+    const genNodeID = nodeID
+      ? `${nodeID}:${node?.current_generation[1]}`
+      : undefined;
+    const nodeStatus = nodeID ? nodeStatusByID[nodeID] : undefined;
+
     // we only show stopped tasks as nodes if they are still present in nodes config. otherwise, its just confusing
     if (!node && task.lastStatus == "STOPPED") return;
 
@@ -1280,9 +1319,8 @@ function getNodes(
       cpu: task.cpu!,
       memory: task.memory!,
       startedAt: task.startedAt?.toISOString() ?? "Not Started",
-      nodeID: node?.current_generation
-        ? `N${node.current_generation[0]}:${node.current_generation[1]}`
-        : "",
+      nodeID: genNodeID ?? "",
+      nodeStatus: nodeStatus ?? "",
     } satisfies StatelessTaskProps);
   });
 
@@ -1297,6 +1335,10 @@ function getNodes(
       return;
     }
 
+    const nodeID = `N${node.current_generation[0]}`;
+    const genNodeID = `${nodeID}:${node.current_generation[1]}`;
+    const nodeStatus = nodeStatusByID[nodeID];
+
     if (node.roles.includes("log-server")) {
       statefulNodes.push({
         taskID: name.split("/").pop()!,
@@ -1308,7 +1350,8 @@ function getNodes(
         cpu: "",
         memory: "",
         startedAt: "",
-        nodeID: `N${node.current_generation[0]}:${node.current_generation[1]}`,
+        nodeID: genNodeID,
+        nodeStatus: nodeStatus ?? "",
         storageState: node.log_server_config.storage_state,
         leader: leadersByNode.get(node.current_generation[0]) ?? 0,
         follower: followersByNode.get(node.current_generation[0]) ?? 0,
@@ -1326,7 +1369,8 @@ function getNodes(
         cpu: "",
         memory: "",
         startedAt: "",
-        nodeID: `N${node.current_generation[0]}:${node.current_generation[1]}`,
+        nodeID: genNodeID,
+        nodeStatus: nodeStatus ?? "",
       } satisfies StatelessTaskProps);
     }
   });
@@ -1445,23 +1489,24 @@ function parseReplicationFactor(
   return factors;
 }
 
-interface PartitionList {
+interface RestatectlSqlOutput {
   headers: Map<string, number>;
   rows: string[][];
 }
 
-async function getPartitionList(
+async function restatectlSql(
   lambdaClient: lambda.LambdaClient,
   restatectlLambdaArn: string,
-): Promise<PartitionList> {
+  query: string,
+): Promise<RestatectlSqlOutput> {
   try {
-    const partitionList = await restatectl(lambdaClient, restatectlLambdaArn, [
-      "partition",
-      "list",
+    const table = await restatectl(lambdaClient, restatectlLambdaArn, [
+      "sql",
+      query,
     ]);
 
-    const partitionLines = partitionList.split("\n");
-    const headers = partitionLines[1];
+    const tableLines = table.split("\n");
+    const headers = tableLines[0];
     const labels: { label: string; index: number }[] = [];
     for (const word of headers.matchAll(/[^\s]+/g)) {
       labels.push({ label: word[0], index: word.index });
@@ -1469,7 +1514,7 @@ async function getPartitionList(
 
     return {
       headers: new Map(labels.map((l, i) => [l.label, i])),
-      rows: partitionLines.slice(2, partitionLines.length - 1).map((line) => {
+      rows: tableLines.slice(1, tableLines.length - 2).map((line) => {
         return labels.map((label, i) => {
           const startIndex = label.index;
           const endIndex = labels[i + 1] ? labels[i + 1].index : line.length;
@@ -1489,34 +1534,44 @@ async function getPartitionList(
 
 function getPartitions(
   partitionTable: PartitionTable,
-  partitionList: PartitionList,
+  partitionState: RestatectlSqlOutput,
 ): {
   count: number;
   replication?: { node?: number; zone?: number; region?: number };
   info: PartitionInfo[];
 } {
   const getLabel = (label: string, row: string[]): string => {
-    const i = partitionList.headers.get(label);
+    const i = partitionState.headers.get(label);
     if (i === undefined) return "";
     return row[i] ?? "";
   };
 
-  const info = partitionList.rows.map(
-    (row) =>
-      ({
-        partitionID: getLabel("P-ID", row),
-        nodeID: getLabel("NODE", row),
-        mode: getLabel("MODE", row),
-        status: getLabel("STATUS", row),
-        leader: getLabel("LEADER", row),
-        sequencer: getLabel("SEQUENCER", row),
-        appliedLSN: getLabel("APPLIED-LSN", row),
-        persistedLSN: getLabel("PERSISTED-LSN", row),
-        archivedLSN: getLabel("ARCHIVED-LSN", row),
-        lsnLag: getLabel("LSN-LAG", row),
-        lastUpdate: getLabel("LAST-UPDATE", row),
-      }) satisfies PartitionInfo,
-  );
+  const info = partitionState.rows.map((row) => {
+    const appliedLSN = getLabel("APPLIED_LOG_LSN", row);
+    const targetTailLSN = getLabel("TARGET_TAIL_LSN", row);
+
+    const appliedLSNNumber = Number(targetTailLSN);
+    const targetTailLSNNumber = Number(appliedLSN);
+
+    let lsnLag = "";
+    if (!Number.isNaN(appliedLSNNumber) && !Number.isNaN(targetTailLSNNumber)) {
+      // (tail - 1) - applied_lsn = tail - (applied_lsn + 1)
+      lsnLag = Math.max(targetTailLSNNumber - appliedLSNNumber, 0).toString();
+    }
+    return {
+      partitionID: getLabel("PARTITION_ID", row),
+      nodeID: getLabel("GEN_NODE_ID", row),
+      mode: getLabel("EFFECTIVE_MODE", row),
+      status: getLabel("REPLAY_STATUS", row),
+      leader: getLabel("LEADER", row),
+      appliedLSN,
+      persistedLSN: getLabel("PERSISTED_LOG_LSN", row),
+      archivedLSN: getLabel("ARCHIVED_LOG_LSN", row),
+      targetTailLSN,
+      lsnLag,
+      lastUpdate: getLabel("UPDATED_AT", row),
+    } satisfies PartitionInfo;
+  });
 
   const replication = parseReplicationFactor(partitionTable.replication?.limit);
 

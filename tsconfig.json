@@ -20,6 +20,6 @@
     "typeRoots": ["./node_modules/@types"],
     "outDir": "dist"
   },
-  "include": ["lib/**/*", "test/**/*"],
+  "include": ["lib/**/*"],
   "exclude": ["node_modules", "cdk.out"]
 }
