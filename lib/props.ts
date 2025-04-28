@@ -6,7 +6,7 @@ export interface RestateBYOCProps {
    */
   vpc: cdk.aws_ec2.IVpc;
   /**
-   * How to choose subnets within the provided VPC
+   * How to choose subnets within the provided VPC. Providing no more than one subnet per AZ is recommended.
    * Default: one PRIVATE_WITH_EGRESS subnet per AZ
    */
   subnets?: cdk.aws_ec2.SubnetSelection;
@@ -73,6 +73,12 @@ export interface RestateBYOCProps {
    * Default: See the documentation for RestateBYOCRetirementWatcherProps
    */
   retirementWatcher?: RestateBYOCRetirementWatcherProps;
+
+  /**
+   * Options for monitoring
+   * Default: See the documentation for RestateBYOCMonitoringProps
+   */
+  monitoring?: RestateBYOCMonitoringProps;
 }
 
 export interface RestateBYOCLoadBalancerProps {
@@ -98,6 +104,8 @@ export interface RestateBYOCLoadBalancerProps {
   };
 }
 
+export const DEFAULT_STATELESS_DESIRED_COUNT = 3;
+
 export interface RestateBYOCStatelessProps extends RestateBYOCNodeProps {
   /**
    * Configures the default replication factor to be used by the replicated loglets.
@@ -108,9 +116,9 @@ export interface RestateBYOCStatelessProps extends RestateBYOCNodeProps {
   /**
    * The default replication factor for partition processors, this impacts how many replicas each partition will have across the worker nodes of the cluster.
    * Note that this value only impacts the cluster initial provisioning and will not be respected after the cluster has been provisioned.
-   * Default: everywhere
+   * Default: 3
    */
-  defaultPartitionReplication?: { node: number } | "everywhere";
+  defaultPartitionReplication?: { node: number };
   /**
    * Number of partitions that will be provisioned during initial cluster provisioning. Partitions are the logical shards used to process messages.
    * Default: 128
@@ -122,6 +130,8 @@ export interface RestateBYOCStatelessProps extends RestateBYOCNodeProps {
    */
   desiredCount?: number;
 }
+
+export const DEFAULT_STATEFUL_NODES_PER_AZ = 1;
 
 export interface RestateBYOCStatefulProps extends RestateBYOCNodeProps {
   /**
@@ -158,12 +168,13 @@ export interface RestateBYOCEBSVolumeProps {
   sizeInGiB: number;
   /**
    * The iops to provision for each volume
-   * Default: The default for the volume type
+   * This parameter is required for io1 and io2 volumes.
+   * The default for gp3 volumes is 3,000 IOPS. This parameter is not supported for gp2, st1, sc1, or standard volumes.
    */
   iops?: number;
   /**
    * The throughput to provision for each volume
-   * Default: The default for the volume type
+   * This parameter is valid only for gp3 volumes, where it otherwise defaults to 125.
    */
   throughput?: number;
 }
@@ -171,18 +182,39 @@ export interface RestateBYOCEBSVolumeProps {
 export const DEFAULT_RESTATE_IMAGE =
   "docker.restate.dev/restatedev/restate:1.3";
 
+export const DEFAULT_RESTATE_CPU = 16384;
+export const DEFAULT_RESTATE_MEMORY_LIMIT_MIB = 32768;
+
+export type SupportedRestateVersion = `1.3.${string}` | `1.3`;
+export function assertSupportedRestateVersion(
+  version: string,
+): asserts version is SupportedRestateVersion {
+  if (version == "1.3" || version.startsWith("1.3.")) return;
+  throw new Error(`Restate version ${version} is not supported by this stack`);
+}
+
 export interface RestateBYOCNodeProps {
   /**
    * The Restate image to use for the node
    * Default: docker.restate.dev/restatedev/restate:1.3
    */
   restateImage?: string;
+
+  /**
+   * The version of Restate that restateImage contains
+   * Default: This will be derived from the image suffix; it must be provided if derivation failed
+   */
+  restateVersion?: SupportedRestateVersion;
+
   /**
    * The resources for the fargate task that runs the node
    * Default: 16 vCPU and 32G memory
    */
   resources?: { cpu: number; memoryLimitMiB: number };
 }
+
+export const DEFAULT_CONTROLLER_CPU = 1024;
+export const DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB = 2048;
 
 export interface RestateBYOCControllerProps {
   /**
@@ -231,12 +263,12 @@ export interface RestateBYOCTaskProps {
 
 export interface RestateBYOCRestatectlProps {
   /**
-   * If true, do not create a restatectl lambda
+   * If true, do not create a restatectl lambda. Note this lambda is also required for CloudWatch custom widgets.
    * Default: false
    */
   disabled?: boolean;
   /**
-   * The execution role for the retstatectl lambda, which must be assumable by lambda.amazonaws.com
+   * The execution role for the restatectl lambda, which must be assumable by lambda.amazonaws.com
    * Permissions will be added to the role to allow it to execute in a vpc and send logs to cloudwatch
    * Default: A role will be created
    */
@@ -255,4 +287,62 @@ export interface RestateBYOCRetirementWatcherProps {
    * Default: A role will be created
    */
   executionRole?: cdk.aws_iam.IRole;
+}
+
+export interface RestateBYOCMonitoringProps {
+  dashboard?: {
+    metrics?: {
+      /**
+       * If true, do not create a CloudWatch dashboard for metrics.
+       * Default: false
+       */
+      disabled?: boolean;
+
+      /**
+       * If true, use the cdk autogenerated name instead of the default dashboard name
+       * Default: false
+       */
+      autogeneratedName?: boolean;
+    };
+
+    controlPanel?: {
+      /**
+       * If true, do not create a CloudWatch control panel dashboard.
+       * Default: false
+       */
+      disabled?: boolean;
+
+      /**
+       * If true, use the cdk autogenerated name instead of the default dashboard name
+       * Default: false
+       */
+      autogeneratedName?: boolean;
+
+      /**
+       * The addresses of Restate components, for use in links from the control panel
+       * Default: The address of the created NLB, if available, on default ports
+       */
+      addresses?: {
+        ingress: string;
+        admin: string;
+        webUI: string;
+      };
+    };
+
+    customWidgets?: {
+      /**
+       * If true, do not create CloudWatch custom widgets and their associated Lambda.
+       * This is required for the control panel dashboard, and for volume IOPS graphs on the metrics dashboard.
+       * Default: false
+       */
+      disabled?: boolean;
+
+      /**
+       * The execution role for the CloudWatch custom widget lambda, which must be assumable by lambda.amazonaws.com
+       * Necessary permissions will be added to the role
+       * Default: A role will be created
+       */
+      executionRole?: cdk.aws_iam.IRole;
+    };
+  };
 }

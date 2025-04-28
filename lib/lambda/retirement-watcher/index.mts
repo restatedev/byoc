@@ -33,7 +33,7 @@ export const handler: SQSHandler = async (event) => {
     try {
       healthEvent = JSON.parse(record?.body);
     } catch (e) {
-      console.log("Failed to parse record body; ignoring", record?.body);
+      console.log("Failed to parse record body; ignoring", record?.body, e);
       continue;
     }
 
@@ -52,20 +52,25 @@ export const handler: SQSHandler = async (event) => {
       continue;
     }
 
-    for (const taskArn of healthEvent.resources) {
-      await client.send(
-        new ecs.TagResourceCommand({
-          resourceArn: taskArn,
-          tags: [
-            {
-              key: TAG_KEY,
-              value: "true",
-            },
-          ],
+    const tagPromises = healthEvent.resources.map((taskArn) =>
+      client
+        .send(
+          new ecs.TagResourceCommand({
+            resourceArn: taskArn,
+            tags: [
+              {
+                key: TAG_KEY,
+                value: "true",
+              },
+            ],
+          }),
+        )
+        .then((result) => {
+          console.log(`Tagged ${taskArn} as retiring`);
+          return result;
         }),
-      );
+    );
 
-      console.log(`Tagged ${taskArn} as retiring`);
-    }
+    Promise.all(tagPromises);
   }
 };
