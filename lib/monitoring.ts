@@ -14,6 +14,7 @@ const packageInfo = require("../package.json");
 
 export function createMonitoring(
   scope: Construct,
+  clusterName: string,
   vpc: cdk.aws_ec2.IVpc,
   subnets: cdk.aws_ec2.SelectedSubnets,
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
@@ -26,12 +27,18 @@ export function createMonitoring(
   controllerService: cdk.aws_ecs.IFargateService,
   controllerTaskDefinition: cdk.aws_ecs.FargateTaskDefinition,
   loadBalancer: {
-    ingress:
-      | cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer
-      | cdk.aws_elasticloadbalancingv2.IApplicationLoadBalancer;
-    admin:
-      | cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer
-      | cdk.aws_elasticloadbalancingv2.IApplicationLoadBalancer;
+    ingress: {
+      loadBalancerArn: string;
+      certificateArn?: string;
+      address: string;
+    };
+    admin: {
+      loadBalancerArn: string;
+      address: string;
+    };
+    webUI: {
+      address: string;
+    };
   },
   restatectlLambda?: cdk.aws_lambda.IFunction,
   props?: RestateBYOCProps,
@@ -76,13 +83,13 @@ export function createMonitoring(
           title: "",
           functionArn: customWidgetFn.functionArn,
           width: 24,
-          height: 30,
+          height: 26,
           params: {
             command: "controlPanel",
             input: {
               region: cdk.Aws.REGION,
               summary: {
-                clusterName: scope.node.path,
+                clusterName,
                 licensedTo: "Acme, Inc", // TODO
                 restateVersion: statelessRestateVersion,
                 stackVersion: packageInfo.version, // TODO
@@ -103,25 +110,13 @@ export function createMonitoring(
                   addresses: {
                     ingress:
                       props?.monitoring?.dashboard?.controlPanel?.addresses
-                        ?.ingress || loadBalancer.ingress
-                        ? props?.loadBalancer?.ssl
-                          ? `https://${loadBalancer.ingress.loadBalancerDnsName}`
-                          : `http://${loadBalancer.ingress.loadBalancerDnsName}:8080`
-                        : undefined,
+                        ?.ingress || loadBalancer.ingress.address,
                     admin:
                       props?.monitoring?.dashboard?.controlPanel?.addresses
-                        ?.admin || loadBalancer
-                        ? props?.loadBalancer?.ssl
-                          ? `https://${loadBalancer.admin.loadBalancerDnsName}:9070`
-                          : `http://${loadBalancer.admin.loadBalancerDnsName}:9070`
-                        : undefined,
+                        ?.admin || loadBalancer.admin.address,
                     webUI:
                       props?.monitoring?.dashboard?.controlPanel?.addresses
-                        ?.webUI || loadBalancer
-                        ? props?.loadBalancer?.ssl
-                          ? `https://${loadBalancer.admin.loadBalancerDnsName}:9070/ui`
-                          : `http://${loadBalancer.admin.loadBalancerDnsName}:9070/ui`
-                        : undefined,
+                        ?.webUI || loadBalancer.webUI.address,
                   },
                 },
                 networking: {
@@ -133,9 +128,7 @@ export function createMonitoring(
                   securityGroups: securityGroups.map(
                     (sg) => sg.securityGroupId,
                   ),
-                  certificateArn:
-                    props?.loadBalancer?.ssl?.listenerCertificate
-                      .certificateArn,
+                  certificateArn: loadBalancer.ingress.certificateArn,
                 },
               },
               storage: {

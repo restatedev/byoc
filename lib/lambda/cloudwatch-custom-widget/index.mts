@@ -64,12 +64,10 @@ type WidgetEvent = {
 export type ControlPanelWidgetEvent = {
   command: "controlPanel";
   input: ControlPanelInput;
-  checkedRadios?: { [name: string]: string | undefined };
 };
 
 export type ControlPanelWidgetRefreshEvent = {
   command: "controlPanelRefresh";
-  checkedRadios?: { [name: string]: string | undefined };
 };
 
 export interface WidgetContext {
@@ -96,6 +94,11 @@ export interface WidgetContext {
   };
   theme: string;
   title: string;
+  forms: {
+    all: {
+      [k: string]: string | undefined;
+    };
+  };
   params: unknown;
   width: number;
   height: number;
@@ -151,9 +154,9 @@ export const widgetHandler = async (
     case "echo":
       return event.echo || '<pre>No "echo" parameter specified</pre>';
     case "controlPanel":
-      return await controlPanel(context, event);
+      return await controlPanel(context, event.widgetContext, event);
     case "controlPanelRefresh":
-      return await controlPanelRefresh(context, event.widgetContext, event);
+      return await controlPanelRefresh(context, event.widgetContext);
     default:
       throw new Error(`Unexpected widget command: ${command}`);
   }

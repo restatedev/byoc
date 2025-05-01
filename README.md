@@ -1,14 +1,45 @@
-# Welcome to your CDK TypeScript project
+# Restate Bring-your-own-cloud CDK construct
 
-This is a blank project for CDK development with TypeScript.
+This package contains a construct suitable for deploying Restate on ECS Fargate using the BYOC controller.
+The controller is not open source and currently must be provided in the form of a tarball.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Example
+```ts
+interface BYOCStackProps extends cdk.StackProps {
+  // Defaults to 'controller.tar' in the root of the repo
+  controllerImageTarball?: string;
+}
 
-## Useful commands
+export class BYOCStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props?: BYOCStackProps) {
+    super(scope, id, props);
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+    const vpc = new cdk.aws_ec2.Vpc(this, "vpc", {
+      maxAzs: 3,
+    });
+
+    const byoc = new RestateBYOC(this, "restate-byoc", {
+      vpc,
+      statefulNode: {
+        resources: {
+          cpu: 2048,
+          memoryLimitMiB: 4096,
+        },
+        ebsVolume: {
+          volumeType: cdk.aws_ec2.EbsDeviceVolumeType.GP3,
+          sizeInGiB: 200,
+        },
+      },
+      statelessNode: {
+        resources: {
+          cpu: 2048,
+          memoryLimitMiB: 4096,
+        },
+      },
+      controller: {
+        controllerImageTarball: props?.controllerImageTarball,
+      },
+    });
+  }
+}
+```

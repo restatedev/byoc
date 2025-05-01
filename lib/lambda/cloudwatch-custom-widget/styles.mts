@@ -3,6 +3,7 @@ import { EMBER_BOLD, EMBER_ITALIC, EMBER_REGULAR } from "./static.mjs";
 import {
   ControlPanelWidgetEvent,
   ControlPanelWidgetRefreshEvent,
+  WidgetContext,
 } from "./index.mjs";
 
 const FLEX_IF_PAGE = (i: number) => `--a${i}`;
@@ -96,6 +97,11 @@ h3.awsui_heading {
 .awsui_link {
   font-weight: normal;
   color: #006ce0;
+  line-height: 20px;
+}
+
+.awsui_lint-text {
+  vertical-align: middle;
 }
 
 .awsui_link:hover {
@@ -135,10 +141,11 @@ h3.awsui_heading {
 .awsui_css-grid {
   display: grid;
   gap: 20px;
+  word-wrap: break-word;
 }
 
 .awsui_css-grid > .awsui_item {
-  padding-inline: 20px;
+  padding-inline: 15px;
   position: relative;
 }
 
@@ -389,6 +396,7 @@ ${[...Array(maxTableColumns * 2).keys()]
 
 .awsui_icon {
   display: inline-block;
+  vertical-align: top;
 }
 
 .awsui_icon-inner {
@@ -423,6 +431,16 @@ ${[...Array(maxTableColumns * 2).keys()]
 .awsui_icon-flex-height {
   display: inline-flex;
   align-items: center;
+}
+
+.awsui_icon-20px {
+  height: 20px;
+}
+
+.awsui_icon-right {
+  padding-block-start: 2px;
+  padding-block-end: 2px;
+  margin-inline-start: 4px;
 }
 
 .awsui_sorting_icon {
@@ -655,6 +673,10 @@ ${[...Array(maxTableColumns * 2).keys()]
   font-weight: bold;
 }
 
+.awsui_button-text {
+  vertical-align: middle;
+}
+
 .awsui_button.awsui_button-no-text {
   padding-inline: 6px;
 }
@@ -834,21 +856,21 @@ export function keyValue(key: string, inner: string): string {
 
 export function tabs(
   name: string,
-  checkedRadios: { [name: string]: string | undefined },
+  forms: { [name: string]: string | undefined },
   ...inner: { header: string; inner: string }[]
 ): string {
   const ids = inner.map((_, i) => `${name}${i}`);
-  const checked = checkedRadios[name] ?? ids[0];
+  const checked = forms[name] ?? ids[0];
 
   const radios = ids.map(
     (id, i) =>
-      `<input type="radio" class="tab-radio-${i}" id="${id}" name="${name}" ${id === checked ? "checked" : ""} />`,
+      `<input type="radio" class="tab-radio-${i}" id="${id}" value="${id}" name="${name}" ${id === checked ? "checked" : ""} />`,
   );
 
   const tabButtons = inner.map(
     ({ header }, i) =>
       `<li role="presentation" class="awsui_tabs-tab">` +
-      `<label for="${name}${i}" class="awsui_tabs-tab-header-container awsui_tabs-tab-focusable" style="color: var(${LABEL_COLOR_IF_TAB(i)}, #424650); --after-opacity: var(${ONE_IF_TAB(i)}, 0)">` +
+      `<label for="${ids[i]}" class="awsui_tabs-tab-header-container awsui_tabs-tab-focusable" style="color: var(${LABEL_COLOR_IF_TAB(i)}, #424650); --after-opacity: var(${ONE_IF_TAB(i)}, 0)">` +
       `<div class="awsui_tabs-tab-link awsui_tabs-tab-focusable">` +
       `<span class="awsui_tabs-tab-label awsui_tab-label">` +
       header +
@@ -880,23 +902,24 @@ export function tabs(
 }
 
 export function link(href: string, inner: string): string {
-  return `<a class="awsui_link" href="${href}" target="_blank">${inner}${NEW_TAB_ICON}</a>`;
+  return `<a class="awsui_link" href="${href}" target="_blank"><span class="awsui_link-text">${inner}</span>${NEW_TAB_ICON(true, "awsui_icon-flex-height", "awsui_icon-20px")}</a>`;
 }
 
 export function buttonLink(href: string, inner: string): string {
-  return `<a class="awsui_button awsui_link" href="${href}" target="_blank">${inner}${NEW_TAB_ICON}</a>`;
+  return `<a class="awsui_button awsui_link" href="${href}" target="_blank"><span class="awsui_button-text">${inner}</span>${NEW_TAB_ICON(false, "awsui_icon-right")}</a>`;
 }
 
-const NEW_TAB_ICON =
-  `<span class="awsui_icon-wrapper">&nbsp;<span class="awsui_icon" aria-label="Opens in new tab" role="img">` +
-  `<span class="awsui_icon-inner awsui_icon-flex-height" style="height: 20px;">` +
+const NEW_TAB_ICON = (wrapper: boolean, ...classes: string[]) =>
+  (wrapper
+    ? `<span class="awsui_icon-wrapper">&nbsp;<span class="awsui_icon" aria-label="Opens in new tab" role="img">`
+    : "") +
+  `<span class="awsui_icon-inner ${classes.join(" ")}">` +
   `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">` +
   `<path d="M14 8.01v-6H8M14.02 2 8 8.01M6 2.01H2v12h12v-3.99" class="stroke-linejoin-round">` +
   `</path>` +
   `</svg>` +
   `</span>` +
-  `</span>` +
-  `</span>`;
+  (wrapper ? `</span></span>` : "");
 
 export function taskStats(
   name: string,
@@ -936,19 +959,21 @@ export function usageIndicators(
   if (inner.length == 0) return "";
 
   const items = inner.map(({ title, usagePercent }) => {
+    const width = 50;
+    const dangerZone = Math.round(0.8 * 50);
     const rounded = Math.round((usagePercent + Number.EPSILON) * 100) / 100;
-    let bluePixels = Math.round((usagePercent / 100) * 50);
+    let bluePixels = Math.round((usagePercent / 100) * width);
     let redPixels = 0;
-    if (bluePixels > 40) {
-      redPixels = bluePixels - 40;
-      bluePixels = 40;
+    if (bluePixels > dangerZone) {
+      redPixels = bluePixels - dangerZone;
+      bluePixels = dangerZone;
     }
 
     return keyValue(
       title,
       `<div>` +
-        `<div style="position: relative; display: inline-block; block-size: 7px; inline-size: 50px; border: 1px solid rgb(204, 204, 204);">` +
-        `<div style="position: absolute; inset-inline-start: 40px; background-color: rgba(204, 0, 0, 0.65); block-size: 7px; inline-size: 1px;"></div>` +
+        `<div style="position: relative; display: inline-block; block-size: 7px; inline-size: ${width}px; border: 1px solid rgb(204, 204, 204);">` +
+        `<div style="position: absolute; inset-inline-start: ${dangerZone}px; background-color: rgba(204, 0, 0, 0.65); block-size: 7px; inline-size: 1px;"></div>` +
         `<div style="float: inline-start; inline-size: ${bluePixels}px; block-size: 100%; background-color: rgb(70, 107, 139);"></div>` +
         `<div style="float: inline-start; inline-size: ${redPixels}px; block-size: 100%; background-color: rgb(214, 57, 0);"></div>` +
         `</div>` +
@@ -957,12 +982,15 @@ export function usageIndicators(
     );
   });
 
-  return horizontalAttachment(...items);
+  return horizontalAttachment("xxs", ...items);
 }
 
-export function horizontalAttachment(...inner: string[]): string {
+export function horizontalAttachment(
+  size: "xxxs" | "xxs" | "xs" | "s" | "m" | "l" | "xl" | "xxl" | "xxxl",
+  ...inner: string[]
+): string {
   return (
-    `<div class="ecs-horizontal-attachment ecs-horizontal-attachment-gap-xs">` +
+    `<div class="ecs-horizontal-attachment ecs-horizontal-attachment-gap-${size}">` +
     inner.join("") +
     `</div>`
   );
@@ -984,19 +1012,18 @@ const ANGLE_RIGHT_ICON =
 
 export interface TableHeader {
   name: string;
-  width: number;
   compare?: (a: string, b: string) => number;
 }
 
 export function paginatedTable(
   context: Context,
+  widgetContext: WidgetContext,
   event: ControlPanelWidgetEvent,
   name: string,
   header: string,
   tableHeaders: TableHeader[],
   rows: string[][],
   ifNone?: string,
-  checkedRadios?: { [name: string]: string },
   extraActions?: string[],
 ): string {
   const pageIDs = [...Array(Math.ceil(rows.length / 10)).keys()].map(
@@ -1005,14 +1032,14 @@ export function paginatedTable(
 
   const pageRadioName = `${name}-page`;
   const checkedPage =
-    event.checkedRadios?.[pageRadioName] &&
-    pageIDs.includes(event.checkedRadios[pageRadioName])
-      ? event.checkedRadios[pageRadioName]
+    widgetContext.forms.all?.[pageRadioName] &&
+    pageIDs.includes(widgetContext.forms.all?.[pageRadioName])
+      ? widgetContext.forms.all?.[pageRadioName]
       : pageIDs[0];
 
   const pageRadios = pageIDs.map(
     (pageID, i) =>
-      `<input type="radio" class="page-radio-${i}" id="${pageID}" name="${pageRadioName}" ${pageID === checkedPage ? "checked" : ""} />`,
+      `<input type="radio" class="page-radio-${i}" id="${pageID}" value="${pageID}" name="${pageRadioName}" ${pageID === checkedPage ? "checked" : ""} />`,
   );
 
   const sortColumnIDs = [...Array(tableHeaders.length)].flatMap((_, i) => [
@@ -1022,14 +1049,14 @@ export function paginatedTable(
 
   const sortColumnRadioName = `${name}-sort`;
   const checkedSortColumn =
-    event.checkedRadios?.[sortColumnRadioName] &&
-    sortColumnIDs.includes(event.checkedRadios[sortColumnRadioName])
-      ? event.checkedRadios[sortColumnRadioName]
+    widgetContext.forms.all?.[sortColumnRadioName] &&
+    sortColumnIDs.includes(widgetContext.forms.all[sortColumnRadioName])
+      ? widgetContext.forms.all[sortColumnRadioName]
       : sortColumnIDs[0];
 
   const sortColumnRadios = sortColumnIDs.map(
     (sortColumnID, i) =>
-      `<input type="radio" class="sort-column-radio-${i}" id="${sortColumnID}" name="${sortColumnRadioName}" ${sortColumnID === checkedSortColumn ? "checked" : ""} />`,
+      `<input type="radio" class="sort-column-radio-${i}" id="${sortColumnID}" value="${sortColumnID}" name="${sortColumnRadioName}" ${sortColumnID === checkedSortColumn ? "checked" : ""} />`,
   );
 
   const pageButtons: string[][] = pageIDs.map((_, i) => {
@@ -1118,18 +1145,13 @@ export function paginatedTable(
       ? pageIDs
           .map(
             (pageID, i) =>
-              `<div style="display: var(${FLEX_IF_PAGE(i)}, none)">${pageControls[i]}</div>` +
-              `<div style="display: var(${FLEX_IF_PAGE(i)}, none)">` +
-              refresh(context, event, {
-                ...(checkedRadios ?? {}),
-                [pageRadioName]: pageID,
-              }) +
-              `</div>`,
+              `<div style="display: var(${FLEX_IF_PAGE(i)}, none)">${pageControls[i]}</div>`,
           )
           .join("")
-      : `<div>${pageControls[0]}</div><div>${refresh(context, event, {
-          ...(checkedRadios ?? {}),
-        })}</div>`) +
+      : `<div>${pageControls[0]}</div>`) +
+    `<div>` +
+    refresh(context) +
+    `</div>` +
     (extraActions ?? []).join("") +
     `</div>`;
 
@@ -1328,6 +1350,8 @@ export function storageState(
       return textStatus("warning", "Disabled");
     case "read-only":
       return textStatus("warning", "Read only");
+    case "gone":
+      return textStatus("error", "Gone");
     case "read-write":
       return textStatus("success", "Read/Write");
     case "data-loss":
@@ -1392,17 +1416,60 @@ export function volumeStatus(
   }
 }
 
-export function refresh(
-  context: Context,
-  event: ControlPanelWidgetEvent,
-  checkedRadios?: { [name: string]: string },
+export function partitionMode(
+  status: "leader" | "follower" | "unknown" | string,
 ): string {
+  switch (status) {
+    case "leader":
+      return textStatus("info", "Leader");
+    case "follower":
+      return "Follower";
+    case "unknown":
+      return textStatus("warning", "Unknown");
+    default:
+      return status;
+  }
+}
+
+export function partitionStatus(
+  status: "unknown" | "starting" | "active" | "catching-up" | string,
+  targetLSN: string,
+): string {
+  switch (status) {
+    case "starting":
+      return textStatus("info", "Starting");
+    case "active":
+      return textStatus("success", "Active");
+    case "catching-up":
+      return textStatus(
+        "info",
+        targetLSN !== "" ? `Catching up (${targetLSN})` : "Catching up",
+      );
+    case "unknown":
+      return textStatus("warning", "Unknown");
+    default:
+      return status;
+  }
+}
+
+export function nodeStatus(
+  status: "alive" | "dead" | "suspect" | string,
+): string {
+  switch (status) {
+    case "alive":
+      return textStatus("success", "Alive");
+    case "dead":
+      return textStatus("error", "Dead");
+    case "suspect":
+      return textStatus("warning", "Suspect");
+    default:
+      return status;
+  }
+}
+
+export function refresh(context: Context): string {
   const nextEvent: ControlPanelWidgetRefreshEvent = {
     command: "controlPanelRefresh",
-    checkedRadios: {
-      ...(event.checkedRadios ?? {}),
-      ...checkedRadios,
-    },
   };
   return (
     `<a class="awsui_button awsui_button-no-text">${REFRESH_ICON}</a>` +

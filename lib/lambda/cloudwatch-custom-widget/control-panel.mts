@@ -1,11 +1,7 @@
 import * as styles from "./styles.mjs";
 import type { Context } from "aws-lambda";
 import { RESTATE_LOGO } from "./static.mjs";
-import {
-  ControlPanelWidgetEvent,
-  ControlPanelWidgetRefreshEvent,
-  WidgetContext,
-} from "./index.mjs";
+import { ControlPanelWidgetEvent, WidgetContext } from "./index.mjs";
 import { getControlPanel } from "./readers.mjs";
 
 export interface ControlPanelProps {
@@ -71,19 +67,16 @@ export interface ControlPanelProps {
   nodes: {
     clusterName: string;
     stateful: {
-      taskDefinition: string;
       logGroup?: string;
       tasks: StatefulTaskProps[];
     };
     stateless: {
       serviceName: string;
-      taskDefinition: string;
       logGroup?: string;
       tasks: StatelessTaskProps[];
     };
     controller: {
       serviceName: string;
-      taskDefinition: string;
       logGroup?: string;
       tasks: TaskProps[];
     };
@@ -124,10 +117,10 @@ export interface PartitionInfo {
   mode: string;
   status: string;
   leader: string;
-  sequencer: string;
   appliedLSN: string;
   persistedLSN: string;
   archivedLSN: string;
+  targetTailLSN: string;
   lsnLag: string;
   lastUpdate: string;
 }
@@ -171,8 +164,12 @@ export interface TaskProps {
   startedAt: string;
 }
 
-export type StatefulTaskProps = TaskProps & {
+export type RestateTaskProps = TaskProps & {
   nodeID: string;
+  nodeStatus: "alive" | "dead" | "suspect" | string;
+};
+
+export type StatefulTaskProps = RestateTaskProps & {
   storageState:
     | "provisioning"
     | "disabled"
@@ -187,12 +184,11 @@ export type StatefulTaskProps = TaskProps & {
   storage: string;
 };
 
-export type StatelessTaskProps = TaskProps & { nodeID: string };
+export type StatelessTaskProps = RestateTaskProps;
 
 export async function controlPanelRefresh(
   context: Context,
   widgetContext: WidgetContext,
-  event: ControlPanelWidgetRefreshEvent,
 ) {
   if (typeof widgetContext.params !== "object" || widgetContext.params === null)
     throw new Error("Invalid widgetContext params");
@@ -212,17 +208,14 @@ export async function controlPanelRefresh(
 
   const params = widgetContext.params as ControlPanelWidgetEvent;
 
-  return await controlPanel(context, {
+  return await controlPanel(context, widgetContext, {
     ...params,
-    checkedRadios: {
-      ...(params.checkedRadios ?? {}),
-      ...(event.checkedRadios ?? {}),
-    },
   });
 }
 
 export async function controlPanel(
   context: Context,
+  widgetContext: WidgetContext,
   event: ControlPanelWidgetEvent,
 ) {
   const props = await getControlPanel(event.input);
@@ -426,63 +419,64 @@ export async function controlPanel(
   const numericCompare = (a: string, b: string) => Number(a) - Number(b);
 
   const statefulNodesHeaders: styles.TableHeader[] = [
-    { name: "Node ID", width: 100 },
-    { name: "Task", width: 350 },
-    { name: "Availability zone", width: 200 },
-    { name: "Storage state", width: 165 },
-    { name: "Leader", width: 120, compare: numericCompare },
-    { name: "Follower", width: 120, compare: numericCompare },
-    { name: "Nodeset member", width: 165, compare: numericCompare },
-    { name: "Last status", width: 165 },
-    { name: "Desired status", width: 165 },
-    { name: "Health status", width: 165 },
-    { name: "Task definition", width: 639 },
-    { name: "CPU", width: 120 },
-    { name: "Memory", width: 120 },
-    { name: "Storage", width: 120 },
-    { name: "Started at", width: 140 },
+    { name: "Node ID" },
+    { name: "Task" },
+    { name: "Availability zone" },
+    { name: "Node status" },
+    { name: "Storage state" },
+    { name: "Leader", compare: numericCompare },
+    { name: "Follower", compare: numericCompare },
+    { name: "Nodeset member", compare: numericCompare },
+    { name: "ECS Last status" },
+    { name: "ECS Desired status" },
+    { name: "ECS Health status" },
+    { name: "Task definition" },
+    { name: "CPU" },
+    { name: "Memory" },
+    { name: "Storage" },
+    { name: "Started at" },
   ];
 
-  const statefulNodesRows = props.nodes.stateful.tasks.map((node) => [
-    node.nodeID,
-    styles.link(
-      `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
-      node.taskID,
-    ),
-    node.availabilityZone,
-    styles.storageState(node.storageState),
-    `${node.leader}`,
-    `${node.follower}`,
-    `${node.nodesetMember}`,
-    styles.ecsLastStatus(node.lastStatus),
-    styles.ecsDesiredStatus(node.desiredStatus),
-    styles.healthStatus(node.healthStatus),
-    node.taskDefinition
-      ? styles.link(
-          `/ecs/v2/task-definitions/${node.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
-          node.taskDefinition,
-        )
-      : "",
-    node.cpu,
-    node.memory,
-    node.storage,
-    node.startedAt,
-  ]);
+  const statefulNodesRows = props.nodes.stateful.tasks.map((node) => {
+    const taskDefinitionName = node.taskDefinition?.split("/").pop();
+    return [
+      node.nodeID,
+      styles.link(
+        `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
+        node.taskID,
+      ),
+      node.availabilityZone,
+      styles.nodeStatus(node.nodeStatus),
+      styles.storageState(node.storageState),
+      `${node.leader}`,
+      `${node.follower}`,
+      `${node.nodesetMember}`,
+      styles.ecsLastStatus(node.lastStatus),
+      styles.ecsDesiredStatus(node.desiredStatus),
+      styles.healthStatus(node.healthStatus),
+      taskDefinitionName
+        ? styles.link(
+            `/ecs/v2/task-definitions/${taskDefinitionName.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
+            taskDefinitionName,
+          )
+        : "",
+      node.cpu,
+      node.memory,
+      node.storage,
+      node.startedAt,
+    ];
+  });
 
   const statefulNodes = styles.paginatedTable(
     context,
+    widgetContext,
     event,
     "statefulNodes",
     "Stateful nodes",
     statefulNodesHeaders,
     statefulNodesRows,
     "No nodes",
-    { mainTabs: "mainTabs1" },
     [
-      styles.buttonLink(
-        `/ecs/v2/task-definitions/${props.nodes.stateful.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
-        "Task Definition",
-      ),
       ...(props.nodes.stateless.logGroup
         ? [
             styles.buttonLink(
@@ -495,56 +489,57 @@ export async function controlPanel(
   );
 
   const statelessNodesHeaders: styles.TableHeader[] = [
-    { name: "Node ID", width: 100 },
-    { name: "Task", width: 350 },
-    { name: "Availability zone", width: 200 },
-    { name: "Last status", width: 165 },
-    { name: "Desired status", width: 165 },
-    { name: "Health status", width: 165 },
-    { name: "Task definition", width: 639 },
-    { name: "CPU", width: 120 },
-    { name: "Memory", width: 120 },
-    { name: "Started at", width: 140 },
+    { name: "Node ID" },
+    { name: "Task" },
+    { name: "Availability zone" },
+    { name: "Node status" },
+    { name: "ECS Last status" },
+    { name: "ECS Desired status" },
+    { name: "ECS Health status" },
+    { name: "Task definition" },
+    { name: "CPU" },
+    { name: "Memory" },
+    { name: "Started at" },
   ];
 
-  const statelessNodesRows = props.nodes.stateless.tasks.map((node) => [
-    node.nodeID,
-    styles.link(
-      `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
-      node.taskID,
-    ),
-    node.availabilityZone,
-    styles.ecsLastStatus(node.lastStatus),
-    styles.ecsDesiredStatus(node.desiredStatus),
-    styles.healthStatus(node.healthStatus),
-    node.taskDefinition
-      ? styles.link(
-          `/ecs/v2/task-definitions/${node.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
-          node.taskDefinition,
-        )
-      : "",
-    node.cpu,
-    node.memory,
-    node.startedAt,
-  ]);
+  const statelessNodesRows = props.nodes.stateless.tasks.map((node) => {
+    const taskDefinitionName = node.taskDefinition?.split("/").pop();
+    return [
+      node.nodeID,
+      styles.link(
+        `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
+        node.taskID,
+      ),
+      node.availabilityZone,
+      styles.nodeStatus(node.nodeStatus),
+      styles.ecsLastStatus(node.lastStatus),
+      styles.ecsDesiredStatus(node.desiredStatus),
+      styles.healthStatus(node.healthStatus),
+      taskDefinitionName
+        ? styles.link(
+            `/ecs/v2/task-definitions/${taskDefinitionName.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
+            taskDefinitionName,
+          )
+        : "",
+      node.cpu,
+      node.memory,
+      node.startedAt,
+    ];
+  });
 
   const statelessNodes = styles.paginatedTable(
     context,
+    widgetContext,
     event,
     "statelessNodes",
     "Stateless nodes",
     statelessNodesHeaders,
     statelessNodesRows,
     "No nodes",
-    { mainTabs: "mainTabs1" },
     [
       styles.buttonLink(
         `/ecs/v2/clusters/${props.nodes.clusterName}/services/${props.nodes.stateless.serviceName}/health?region=${props.connectivityAndSecurity.region}`,
         "Service",
-      ),
-      styles.buttonLink(
-        `/ecs/v2/task-definitions/${props.nodes.stateless.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
-        "Task Definition",
       ),
       ...(props.nodes.stateless.logGroup
         ? [
@@ -558,54 +553,53 @@ export async function controlPanel(
   );
 
   const controllerHeaders = [
-    { name: "Task", width: 350 },
-    { name: "Availability zone", width: 180 },
-    { name: "Last status", width: 165 },
-    { name: "Desired status", width: 165 },
-    { name: "Health status", width: 165 },
-    { name: "Task definition", width: 639 },
-    { name: "CPU", width: 120 },
-    { name: "Memory", width: 120 },
-    { name: "Started at", width: 140 },
+    { name: "Task" },
+    { name: "Availability zone" },
+    { name: "Last status" },
+    { name: "Desired status" },
+    { name: "Health status" },
+    { name: "Task definition" },
+    { name: "CPU" },
+    { name: "Memory" },
+    { name: "Started at" },
   ];
 
-  const controllerRows = props.nodes.controller.tasks.map((node) => [
-    styles.link(
-      `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
-      node.taskID,
-    ),
-    node.availabilityZone,
-    styles.ecsLastStatus(node.lastStatus),
-    styles.ecsDesiredStatus(node.desiredStatus),
-    styles.healthStatus(node.healthStatus),
-    node.taskDefinition
-      ? styles.link(
-          `/ecs/v2/task-definitions/${node.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
-          node.taskDefinition,
-        )
-      : "",
-    node.cpu,
-    node.memory,
-    node.startedAt,
-  ]);
+  const controllerRows = props.nodes.controller.tasks.map((node) => {
+    const taskDefinitionName = node.taskDefinition?.split("/").pop();
+    return [
+      styles.link(
+        `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${node.taskID}?region=${props.connectivityAndSecurity.region}`,
+        node.taskID,
+      ),
+      node.availabilityZone,
+      styles.ecsLastStatus(node.lastStatus),
+      styles.ecsDesiredStatus(node.desiredStatus),
+      styles.healthStatus(node.healthStatus),
+      taskDefinitionName
+        ? styles.link(
+            `/ecs/v2/task-definitions/${taskDefinitionName.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
+            taskDefinitionName,
+          )
+        : "",
+      node.cpu,
+      node.memory,
+      node.startedAt,
+    ];
+  });
 
   const controllerTasks = styles.paginatedTable(
     context,
+    widgetContext,
     event,
     "controllerTasks",
     "Controller tasks",
     controllerHeaders,
     controllerRows,
     "No tasks",
-    { mainTabs: "mainTabs1" },
     [
       styles.buttonLink(
         `/ecs/v2/clusters/${props.nodes.clusterName}/services/${props.nodes.controller.serviceName}/health?region=${props.connectivityAndSecurity.region}`,
         "Service",
-      ),
-      styles.buttonLink(
-        `/ecs/v2/task-definitions/${props.nodes.controller.taskDefinition.replace(":", "/")}?region=${props.connectivityAndSecurity.region}`,
-        "Task Definition",
       ),
       ...(props.nodes.controller.logGroup
         ? [
@@ -651,14 +645,14 @@ export async function controlPanel(
   );
 
   const volumeHeaders: styles.TableHeader[] = [
-    { name: "Volume", width: 350 },
-    { name: "Type", width: 100 },
-    { name: "Size", width: 120 },
-    { name: "IOPS", width: 120, compare: numericCompare },
-    { name: "Throughput", width: 140, compare: numericCompare },
-    { name: "Availability zone", width: 180 },
-    { name: "Volume state", width: 140 },
-    { name: "Status check", width: 140 },
+    { name: "Volume" },
+    { name: "Type" },
+    { name: "Size" },
+    { name: "IOPS", compare: numericCompare },
+    { name: "Throughput", compare: numericCompare },
+    { name: "Availability zone" },
+    { name: "Volume state" },
+    { name: "Status check" },
   ];
 
   const volumeRows: string[][] = props.storage.volumes.map((volume) => {
@@ -685,13 +679,13 @@ export async function controlPanel(
 
   const volumes = styles.paginatedTable(
     context,
+    widgetContext,
     event,
     "volumes",
     "Volumes",
     volumeHeaders,
     volumeRows,
     "No volumes",
-    { mainTabs: "mainTabs2" },
   );
   const storage = styles.vertical("l", s3Bucket, volumes);
 
@@ -726,17 +720,15 @@ export async function controlPanel(
   };
 
   const partitionHeaders: styles.TableHeader[] = [
-    { name: "Partition ID", width: 120, compare: numericCompare },
-    { name: "Node ID", width: 100 },
-    { name: "Mode", width: 100 },
-    { name: "Status", width: 100 },
-    { name: "Leader", width: 100 },
-    { name: "Sequencer", width: 120 },
-    { name: "Applied LSN", width: 140, compare: numericCompare },
-    { name: "Persisted LSN", width: 140, compare: numericCompare },
+    { name: "Partition ID", compare: numericCompare },
+    { name: "Node ID" },
+    { name: "Mode" },
+    { name: "Status" },
+    { name: "Leader" },
+    { name: "Applied LSN", compare: numericCompare },
+    { name: "Persisted LSN", compare: numericCompare },
     {
       name: "Archived LSN",
-      width: 140,
       compare: (a: string, b: string) => {
         if (a == "-" && b == "-") return 0;
         if (a == "-" && b != "-") return -1;
@@ -744,17 +736,16 @@ export async function controlPanel(
         return numericCompare(a, b);
       },
     },
-    { name: "LSN Lag", width: 100, compare: numericCompare },
-    { name: "Last update", width: 200 },
+    { name: "LSN Lag", compare: numericCompare },
+    { name: "Last update" },
   ];
 
   const partitionRows = props.replication.partitions.info.map((partition) => [
     partition.partitionID,
     partition.nodeID,
-    partition.mode,
-    partition.status,
+    styles.partitionMode(partition.mode),
+    styles.partitionStatus(partition.status, partition.targetTailLSN),
     partition.leader,
-    partition.sequencer,
     partition.appliedLSN,
     partition.persistedLSN,
     partition.archivedLSN,
@@ -767,6 +758,7 @@ export async function controlPanel(
   );
   const partitions = styles.paginatedTable(
     context,
+    widgetContext,
     event,
     "partitions",
     partitionReplication
@@ -775,15 +767,14 @@ export async function controlPanel(
     partitionHeaders,
     partitionRows,
     "No partitions",
-    { mainTabs: "mainTabs3" },
   );
 
   const logHeaders: styles.TableHeader[] = [
-    { name: "Log ID", width: 80, compare: numericCompare },
-    { name: "From LSN", width: 120, compare: numericCompare },
-    { name: "Loglet ID", width: 80 },
-    { name: "Sequencer", width: 100 },
-    { name: "Nodeset", width: 140 },
+    { name: "Log ID", compare: numericCompare },
+    { name: "From LSN", compare: numericCompare },
+    { name: "Loglet ID" },
+    { name: "Sequencer" },
+    { name: "Nodeset" },
   ];
 
   const logRows = props.replication.logs.info.map((log) => [
@@ -797,6 +788,7 @@ export async function controlPanel(
   const zoneReplication = replicationFactor(props.replication.logs.replication);
   const logs = styles.paginatedTable(
     context,
+    widgetContext,
     event,
     "logs",
     zoneReplication
@@ -805,14 +797,13 @@ export async function controlPanel(
     logHeaders,
     logRows,
     "No logs",
-    { mainTabs: "mainTabs3" },
   );
 
   const replication = styles.vertical("l", partitions, logs);
 
   const tabs = styles.tabs(
     "mainTabs",
-    event.checkedRadios ?? {},
+    widgetContext.forms.all,
     {
       header: "Connectivity & security",
       inner: connectivity,

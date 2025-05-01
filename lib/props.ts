@@ -2,6 +2,11 @@ import * as cdk from "aws-cdk-lib";
 
 export interface RestateBYOCProps {
   /**
+   * The name of the Restate cluster
+   * Default: The path of the RestateBYOC construct is used
+   */
+  clusterName?: string;
+  /**
    * The VPC in which to run the cluster
    */
   vpc: cdk.aws_ec2.IVpc;
@@ -30,15 +35,15 @@ export interface RestateBYOCProps {
    */
   securityGroups?: cdk.aws_ec2.ISecurityGroup[];
   /**
-   * Configuration for the NLB which will route to the stateless nodes.
-   * Default: An NLB will be created with no SSL configuration
+   * Configuration for the load balancer which will route to the stateless nodes.
+   * Default: See the documentation for RestateBYOCLoadBalancerProps
    */
   loadBalancer?: RestateBYOCLoadBalancerProps;
   /**
    * An ECS cluster onto which to schedule tasks.
    * Default: A cluster will be created.
    */
-  cluster?: cdk.aws_ecs.ICluster;
+  ecsCluster?: cdk.aws_ecs.ICluster;
   /**
    * Options for the stateless nodes, which run the http-ingress and admin roles
    * Default: See the documentation for RestateBYOCStatelessProps
@@ -81,44 +86,149 @@ export interface RestateBYOCProps {
   monitoring?: RestateBYOCMonitoringProps;
 }
 
+export const DEFAULT_ALB_CREATE_ACTION = (
+  targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
+) => cdk.aws_elasticloadbalancingv2.ListenerAction.forward([targetGroup]);
+
+export type ListenerSource =
+  | {
+      /**
+       * Props to configure the creation of a new listener on a provided NLB
+       */
+      networkListenerProps: cdk.aws_elasticloadbalancingv2.NetworkListenerProps;
+    }
+  | {
+      /**
+       * Props to configure the creation of a new listener on a provided ALB
+       */
+      applicationListenerProps: cdk.aws_elasticloadbalancingv2.ApplicationListenerProps;
+
+      /**
+       * A function which produces the listener default action, given the relevant target group.
+       * Default: The forward action is used, which will simply route to the target.
+       */
+      createAction?: (
+        targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
+      ) => cdk.aws_elasticloadbalancingv2.ListenerAction;
+    }
+  | {
+      /**
+       * An existing NLB to use
+       */
+      providedNLB: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
+      /**
+       * An existing Network Listener to use. A concrete value is required so we can change its actions.
+       */
+      providedNetworkListener: cdk.aws_elasticloadbalancingv2.NetworkListener;
+
+      /**
+       * The port of the provided listener, so that the CDK stack can build a URL for it
+       */
+      port: number;
+
+      /**
+       * The protocol of the provided listener, so that the CDK stack can build a URL for it
+       */
+      protocol: "http" | "https";
+
+      /**
+       * The certificate, if any, of the provided listener, so that control panel dashboard can link to it.
+       * Default: No certificate will be shown on the control panel dashboard
+       */
+      certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
+    }
+  | {
+      /**
+       * An existing ALB to use
+       */
+      providedALB: cdk.aws_elasticloadbalancingv2.IApplicationLoadBalancer;
+      /**
+       * An existing Application Listener to use. A concrete value is required so we can change its actions.
+       */
+      providedApplicationListener: cdk.aws_elasticloadbalancingv2.ApplicationListener;
+
+      /**
+       * The protocol of the provided listener, so that the CDK stack can build a URL for it.
+       */
+      protocol: "http" | "https";
+
+      /**
+       * The certificate, if any, of the provided listener, so that control panel dashboard can link to it.
+       * Default: No certificate will be shown on the control panel dashboard
+       */
+      certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
+
+      /**
+       * A function which produces the listener default action, given the relevant target group.
+       * Default: The forward action is used, which will simply route to the target.
+       */
+      createAction?: (
+        targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
+      ) => cdk.aws_elasticloadbalancingv2.ListenerAction;
+    };
+
+export type LoadBalancerSource =
+  | {
+      /**
+       * Props to configure the creation of a new NLB
+       */
+      nlbProps: cdk.aws_elasticloadbalancingv2.NetworkLoadBalancerProps;
+    }
+  | {
+      /**
+       * Props to configure the creation of a new ALB
+       */
+      albProps: cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancerProps;
+    }
+  | {
+      /**
+       * An existing NLB to use
+       */
+      nlb: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
+    }
+  | {
+      /**
+       * An existing ALB to use
+       */
+      alb: cdk.aws_elasticloadbalancingv2.IApplicationLoadBalancer;
+    };
+
 export interface RestateBYOCLoadBalancerProps {
   /**
-   * An NLB on which to add target groups and listeners for Restate
-   * Default: An NLB will be created
+   * Options for the shared load balancer which is used by default for ingress, admin, and node traffic
+   * Default: An internal NLB is created in the same vpc and with the same security groups as the rest of this stack
    */
-  nlb?: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
+  shared?: LoadBalancerSource;
+
   /**
-   * SSL configuration for the NLB listeners
-   * Default: SSL will not be used
+   * Options for the listener for ingress traffic
+   * Default: A new listener at port 8080 on the shared load balancer is used
    */
-  ssl?: {
-    /**
-     * Listener certificate for the listeners
-     */
-    listenerCertificate: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
-    /**
-     * The SSL policy for the listeners
-     * Default: the CDK default SSL policy
-     */
-    sslPolicy?: cdk.aws_elasticloadbalancingv2.SslPolicy;
-  };
+  ingress?: ListenerSource;
+
+  /**
+   * Options for the listener for admin traffic
+   * Default: A new listener at port 9070 on the shared load balancer is used
+   */
+  admin?: ListenerSource;
+
+  /**
+   * Options for the listener for node traffic.
+   * Note if specifying a non default value that the load balancer should allow traffic from the restatectl lambda.
+   * Default: A new listener at port 5122 on the shared load balancer is used
+   */
+  node?: ListenerSource;
 }
 
 export const DEFAULT_STATELESS_DESIRED_COUNT = 3;
 
 export interface RestateBYOCStatelessProps extends RestateBYOCNodeProps {
   /**
-   * Configures the default replication factor to be used by the replicated loglets.
+   * Configures the default replication factor to be used by the replicated loglets and the partition processors.
    * Note that this value only impacts the cluster initial provisioning and will not be respected after the cluster has been provisioned.
    * Default: {zone: 2}
    */
-  defaultLogReplication?: { node: number } | { zone: number };
-  /**
-   * The default replication factor for partition processors, this impacts how many replicas each partition will have across the worker nodes of the cluster.
-   * Note that this value only impacts the cluster initial provisioning and will not be respected after the cluster has been provisioned.
-   * Default: 3
-   */
-  defaultPartitionReplication?: { node: number };
+  defaultReplication?: { node: number } | { zone: number };
   /**
    * Number of partitions that will be provisioned during initial cluster provisioning. Partitions are the logical shards used to process messages.
    * Default: 128
@@ -129,6 +239,11 @@ export interface RestateBYOCStatelessProps extends RestateBYOCNodeProps {
    * Default: 3
    */
   desiredCount?: number;
+  /**
+   * The address of the ingress node to advertise for use by the Restate UI.
+   * Default: An address will be determined based on the configured load balancer for the ingress.
+   */
+  ingressAdvertisedAddress?: string;
 }
 
 export const DEFAULT_STATEFUL_NODES_PER_AZ = 1;
@@ -320,7 +435,7 @@ export interface RestateBYOCMonitoringProps {
 
       /**
        * The addresses of Restate components, for use in links from the control panel
-       * Default: The address of the created NLB, if available, on default ports
+       * Default: An address will be determined based on the configured load balancer for each component.
        */
       addresses?: {
         ingress: string;
