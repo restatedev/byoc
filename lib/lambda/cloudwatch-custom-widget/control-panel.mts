@@ -664,7 +664,7 @@ export async function controlPanel(
             volume.volumeID,
           )
         : styles.link(
-            `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${taskID}?region=${props.connectivityAndSecurity.region}`,
+            `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${taskID}/volumes?region=${props.connectivityAndSecurity.region}`,
             `${taskID} (ephemeral)`,
           ),
       volume.type,
