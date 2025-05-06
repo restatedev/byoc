@@ -19,5 +19,7 @@ jobs:
           node-version: "22"
       - run: npm ci
       - run: npm run lint
+      # the full restatectl binary is not needed for tests
+      - run: mkdir -p ./lib/lambda/restatectl && touch ./lib/lambda/restatectl/bootstrap
       - run: npm run build
       - run: npm run test

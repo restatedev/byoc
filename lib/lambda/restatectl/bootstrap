@@ -1,2 +1,0 @@
-#! /bin/sh
-echo "Download the restatectl binary with npm run download-restatectl"
