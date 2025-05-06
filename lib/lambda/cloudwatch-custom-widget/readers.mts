@@ -16,7 +16,6 @@ export interface ControlPanelInput {
   region: string;
   summary: {
     clusterName: string;
-    licensedTo: string;
     restateVersion: string;
     stackVersion: string;
     metricsDashboardName?: string;
@@ -368,6 +367,10 @@ export async function getControlPanel(
     lambdaClient,
     input.resources.restatectlLambdaArn,
   );
+  const licenseKeyOrg = getLicenseKeyOrg(
+    lambdaClient,
+    input.resources.restatectlLambdaArn,
+  );
   const partitionState = restatectlSql(
     lambdaClient,
     input.resources.restatectlLambdaArn,
@@ -424,7 +427,7 @@ export async function getControlPanel(
   return {
     summary: {
       clusterName: input.summary.clusterName,
-      licensedTo: input.summary.licensedTo,
+      licensedTo: await licenseKeyOrg,
       usage: {
         cpuPercent: await cpu,
         memoryPercent: await memory,
@@ -1182,6 +1185,34 @@ async function getPartitionTable(
   } catch (e) {
     console.log(`Failed to get partition_table: ${e}`);
     return { num_partitions: 0, partitions: [], replication: undefined };
+  }
+}
+
+async function getLicenseKeyOrg(
+  lambdaClient: lambda.LambdaClient,
+  restatectlLambdaArn: string,
+): Promise<string> {
+  try {
+    const output = await restatectl(lambdaClient, restatectlLambdaArn, [
+      "metadata",
+      "get",
+      "--key",
+      "license_key",
+    ]);
+    const licenceKey = JSON.parse(output) as { license_key?: string };
+    if (!licenceKey.license_key)
+      throw new Error("No licence_key field in result");
+
+    const claims = JSON.parse(
+      Buffer.from(licenceKey.license_key.split(".")[1], "base64").toString(),
+    ) as { org?: string };
+
+    if (!claims.org) throw new Error("No org field in licence key claims");
+
+    return claims.org;
+  } catch (e) {
+    console.log(`Failed to get license key org: ${e}`);
+    return "Unknown";
   }
 }
 

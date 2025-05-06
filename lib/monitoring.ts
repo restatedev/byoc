@@ -90,9 +90,8 @@ export function createMonitoring(
               region: cdk.Aws.REGION,
               summary: {
                 clusterName,
-                licensedTo: "Acme, Inc", // TODO
                 restateVersion: statelessRestateVersion,
-                stackVersion: packageInfo.version, // TODO
+                stackVersion: packageInfo.version,
                 metricsDashboardName: metricsDashboard?.dashboardName,
               },
               resources: {
