@@ -1,9 +1,39 @@
 {
   "name": "@restatedev/byoc",
   "version": "0.1.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "Restate Bring-your-own-cloud Construct",
+  "author": "Restate Developers",
+  "license": "MIT",
+  "email": "code@restate.dev",
+  "homepage": "https://github.com/restatedev/byoc#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/restatedev/byoc.git"
+  },
+  "bugs": {
+    "url": "https://github.com/restatedev/byoc/issues"
+  },
+  "type": "commonjs",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "attw": "attw --pack",
     "download-restatectl": "mkdir -p lib/lambda/restatectl && curl -L https://restate.gateway.scarf.sh/v1.3.2/restatectl-aarch64-unknown-linux-musl.tar.xz | tar -Jx --strip-components=1 -C lib/lambda/restatectl restatectl-aarch64-unknown-linux-musl/restatectl && mv lib/lambda/restatectl/restatectl lib/lambda/restatectl/bootstrap",
     "lint": "eslint",
     "build": "tsc && mkdir -p ./dist/lambda/restatectl && cp ./lib/lambda/restatectl/bootstrap ./dist/lambda/restatectl/bootstrap",
@@ -12,6 +42,7 @@
     "cdk": "cdk"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.17.4",
     "@aws-sdk/client-cloudwatch": "^3.782.0",
     "@aws-sdk/client-ec2": "^3.783.0",
     "@aws-sdk/client-ecs": "^3.778.0",
@@ -20,7 +51,9 @@
     "@types/aws-lambda": "^8.10.148",
     "@types/jest": "^29.5.14",
     "@types/node": "22.7.9",
-    "aws-cdk": "^2.171.1",
+    "aws-cdk": "^2.189.1",
+    "aws-cdk-lib": "2.189.1",
+    "constructs": "^10.0.0",
     "esbuild": "^0.25.2",
     "eslint": "^9.25.1",
     "globals": "^16.0.0",
@@ -31,8 +64,8 @@
     "typescript": "~5.6.3",
     "typescript-eslint": "^8.31.0"
   },
-  "dependencies": {
-    "aws-cdk-lib": "^2.171.1",
+  "peerDependencies": {
+    "aws-cdk-lib": "^2.0.0",
     "constructs": "^10.0.0"
   }
 }
