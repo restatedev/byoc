@@ -17,6 +17,7 @@ jobs:
           node-version: "22.x"
           registry-url: "https://registry.npmjs.org"
       - run: npm ci
+      - run: npm run download-restatectl
       - run: npm run build
       - run: npm run test
       - run: mv $(npm pack) restatedev-byoc.tgz

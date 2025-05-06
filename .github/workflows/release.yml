@@ -22,31 +22,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - run: npm ci
-
-      - name: Extract tag version
-        # expected tag format is vX.Y.Z
-        run: |
-          echo "Full GITHUB_REF: ${GITHUB_REF}"
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          if [ -z "$TAG_VERSION" ]; then
-            echo "Error: TAG_VERSION is empty. Exiting."
-            exit 1
-          fi
-          echo "Extracted TAG_VERSION: $TAG_VERSION"
-          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
-
-      - name: Update package version
-        run: npm version $TAG_VERSION --no-git-tag-version
-
-      - name: Commit and push
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -am "Release ${TAG_VERSION}"
-          git push origin HEAD:main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+      - run: npm run download-restatectl
       - run: npm run build
       - run: npm run test
       - run: |
