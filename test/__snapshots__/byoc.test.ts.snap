@@ -791,21 +791,6 @@ exports[`BYOC Default parameters 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'ecr:BatchCheckLayerAvailability'
-              - 'ecr:GetDownloadUrlForLayer'
-              - 'ecr:BatchGetImage'
-            Effect: Allow
-            Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - >-
-                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
-          - Action: 'ecr:GetAuthorizationToken'
-            Effect: Allow
-            Resource: '*'
-          - Action:
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
@@ -841,6 +826,8 @@ exports[`BYOC Default parameters 1`] = `
                 'Fn::GetAtt':
                   - defaultcluster07071299
                   - Arn
+            - Name: CONTROLLER_LICENSE_ID
+              Value: foo
             - Name:
                 'Fn::Join':
                   - ''
@@ -2682,21 +2669,6 @@ exports[`BYOC With alb for admin 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'ecr:BatchCheckLayerAvailability'
-              - 'ecr:GetDownloadUrlForLayer'
-              - 'ecr:BatchGetImage'
-            Effect: Allow
-            Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - >-
-                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
-          - Action: 'ecr:GetAuthorizationToken'
-            Effect: Allow
-            Resource: '*'
-          - Action:
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
@@ -2732,6 +2704,8 @@ exports[`BYOC With alb for admin 1`] = `
                 'Fn::GetAtt':
                   - withadminalbclusterFE2F557B
                   - Arn
+            - Name: CONTROLLER_LICENSE_ID
+              Value: foo
             - Name:
                 'Fn::Join':
                   - ''
@@ -4508,21 +4482,6 @@ exports[`BYOC With one az 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'ecr:BatchCheckLayerAvailability'
-              - 'ecr:GetDownloadUrlForLayer'
-              - 'ecr:BatchGetImage'
-            Effect: Allow
-            Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - >-
-                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
-          - Action: 'ecr:GetAuthorizationToken'
-            Effect: Allow
-            Resource: '*'
-          - Action:
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
@@ -4558,6 +4517,8 @@ exports[`BYOC With one az 1`] = `
                 'Fn::GetAtt':
                   - oneazcluster64058501
                   - Arn
+            - Name: CONTROLLER_LICENSE_ID
+              Value: foo
             - Name:
                 'Fn::Join':
                   - ''
@@ -6354,21 +6315,6 @@ exports[`BYOC With shared alb 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'ecr:BatchCheckLayerAvailability'
-              - 'ecr:GetDownloadUrlForLayer'
-              - 'ecr:BatchGetImage'
-            Effect: Allow
-            Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - >-
-                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
-          - Action: 'ecr:GetAuthorizationToken'
-            Effect: Allow
-            Resource: '*'
-          - Action:
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
@@ -6404,6 +6350,8 @@ exports[`BYOC With shared alb 1`] = `
                 'Fn::GetAtt':
                   - withsharedalbclusterC111A9F9
                   - Arn
+            - Name: CONTROLLER_LICENSE_ID
+              Value: foo
             - Name:
                 'Fn::Join':
                   - ''
@@ -8192,21 +8140,6 @@ exports[`BYOC With volume 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'ecr:BatchCheckLayerAvailability'
-              - 'ecr:GetDownloadUrlForLayer'
-              - 'ecr:BatchGetImage'
-            Effect: Allow
-            Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - >-
-                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
-          - Action: 'ecr:GetAuthorizationToken'
-            Effect: Allow
-            Resource: '*'
-          - Action:
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
@@ -8242,6 +8175,8 @@ exports[`BYOC With volume 1`] = `
                 'Fn::GetAtt':
                   - withvolumecluster05BAFA05
                   - Arn
+            - Name: CONTROLLER_LICENSE_ID
+              Value: foo
             - Name:
                 'Fn::Join':
                   - ''
@@ -10281,21 +10216,6 @@ exports[`BYOC Without control panel 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'ecr:BatchCheckLayerAvailability'
-              - 'ecr:GetDownloadUrlForLayer'
-              - 'ecr:BatchGetImage'
-            Effect: Allow
-            Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - >-
-                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
-          - Action: 'ecr:GetAuthorizationToken'
-            Effect: Allow
-            Resource: '*'
-          - Action:
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
@@ -10332,6 +10252,8 @@ exports[`BYOC Without control panel 1`] = `
                 'Fn::GetAtt':
                   - withoutcontrolpanelcluster0BE3B425
                   - Arn
+            - Name: CONTROLLER_LICENSE_ID
+              Value: foo
             - Name:
                 'Fn::Join':
                   - ''
@@ -12075,21 +11997,6 @@ exports[`BYOC Without custom widget lambda 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'ecr:BatchCheckLayerAvailability'
-              - 'ecr:GetDownloadUrlForLayer'
-              - 'ecr:BatchGetImage'
-            Effect: Allow
-            Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - >-
-                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
-          - Action: 'ecr:GetAuthorizationToken'
-            Effect: Allow
-            Resource: '*'
-          - Action:
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
@@ -12126,6 +12033,8 @@ exports[`BYOC Without custom widget lambda 1`] = `
                 'Fn::GetAtt':
                   - withoutcustomwidgetlambdacluster7C821260
                   - Arn
+            - Name: CONTROLLER_LICENSE_ID
+              Value: foo
             - Name:
                 'Fn::Join':
                   - ''
@@ -13745,21 +13654,6 @@ exports[`BYOC Without metrics dashboard 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'ecr:BatchCheckLayerAvailability'
-              - 'ecr:GetDownloadUrlForLayer'
-              - 'ecr:BatchGetImage'
-            Effect: Allow
-            Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - >-
-                    :ecr:region:account-id:repository/cdk-hnb659fds-container-assets-account-id-region
-          - Action: 'ecr:GetAuthorizationToken'
-            Effect: Allow
-            Resource: '*'
-          - Action:
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
@@ -13796,6 +13690,8 @@ exports[`BYOC Without metrics dashboard 1`] = `
                 'Fn::GetAtt':
                   - withoutmetricsdashboardcluster465CA89C
                   - Arn
+            - Name: CONTROLLER_LICENSE_ID
+              Value: foo
             - Name:
                 'Fn::Join':
                   - ''

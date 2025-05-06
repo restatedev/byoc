@@ -71,6 +71,6 @@ export const handler: SQSHandler = async (event) => {
         }),
     );
 
-    Promise.all(tagPromises);
+    await Promise.all(tagPromises);
   }
 };

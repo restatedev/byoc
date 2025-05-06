@@ -7,6 +7,11 @@ export interface RestateBYOCProps {
    */
   clusterName?: string;
   /**
+   * The License ID for the BYOC product, provided to you by Restate. This ID will be used by
+   * your controller to occasionally load a new License Key from https://license.restate.cloud.
+   */
+  licenseID: string;
+  /**
    * The VPC in which to run the cluster
    */
   vpc: cdk.aws_ec2.IVpc;
@@ -328,15 +333,17 @@ export interface RestateBYOCNodeProps {
   resources?: { cpu: number; memoryLimitMiB: number };
 }
 
+export const DEFAULT_CONTROLLER_IMAGE =
+  "docker.restate.dev/restatedev/restate-fargate-controller:0.1";
 export const DEFAULT_CONTROLLER_CPU = 1024;
 export const DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB = 2048;
 
 export interface RestateBYOCControllerProps {
   /**
-   * The path to a docker image tarball containing the controller
-   * Default: controller.tar in the root of the cdk project
+   * The controller image to use
+   * Default: docker.restate.dev/restatedev/restate-fargate-controller:0.1
    */
-  controllerImageTarball?: string;
+  controllerImage?: string;
   /**
    * The resources for the fargate task that runs the controller
    * Default: 1 vCPU and 2G memory

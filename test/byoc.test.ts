@@ -3,10 +3,11 @@ import "jest-cdk-snapshot";
 import { RestateBYOC } from "../lib/byoc";
 
 describe("BYOC", () => {
+  const licenseID = "foo";
   test("Default parameters", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "default", { vpc });
+    new RestateBYOC(stack, "default", { vpc, licenseID });
 
     expect(stack).toMatchCdkSnapshot({
       ignoreAssets: true,
@@ -19,6 +20,7 @@ describe("BYOC", () => {
 
     new RestateBYOC(stack, "with-volume", {
       vpc,
+      licenseID,
       statefulNode: {
         ebsVolume: {
           sizeInGiB: 200,
@@ -46,6 +48,7 @@ describe("BYOC", () => {
 
     new RestateBYOC(stack, "with-admin-alb", {
       vpc,
+      licenseID,
       loadBalancer: {
         admin: {
           applicationListenerProps: {
@@ -68,6 +71,7 @@ describe("BYOC", () => {
 
     new RestateBYOC(stack, "with-shared-alb", {
       vpc,
+      licenseID,
       loadBalancer: {
         shared: {
           albProps: { vpc },
@@ -88,6 +92,7 @@ describe("BYOC", () => {
       () =>
         new RestateBYOC(stack, "too-few-azs", {
           vpc,
+          licenseID,
           subnets: {
             availabilityZones: stack.availabilityZones.slice(0, 2),
           },
@@ -100,6 +105,7 @@ describe("BYOC", () => {
 
     new RestateBYOC(stack, "one-az", {
       vpc,
+      licenseID,
       statelessNode: {
         defaultReplication: { node: 2 },
       },
@@ -119,6 +125,7 @@ describe("BYOC", () => {
 
     new RestateBYOC(stack, "without-metrics-dashboard", {
       vpc,
+      licenseID,
       monitoring: {
         dashboard: {
           metrics: {
@@ -139,6 +146,7 @@ describe("BYOC", () => {
 
     new RestateBYOC(stack, "without-control-panel", {
       vpc,
+      licenseID,
       monitoring: {
         dashboard: {
           controlPanel: {
@@ -159,6 +167,7 @@ describe("BYOC", () => {
 
     new RestateBYOC(stack, "without-custom-widget-lambda", {
       vpc,
+      licenseID,
       monitoring: {
         dashboard: {
           customWidgets: { disabled: true },

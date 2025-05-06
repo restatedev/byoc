@@ -5,6 +5,7 @@ import {
   assertSupportedRestateVersion,
   DEFAULT_ALB_CREATE_ACTION,
   DEFAULT_CONTROLLER_CPU,
+  DEFAULT_CONTROLLER_IMAGE,
   DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB,
   DEFAULT_RESTATE_CPU,
   DEFAULT_RESTATE_IMAGE,
@@ -61,6 +62,9 @@ export class RestateBYOC extends Construct {
 
   constructor(scope: Construct, id: string, props: RestateBYOCProps) {
     super(scope, id);
+
+    if (!props.vpc) throw new Error("A vpc must be provided");
+    if (!props.licenseID) throw new Error("A license ID must be provided");
 
     this.clusterName = props.clusterName ?? this.node.path;
 
@@ -204,6 +208,7 @@ export class RestateBYOC extends Construct {
 
     const controller = createController(
       this,
+      props.licenseID,
       bucketPath,
       this.ecsCluster,
       ctPrefix,
@@ -917,6 +922,7 @@ function createTargetGroups(
 
 function createController(
   scope: Construct,
+  licenseID: string,
   bucketPath: `s3://${string}`,
   cluster: cdk.aws_ecs.ICluster,
   clusterTaskPrefix: string,
@@ -1039,6 +1045,7 @@ function createController(
     CONTROLLER_METADATA_PATH: `${bucketPath}/metadata`,
     CONTROLLER_RECONCILE_INTERVAL: "10s",
     CONTROLLER_CLUSTER__CLUSTER_ARN: cluster.clusterArn,
+    CONTROLLER_LICENSE_ID: licenseID,
     [`CONTROLLER_ECS_CLUSTERS__${cdk.Aws.REGION}__REGION`]: cdk.Aws.REGION,
     [`CONTROLLER_ECS_CLUSTERS__${cdk.Aws.REGION}__CLUSTER_ARN`]:
       cluster.clusterArn,
@@ -1050,8 +1057,8 @@ function createController(
   taskDefinition.addContainer("controller", {
     cpu,
     memoryLimitMiB,
-    image: cdk.aws_ecs.ContainerImage.fromTarball(
-      controllerProps?.controllerImageTarball ?? "controller.tar",
+    image: cdk.aws_ecs.ContainerImage.fromRegistry(
+      controllerProps?.controllerImage ?? DEFAULT_CONTROLLER_IMAGE,
     ),
     logging: controllerTaskProps.logDriver,
     stopTimeout: cdk.Duration.seconds(120), // the max

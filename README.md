@@ -1,13 +1,12 @@
 # Restate Bring-your-own-cloud CDK construct
 
 This package contains a construct suitable for deploying Restate on ECS Fargate using the BYOC controller.
-The controller is not open source and currently must be provided in the form of a tarball.
+The controller is not open source and a license ID must be provided for it to function. Please contact
+[info@restate.dev](mailto:info@restate.dev) if you're interested in a license.
 
 ## Example
 ```ts
 interface BYOCStackProps extends cdk.StackProps {
-  // Defaults to 'controller.tar' in the root of the repo
-  controllerImageTarball?: string;
 }
 
 export class BYOCStack extends cdk.Stack {
@@ -19,6 +18,7 @@ export class BYOCStack extends cdk.Stack {
     });
 
     const byoc = new RestateBYOC(this, "restate-byoc", {
+      licenseID: "this-was-provided-to-you-by-restate",
       vpc,
       statefulNode: {
         resources: {
@@ -35,9 +35,6 @@ export class BYOCStack extends cdk.Stack {
           cpu: 2048,
           memoryLimitMiB: 4096,
         },
-      },
-      controller: {
-        controllerImageTarball: props?.controllerImageTarball,
       },
     });
   }
