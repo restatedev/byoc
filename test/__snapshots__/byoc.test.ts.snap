@@ -1765,7 +1765,7 @@ exports[`BYOC Default parameters 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/default","restateVersion":"1.3","stackVersion":"0.0.1","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/default","restateVersion":"1.3","stackVersion":"0.1.0","metricsDashboardName":"
             - Ref: defaultmetrics63974EF8
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -3642,7 +3642,7 @@ exports[`BYOC With alb for admin 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/with-admin-alb","restateVersion":"1.3","stackVersion":"0.0.1","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/with-admin-alb","restateVersion":"1.3","stackVersion":"0.1.0","metricsDashboardName":"
             - Ref: withadminalbmetrics70EAA505
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -5352,7 +5352,7 @@ exports[`BYOC With one az 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/one-az","restateVersion":"1.3","stackVersion":"0.0.1","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/one-az","restateVersion":"1.3","stackVersion":"0.1.0","metricsDashboardName":"
             - Ref: oneazmetrics14A011A9
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -7286,7 +7286,7 @@ exports[`BYOC With shared alb 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/with-shared-alb","restateVersion":"1.3","stackVersion":"0.0.1","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/with-shared-alb","restateVersion":"1.3","stackVersion":"0.1.0","metricsDashboardName":"
             - Ref: withsharedalbmetrics9B81E37C
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -9363,7 +9363,7 @@ exports[`BYOC With volume 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/with-volume","restateVersion":"1.3","stackVersion":"0.0.1","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/with-volume","restateVersion":"1.3","stackVersion":"0.1.0","metricsDashboardName":"
             - Ref: withvolumemetrics6A2051ED
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -14500,7 +14500,7 @@ exports[`BYOC Without metrics dashboard 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/without-metrics-dashboard","restateVersion":"1.3","stackVersion":"0.0.1"},"resources":{"ecsClusterArn":"
+              ","summary":{"clusterName":"RestateBYOC/without-metrics-dashboard","restateVersion":"1.3","stackVersion":"0.1.0"},"resources":{"ecsClusterArn":"
             - 'Fn::GetAtt':
                 - withoutmetricsdashboardcluster465CA89C
                 - Arn
