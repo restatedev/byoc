@@ -1,6 +1,6 @@
 {
   "name": "@restatedev/byoc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Restate Bring-your-own-cloud Construct",
   "author": "Restate Developers",
   "license": "MIT",
