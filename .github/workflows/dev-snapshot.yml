@@ -19,11 +19,11 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test
-      - run: mv $(npm pack) restatedev-restate-cdk.tgz
+      - run: mv $(npm pack) restatedev-byoc.tgz
       - uses: actions/upload-artifact@v4
         with:
-          name: restatedev-restate-cdk
-          path: restatedev-restate-cdk.tgz
+          name: restatedev-byoc
+          path: restatedev-byoc.tgz
           retention-days: 1
           if-no-files-found: error
 
@@ -34,7 +34,7 @@ jobs:
         run: |
           # We're using 0.0.0 to avoid this version to be higher than released versions.
           # To use it:
-          # "@restatedev/restate-cdk": "^0.0.0-SNAPSHOT"
+          # "@restatedev/byoc": "^0.0.0-SNAPSHOT"
           npm version 0.0.0-SNAPSHOT-$(date '+%Y%m%d%H%M%S') --git-tag-version false
           # We use dist-tag dev for the snapshot releases, see https://docs.npmjs.com/cli/v9/commands/npm-dist-tag for more info
           # A snapshot MUST not be published with latest tag (omitting --tag defaults to latest) to avoid users to install snapshot releases
