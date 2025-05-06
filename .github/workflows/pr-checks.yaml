@@ -22,4 +22,5 @@ jobs:
       # the full restatectl binary is not needed for tests
       - run: mkdir -p ./lib/lambda/restatectl && touch ./lib/lambda/restatectl/bootstrap
       - run: npm run build
+      - run: npm run attw
       - run: npm run test

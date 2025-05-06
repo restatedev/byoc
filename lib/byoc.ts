@@ -132,8 +132,8 @@ export class RestateBYOC extends Construct {
       const cluster = new cdk.aws_ecs.Cluster(this, "cluster", {
         vpc: this.vpc,
         enableFargateCapacityProviders: true,
-        containerInsightsV2: "enhanced", // this field may not exist in earlier cdk versions, hence 'as any'
-      } as object);
+        containerInsightsV2: cdk.aws_ecs.ContainerInsights.ENHANCED,
+      });
       cdk.Tags.of(cluster).add("Name", cluster.node.path);
       this.ecsCluster = cluster;
     }

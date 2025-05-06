@@ -5,6 +5,10 @@ The controller is not open source and a license ID must be provided for it to fu
 [info@restate.dev](mailto:info@restate.dev) if you're interested in a license.
 
 ## Example
+```shell
+npm install @restatedev/byoc
+```
+
 ```ts
 interface BYOCStackProps extends cdk.StackProps {
 }

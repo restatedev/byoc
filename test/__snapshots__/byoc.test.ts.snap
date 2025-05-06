@@ -98,6 +98,9 @@ exports[`BYOC Default parameters 1`] = `
   defaultcluster07071299:
     Type: 'AWS::ECS::Cluster'
     Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
       Tags:
         - Key: Name
           Value: RestateBYOC/default/cluster
@@ -1972,6 +1975,9 @@ exports[`BYOC With alb for admin 1`] = `
   withadminalbclusterFE2F557B:
     Type: 'AWS::ECS::Cluster'
     Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
       Tags:
         - Key: Name
           Value: RestateBYOC/with-admin-alb/cluster
@@ -3791,6 +3797,9 @@ exports[`BYOC With one az 1`] = `
   oneazcluster64058501:
     Type: 'AWS::ECS::Cluster'
     Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
       Tags:
         - Key: Name
           Value: RestateBYOC/one-az/cluster
@@ -5542,6 +5551,9 @@ exports[`BYOC With shared alb 1`] = `
   withsharedalbclusterC111A9F9:
     Type: 'AWS::ECS::Cluster'
     Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
       Tags:
         - Key: Name
           Value: RestateBYOC/with-shared-alb/cluster
@@ -7435,6 +7447,9 @@ exports[`BYOC With volume 1`] = `
   withvolumecluster05BAFA05:
     Type: 'AWS::ECS::Cluster'
     Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
       Tags:
         - Key: Name
           Value: RestateBYOC/with-volume/cluster
@@ -9512,6 +9527,9 @@ exports[`BYOC Without control panel 1`] = `
   withoutcontrolpanelcluster0BE3B425:
     Type: 'AWS::ECS::Cluster'
     Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
       Tags:
         - Key: Name
           Value: RestateBYOC/without-control-panel/cluster
@@ -11289,6 +11307,9 @@ exports[`BYOC Without custom widget lambda 1`] = `
   withoutcustomwidgetlambdacluster7C821260:
     Type: 'AWS::ECS::Cluster'
     Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
       Tags:
         - Key: Name
           Value: RestateBYOC/without-custom-widget-lambda/cluster
@@ -12946,6 +12967,9 @@ exports[`BYOC Without metrics dashboard 1`] = `
   withoutmetricsdashboardcluster465CA89C:
     Type: 'AWS::ECS::Cluster'
     Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
       Tags:
         - Key: Name
           Value: RestateBYOC/without-metrics-dashboard/cluster
