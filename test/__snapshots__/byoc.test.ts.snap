@@ -9346,8 +9346,8 @@ exports[`BYOC With volume 1`] = `
             - '\\", \\"volumeIOPs\\", \\"'
             - Ref: withvolumecluster05BAFA05
             - >-
-              \\",
-              \\"Write\\")"}]],"annotations":{"horizontal":[{"label":"Limit","value":3000,"visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"IOPS","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":42,"properties":{"view":"timeSeries","title":"EBS
+              \\", \\"Write\\",
+              \\"SELECT\\")"}]],"annotations":{"horizontal":[{"label":"Limit","value":3000,"visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"IOPS","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":42,"properties":{"view":"timeSeries","title":"EBS
               Volume Read IOPS (Limited to 3000)","region":"
             - Ref: 'AWS::Region'
             - '","metrics":[[{"expression":"LAMBDA(\\"'
@@ -9355,8 +9355,8 @@ exports[`BYOC With volume 1`] = `
             - '\\", \\"volumeIOPs\\", \\"'
             - Ref: withvolumecluster05BAFA05
             - >-
-              \\",
-              \\"Read\\")"}]],"annotations":{"horizontal":[{"label":"Limit","value":3000,"visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"IOPS","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":48,"properties":{"view":"table","title":"Controller
+              \\", \\"Read\\",
+              \\"SELECT\\")"}]],"annotations":{"horizontal":[{"label":"Limit","value":3000,"visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"IOPS","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":48,"properties":{"view":"table","title":"Controller
               Logs","region":"region","query":"SOURCE '
             - Ref: withvolumecontrollerdefinitioncontrollerLogGroupF7CEE299
             - >-

@@ -8,7 +8,7 @@ import {
   RestateBYOCProps,
   SupportedRestateVersion,
 } from "./props";
-import type { ControlPanelWidgetEvent } from "./lambda/cloudwatch-custom-widget/index.mjs";
+import type { ControlPanelWidgetEvent } from "./lambda/cloudwatch-custom-widget/index.mts";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const packageInfo = require("../package.json");
 
@@ -409,7 +409,8 @@ export function createMetricsDashboard(
           left: [
             new cloudwatch.MathExpression({
               label: "",
-              expression: `LAMBDA("${customWidgetFn.functionName}", "volumeIOPs", "${cluster.clusterName}", "${typ}")`,
+              // by including a pointless "SELECT" arg here we can avoid triggering CloudWatch:Math:UnknownIdentifier
+              expression: `LAMBDA("${customWidgetFn.functionName}", "volumeIOPs", "${cluster.clusterName}", "${typ}", "SELECT")`,
             }),
           ],
           width: 12,
