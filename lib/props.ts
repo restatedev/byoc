@@ -36,7 +36,7 @@ export interface RestateBYOCProps {
    * Security groups to apply to the NLB, the restate nodes and the restatectl lambda.
    * If provided, internal connections on 8080, 9070 and 5122 are assumed to be allowed.
    * If not provided, a suitable group will be created.
-   * To allow traffic through the NLB from clients outside the security group, additional inbound rules will be needed.
+   * To allow traffic through NLBs from clients outside the security group, additional inbound rules may be needed.
    */
   securityGroups?: cdk.aws_ec2.ISecurityGroup[];
   /**
@@ -93,7 +93,16 @@ export interface RestateBYOCProps {
 
 export const DEFAULT_ALB_CREATE_ACTION = (
   targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
-) => cdk.aws_elasticloadbalancingv2.ListenerAction.forward([targetGroup]);
+) => [
+  {
+    id: "default-action",
+    props: {
+      action: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
+        targetGroup,
+      ]),
+    },
+  },
+];
 
 export type ListenerSource =
   | {
@@ -109,12 +118,10 @@ export type ListenerSource =
       applicationListenerProps: cdk.aws_elasticloadbalancingv2.ApplicationListenerProps;
 
       /**
-       * A function which produces the listener default action, given the relevant target group.
-       * Default: The forward action is used, which will simply route to the target.
+       * A function which produces the listener actions, given the relevant target group.
+       * Default: A single forward action is used, which will simply route to the target.
        */
-      createAction?: (
-        targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
-      ) => cdk.aws_elasticloadbalancingv2.ListenerAction;
+      createActions?: CreateActions;
     }
   | {
       /**
@@ -164,13 +171,18 @@ export type ListenerSource =
       certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
 
       /**
-       * A function which produces the listener default action, given the relevant target group.
-       * Default: The forward action is used, which will simply route to the target.
+       * A function which produces the listener actions, given the relevant target group.
+       * Default: A single forward action is used, which will simply route to the target.
        */
-      createAction?: (
-        targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
-      ) => cdk.aws_elasticloadbalancingv2.ListenerAction;
+      createActions?: CreateActions;
     };
+
+export type CreateActions = (
+  targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
+) => {
+  id: string;
+  props: cdk.aws_elasticloadbalancingv2.AddApplicationActionProps;
+}[];
 
 export type LoadBalancerSource =
   | {
@@ -338,6 +350,9 @@ export const DEFAULT_CONTROLLER_IMAGE =
 export const DEFAULT_CONTROLLER_CPU = 1024;
 export const DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB = 2048;
 
+/**
+ * Properties for configuring the controller
+ */
 export interface RestateBYOCControllerProps {
   /**
    * The controller image to use

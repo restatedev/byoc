@@ -45,6 +45,10 @@ export class BYOCStack extends cdk.Stack {
 }
 ```
 
+## Documentation
+- [Authentication](`./docs/authentication.md`)
+
+
 ## Releasing
 1. Update the NPM version in package.json and ensure it propagates to package-lock.json
 2. Run `npm test`, confirming there are no other snapshot issues except the changed version, then `npm test -- -u` to

@@ -3,6 +3,7 @@ import { Construct } from "constructs";
 import { VOLUME_POLICY } from "./volume-policy";
 import {
   assertSupportedRestateVersion,
+  CreateActions,
   DEFAULT_ALB_CREATE_ACTION,
   DEFAULT_CONTROLLER_CPU,
   DEFAULT_CONTROLLER_IMAGE,
@@ -26,7 +27,10 @@ import {
 } from "./props";
 import { createMonitoring } from "./monitoring";
 
-export class RestateBYOC extends Construct {
+export class RestateBYOC
+  extends Construct
+  implements cdk.aws_ec2.IConnectable, cdk.aws_iam.IGrantable
+{
   public readonly clusterName: string;
   public readonly vpc: cdk.aws_ec2.IVpc;
   public readonly bucket: cdk.aws_s3.IBucket;
@@ -59,6 +63,8 @@ export class RestateBYOC extends Construct {
     controlPanelDashboard?: cdk.aws_cloudwatch.Dashboard;
     customWidgetFn?: cdk.aws_lambda.IFunction;
   };
+  readonly connections: cdk.aws_ec2.Connections;
+  readonly grantPrincipal: cdk.aws_iam.IPrincipal;
 
   constructor(scope: Construct, id: string, props: RestateBYOCProps) {
     super(scope, id);
@@ -97,15 +103,21 @@ export class RestateBYOC extends Construct {
 
     if (props.securityGroups?.length) {
       this.securityGroups = props.securityGroups;
+      this.connections = new cdk.aws_ec2.Connections({
+        securityGroups: props.securityGroups,
+      });
     } else {
       const sg = new cdk.aws_ec2.SecurityGroup(this, "security-group", {
         vpc: this.vpc,
       });
-      sg.connections.allowInternally(cdk.aws_ec2.Port.tcp(8080));
-      sg.connections.allowInternally(cdk.aws_ec2.Port.tcp(9070));
-      sg.connections.allowInternally(cdk.aws_ec2.Port.tcp(5122));
+      sg.addIngressRule(sg, cdk.aws_ec2.Port.tcp(8080));
+      sg.addIngressRule(sg, cdk.aws_ec2.Port.tcp(9070));
+      sg.addIngressRule(sg, cdk.aws_ec2.Port.tcp(5122));
       cdk.Tags.of(sg).add("Name", sg.node.path);
       this.securityGroups = [sg];
+      this.connections = new cdk.aws_ec2.Connections({
+        securityGroups: [sg],
+      });
     }
 
     if (props.objectStorage?.bucket) {
@@ -143,6 +155,7 @@ export class RestateBYOC extends Construct {
       new cdk.aws_iam.Role(this, "restate-task-role", {
         assumedBy: new cdk.aws_iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
       });
+    this.grantPrincipal = this.restateTaskRole;
 
     this.restateExecutionRole =
       props.restateTasks?.executionRole ??
@@ -517,9 +530,7 @@ type Listener =
       listener: cdk.aws_elasticloadbalancingv2.ApplicationListener;
       port: number;
       protocol: "http" | "https";
-      createAction: (
-        targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
-      ) => cdk.aws_elasticloadbalancingv2.ListenerAction;
+      createActions: CreateActions;
       certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
     };
 
@@ -565,7 +576,7 @@ function createListener(
         protocol: source.applicationListenerProps.certificates?.length
           ? "https"
           : "http",
-        createAction: source.createAction ?? DEFAULT_ALB_CREATE_ACTION,
+        createActions: source.createActions ?? DEFAULT_ALB_CREATE_ACTION,
         certificate: source.applicationListenerProps.certificates?.[0],
       };
     } else if ("providedNetworkListener" in source) {
@@ -584,7 +595,7 @@ function createListener(
         listener: source.providedApplicationListener,
         port: source.providedApplicationListener.port,
         protocol: source.protocol,
-        createAction: source.createAction ?? DEFAULT_ALB_CREATE_ACTION,
+        createActions: source.createActions ?? DEFAULT_ALB_CREATE_ACTION,
         certificate: source.certificate,
       };
     } else {
@@ -659,7 +670,7 @@ function createSharedListener(
       listener: applicationListener,
       port,
       protocol: "http",
-      createAction: DEFAULT_ALB_CREATE_ACTION,
+      createActions: DEFAULT_ALB_CREATE_ACTION,
     };
   } else {
     throw new Error(`Invalid LoadBalancer: ${sharedLb}`);
@@ -784,13 +795,11 @@ function createTargetGroup(
       );
     cdk.Tags.of(targetGroup).add("Name", targetGroup.node.path);
 
-    const action: cdk.aws_elasticloadbalancingv2.ListenerAction =
-      listener.createAction
-        ? listener.createAction(targetGroup)
-        : cdk.aws_elasticloadbalancingv2.ListenerAction.forward([targetGroup]);
-    listener.listener.addAction(`${name}-action`, {
-      action,
-    });
+    const actions = listener.createActions(targetGroup);
+    for (const { id, props } of actions) {
+      listener.listener.addAction(id, props);
+    }
+
     return {
       ...listener,
       targetGroup: targetGroup,
