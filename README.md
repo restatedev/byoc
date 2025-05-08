@@ -46,7 +46,7 @@ export class BYOCStack extends cdk.Stack {
 ```
 
 ## Documentation
-- [Authentication](`./docs/authentication.md`)
+- [Authentication](./docs/authentication.md)
 
 
 ## Releasing
