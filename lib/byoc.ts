@@ -143,7 +143,6 @@ export class RestateBYOC
     } else {
       const cluster = new cdk.aws_ecs.Cluster(this, "cluster", {
         vpc: this.vpc,
-        enableFargateCapacityProviders: true,
         containerInsightsV2: cdk.aws_ecs.ContainerInsights.ENHANCED,
       });
       cdk.Tags.of(cluster).add("Name", cluster.node.path);
@@ -413,12 +412,6 @@ function createStateless(
     maxHealthyPercent: 200,
     minHealthyPercent: 100,
     propagateTags: cdk.aws_ecs.PropagatedTagSource.SERVICE,
-    capacityProviderStrategies: [
-      {
-        capacityProvider: "FARGATE",
-        weight: 1,
-      },
-    ],
   });
   cdk.Tags.of(service).add("Name", service.node.path);
 
@@ -1167,12 +1160,6 @@ function createController(
     // its ok for no controllers to be running sometimes, but we'd like to avoid two where we can.
     maxHealthyPercent: 100,
     minHealthyPercent: 0,
-    capacityProviderStrategies: [
-      {
-        capacityProvider: "FARGATE",
-        weight: 1,
-      },
-    ],
     vpcSubnets,
   });
   cdk.Tags.of(service).add("Name", service.node.path);
