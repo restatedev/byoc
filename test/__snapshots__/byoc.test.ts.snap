@@ -104,15 +104,6 @@ exports[`BYOC Default parameters 1`] = `
       Tags:
         - Key: Name
           Value: RestateBYOC/default/cluster
-  defaultcluster55134BC5:
-    Type: 'AWS::ECS::ClusterCapacityProviderAssociations'
-    Properties:
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
-      Cluster:
-        Ref: defaultcluster07071299
-      DefaultCapacityProviderStrategy: []
   defaultrestatetaskrole1A7BDFBB:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -367,9 +358,6 @@ exports[`BYOC Default parameters 1`] = `
   defaultstatelessserviceService8A7FABFB:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: defaultcluster07071299
       DeploymentConfiguration:
@@ -383,6 +371,7 @@ exports[`BYOC Default parameters 1`] = `
       EnableECSManagedTags: false
       EnableExecuteCommand: false
       HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
       LoadBalancers:
         - ContainerName: restate
           ContainerPort: 8080
@@ -1124,9 +1113,6 @@ exports[`BYOC Default parameters 1`] = `
   defaultcontrollerserviceService18139D09:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: defaultcluster07071299
       DeploymentConfiguration:
@@ -1139,6 +1125,7 @@ exports[`BYOC Default parameters 1`] = `
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
+      LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -1981,15 +1968,6 @@ exports[`BYOC With alb for admin 1`] = `
       Tags:
         - Key: Name
           Value: RestateBYOC/with-admin-alb/cluster
-  withadminalbcluster38F2F35F:
-    Type: 'AWS::ECS::ClusterCapacityProviderAssociations'
-    Properties:
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
-      Cluster:
-        Ref: withadminalbclusterFE2F557B
-      DefaultCapacityProviderStrategy: []
   withadminalbrestatetaskrole27839A13:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -2244,9 +2222,6 @@ exports[`BYOC With alb for admin 1`] = `
   withadminalbstatelessserviceService6C7E33D7:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withadminalbclusterFE2F557B
       DeploymentConfiguration:
@@ -2260,6 +2235,7 @@ exports[`BYOC With alb for admin 1`] = `
       EnableECSManagedTags: false
       EnableExecuteCommand: false
       HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
       LoadBalancers:
         - ContainerName: restate
           ContainerPort: 8080
@@ -3004,9 +2980,6 @@ exports[`BYOC With alb for admin 1`] = `
   withadminalbcontrollerserviceServiceCC3E3695:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withadminalbclusterFE2F557B
       DeploymentConfiguration:
@@ -3019,6 +2992,7 @@ exports[`BYOC With alb for admin 1`] = `
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
+      LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -3803,15 +3777,6 @@ exports[`BYOC With one az 1`] = `
       Tags:
         - Key: Name
           Value: RestateBYOC/one-az/cluster
-  oneazcluster78EED31A:
-    Type: 'AWS::ECS::ClusterCapacityProviderAssociations'
-    Properties:
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
-      Cluster:
-        Ref: oneazcluster64058501
-      DefaultCapacityProviderStrategy: []
   oneazrestatetaskroleED26DCA9:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -4064,9 +4029,6 @@ exports[`BYOC With one az 1`] = `
   oneazstatelessserviceServiceB8B226F2:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: oneazcluster64058501
       DeploymentConfiguration:
@@ -4080,6 +4042,7 @@ exports[`BYOC With one az 1`] = `
       EnableECSManagedTags: false
       EnableExecuteCommand: false
       HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
       LoadBalancers:
         - ContainerName: restate
           ContainerPort: 8080
@@ -4721,9 +4684,6 @@ exports[`BYOC With one az 1`] = `
   oneazcontrollerserviceService687CA4B7:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: oneazcluster64058501
       DeploymentConfiguration:
@@ -4736,6 +4696,7 @@ exports[`BYOC With one az 1`] = `
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
+      LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -5557,15 +5518,6 @@ exports[`BYOC With shared alb 1`] = `
       Tags:
         - Key: Name
           Value: RestateBYOC/with-shared-alb/cluster
-  withsharedalbcluster9E12CA9A:
-    Type: 'AWS::ECS::ClusterCapacityProviderAssociations'
-    Properties:
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
-      Cluster:
-        Ref: withsharedalbclusterC111A9F9
-      DefaultCapacityProviderStrategy: []
   withsharedalbrestatetaskroleDE0CA1F2:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -5888,9 +5840,6 @@ exports[`BYOC With shared alb 1`] = `
   withsharedalbstatelessserviceService9BBF0F9B:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withsharedalbclusterC111A9F9
       DeploymentConfiguration:
@@ -5904,6 +5853,7 @@ exports[`BYOC With shared alb 1`] = `
       EnableECSManagedTags: false
       EnableExecuteCommand: false
       HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
       LoadBalancers:
         - ContainerName: restate
           ContainerPort: 8080
@@ -6654,9 +6604,6 @@ exports[`BYOC With shared alb 1`] = `
   withsharedalbcontrollerserviceServiceC852EDD3:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withsharedalbclusterC111A9F9
       DeploymentConfiguration:
@@ -6669,6 +6616,7 @@ exports[`BYOC With shared alb 1`] = `
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
+      LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -7453,15 +7401,6 @@ exports[`BYOC With volume 1`] = `
       Tags:
         - Key: Name
           Value: RestateBYOC/with-volume/cluster
-  withvolumecluster222E14DA:
-    Type: 'AWS::ECS::ClusterCapacityProviderAssociations'
-    Properties:
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
-      Cluster:
-        Ref: withvolumecluster05BAFA05
-      DefaultCapacityProviderStrategy: []
   withvolumerestatetaskroleEAE4F95E:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -7716,9 +7655,6 @@ exports[`BYOC With volume 1`] = `
   withvolumestatelessserviceServiceDCB5849A:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withvolumecluster05BAFA05
       DeploymentConfiguration:
@@ -7732,6 +7668,7 @@ exports[`BYOC With volume 1`] = `
       EnableECSManagedTags: false
       EnableExecuteCommand: false
       HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
       LoadBalancers:
         - ContainerName: restate
           ContainerPort: 8080
@@ -8715,9 +8652,6 @@ exports[`BYOC With volume 1`] = `
   withvolumecontrollerserviceService047527E7:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withvolumecluster05BAFA05
       DeploymentConfiguration:
@@ -8730,6 +8664,7 @@ exports[`BYOC With volume 1`] = `
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
+      LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -9533,15 +9468,6 @@ exports[`BYOC Without control panel 1`] = `
       Tags:
         - Key: Name
           Value: RestateBYOC/without-control-panel/cluster
-  withoutcontrolpanelcluster0B8D255C:
-    Type: 'AWS::ECS::ClusterCapacityProviderAssociations'
-    Properties:
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
-      Cluster:
-        Ref: withoutcontrolpanelcluster0BE3B425
-      DefaultCapacityProviderStrategy: []
   withoutcontrolpanelrestatetaskroleFF8DB8FE:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -9796,9 +9722,6 @@ exports[`BYOC Without control panel 1`] = `
   withoutcontrolpanelstatelessserviceService70D13293:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withoutcontrolpanelcluster0BE3B425
       DeploymentConfiguration:
@@ -9812,6 +9735,7 @@ exports[`BYOC Without control panel 1`] = `
       EnableECSManagedTags: false
       EnableExecuteCommand: false
       HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
       LoadBalancers:
         - ContainerName: restate
           ContainerPort: 8080
@@ -10561,9 +10485,6 @@ exports[`BYOC Without control panel 1`] = `
   withoutcontrolpanelcontrollerserviceService3FEE3A64:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withoutcontrolpanelcluster0BE3B425
       DeploymentConfiguration:
@@ -10576,6 +10497,7 @@ exports[`BYOC Without control panel 1`] = `
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
+      LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -11313,15 +11235,6 @@ exports[`BYOC Without custom widget lambda 1`] = `
       Tags:
         - Key: Name
           Value: RestateBYOC/without-custom-widget-lambda/cluster
-  withoutcustomwidgetlambdaclusterAF10EE86:
-    Type: 'AWS::ECS::ClusterCapacityProviderAssociations'
-    Properties:
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
-      Cluster:
-        Ref: withoutcustomwidgetlambdacluster7C821260
-      DefaultCapacityProviderStrategy: []
   withoutcustomwidgetlambdarestatetaskroleB95E12D3:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -11579,9 +11492,6 @@ exports[`BYOC Without custom widget lambda 1`] = `
   withoutcustomwidgetlambdastatelessserviceService0766D47F:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withoutcustomwidgetlambdacluster7C821260
       DeploymentConfiguration:
@@ -11595,6 +11505,7 @@ exports[`BYOC Without custom widget lambda 1`] = `
       EnableECSManagedTags: false
       EnableExecuteCommand: false
       HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
       LoadBalancers:
         - ContainerName: restate
           ContainerPort: 8080
@@ -12345,9 +12256,6 @@ exports[`BYOC Without custom widget lambda 1`] = `
   withoutcustomwidgetlambdacontrollerserviceServiceBF61F210:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withoutcustomwidgetlambdacluster7C821260
       DeploymentConfiguration:
@@ -12360,6 +12268,7 @@ exports[`BYOC Without custom widget lambda 1`] = `
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
+      LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -12973,15 +12882,6 @@ exports[`BYOC Without metrics dashboard 1`] = `
       Tags:
         - Key: Name
           Value: RestateBYOC/without-metrics-dashboard/cluster
-  withoutmetricsdashboardcluster8F831569:
-    Type: 'AWS::ECS::ClusterCapacityProviderAssociations'
-    Properties:
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
-      Cluster:
-        Ref: withoutmetricsdashboardcluster465CA89C
-      DefaultCapacityProviderStrategy: []
   withoutmetricsdashboardrestatetaskroleFB91830E:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -13239,9 +13139,6 @@ exports[`BYOC Without metrics dashboard 1`] = `
   withoutmetricsdashboardstatelessserviceServiceA5D262A7:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withoutmetricsdashboardcluster465CA89C
       DeploymentConfiguration:
@@ -13255,6 +13152,7 @@ exports[`BYOC Without metrics dashboard 1`] = `
       EnableECSManagedTags: false
       EnableExecuteCommand: false
       HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
       LoadBalancers:
         - ContainerName: restate
           ContainerPort: 8080
@@ -14005,9 +13903,6 @@ exports[`BYOC Without metrics dashboard 1`] = `
   withoutmetricsdashboardcontrollerserviceService573302DD:
     Type: 'AWS::ECS::Service'
     Properties:
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
       Cluster:
         Ref: withoutmetricsdashboardcluster465CA89C
       DeploymentConfiguration:
@@ -14020,6 +13915,7 @@ exports[`BYOC Without metrics dashboard 1`] = `
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
+      LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
