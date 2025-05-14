@@ -107,15 +107,9 @@ export function createMonitoring(
                     admin: [loadBalancer.admin.loadBalancerArn],
                   },
                   addresses: {
-                    ingress:
-                      props?.monitoring?.dashboard?.controlPanel?.addresses
-                        ?.ingress || loadBalancer.ingress.address,
-                    admin:
-                      props?.monitoring?.dashboard?.controlPanel?.addresses
-                        ?.admin || loadBalancer.admin.address,
-                    webUI:
-                      props?.monitoring?.dashboard?.controlPanel?.addresses
-                        ?.webUI || loadBalancer.webUI.address,
+                    ingress: loadBalancer.ingress.address,
+                    admin: loadBalancer.admin.address,
+                    webUI: loadBalancer.webUI.address,
                   },
                 },
                 networking: {

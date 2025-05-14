@@ -3,8 +3,6 @@ import { Construct } from "constructs";
 import { VOLUME_POLICY } from "./volume-policy";
 import {
   assertSupportedRestateVersion,
-  CreateActions,
-  DEFAULT_ALB_CREATE_ACTION,
   DEFAULT_CONTROLLER_CPU,
   DEFAULT_CONTROLLER_IMAGE,
   DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB,
@@ -13,7 +11,6 @@ import {
   DEFAULT_RESTATE_MEMORY_LIMIT_MIB,
   DEFAULT_STATEFUL_NODES_PER_AZ,
   DEFAULT_STATELESS_DESIRED_COUNT,
-  ListenerSource,
   RestateBYOCControllerProps,
   RestateBYOCLoadBalancerProps,
   RestateBYOCNodeProps,
@@ -23,48 +20,170 @@ import {
   RestateBYOCStatefulProps,
   RestateBYOCStatelessProps,
   RestateBYOCTaskProps,
+  ServiceDeployerProps,
   SupportedRestateVersion,
 } from "./props";
 import { createMonitoring } from "./monitoring";
+import {
+  ServiceDeployer,
+  ServiceRegistrationProps,
+} from "@restatedev/restate-cdk";
 
 export class RestateBYOC
   extends Construct
   implements cdk.aws_ec2.IConnectable, cdk.aws_iam.IGrantable
 {
+  /**
+   * The name of the cluster
+   */
   public readonly clusterName: string;
+  /**
+   * The VPC of the cluster
+   */
   public readonly vpc: cdk.aws_ec2.IVpc;
-  public readonly bucket: cdk.aws_s3.IBucket;
+  /**
+   * The subnets of the cluster
+   */
+  public readonly vpcSubnets: cdk.aws_ec2.SelectedSubnets;
+  /**
+   * The security groups of the cluster
+   */
   public readonly securityGroups: cdk.aws_ec2.ISecurityGroup[];
+  /**
+   * The bucket where metadata and snapshots are stored
+   */
+  public readonly bucket: cdk.aws_s3.IBucket;
+  /**
+   * Implements the IConnectable interface
+   */
+  public readonly connections: cdk.aws_ec2.Connections;
+  /**
+   * Properties relating to the stateless nodes
+   */
   public readonly stateless: {
+    /**
+     * The stateless node service
+     */
     service: cdk.aws_ecs.IFargateService;
+    /**
+     * The stateless node task definition
+     */
     taskDefinition: cdk.aws_ecs.IFargateTaskDefinition;
   };
-  public readonly statefulDefinition: cdk.aws_ecs.IFargateTaskDefinition;
+  /**
+   * Properties relating to the stateful nodes
+   */
+  public readonly stateful: {
+    /**
+     * The stateful node task definition
+     */
+    taskDefinition: cdk.aws_ecs.IFargateTaskDefinition;
+  };
+  /**
+   * Properties relating to the controller service
+   */
+  public readonly controller: {
+    /**
+     * The controller service
+     */
+    service: cdk.aws_ecs.IFargateService;
+    /**
+     * The controller task definition
+     */
+    taskDefinition: cdk.aws_ecs.IFargateTaskDefinition;
+  };
+  /**
+   * Properties of the listeners managed by this construct
+   */
   public readonly loadBalancer: {
+    /**
+     * The ingress listener and target group properties
+     */
     ingress: TargetGroup & Listener;
+    /**
+     * The admin listener and target group properties
+     */
     admin: TargetGroup & Listener;
+    /**
+     * The node listener and target group properties
+     */
     node: TargetGroup & Listener;
   };
-  public readonly ecsCluster: cdk.aws_ecs.ICluster;
-  public readonly restateTaskRole: cdk.aws_iam.IRole;
-  public readonly restateExecutionRole: cdk.aws_iam.IRole;
-  public readonly controller: {
-    service: cdk.aws_ecs.IFargateService;
-    taskDefinition: cdk.aws_ecs.IFargateTaskDefinition;
+  /**
+   * Properties that can be used to create new application or network target groups
+   * point to ports of the stateless nodes
+   */
+  public readonly targetProps: {
+    application: {
+      ingress: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
+      admin: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
+      node: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
+    };
+    network: {
+      ingress: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
+      admin: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
+      node: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
+    };
   };
+
+  /**
+   * The ECS cluster
+   */
+  public readonly ecsCluster: cdk.aws_ecs.ICluster;
+  /**
+   * The task role of the Restate tasks
+   */
+  public readonly restateTaskRole: cdk.aws_iam.IRole;
+  /**
+   * The task execution role of the Restate tasks
+   */
+  public readonly restateExecutionRole: cdk.aws_iam.IRole;
+  /**
+   * The task role of the Restate tasks, implements the IGrantable interface
+   */
+  public readonly grantPrincipal: cdk.aws_iam.IPrincipal;
+
+  /**
+   * The restatectl lambda
+   */
   public readonly restatectl?: cdk.aws_lambda.IFunction;
+  /**
+   * Properties of the retirement watcher lambda
+   */
   public readonly retirementWatcher?: {
+    /**
+     * The retirement watcher lambda function
+     */
     fn: cdk.aws_lambda.IFunction;
+    /**
+     * The retirement watcher SQS queue
+     */
     queue: cdk.aws_sqs.IQueue;
+    /**
+     * The retirement watcher EventBridge rule
+     */
     rule: cdk.aws_events.IRule;
   };
+
+  /**
+   * Monitoring properties
+   */
   public readonly monitoring: {
+    /**
+     * Metrics dashboard
+     */
     metricsDashboard?: cdk.aws_cloudwatch.Dashboard;
+    /**
+     * Control panel dashboard
+     */
     controlPanelDashboard?: cdk.aws_cloudwatch.Dashboard;
+    /**
+     * The custom widget lambda
+     */
     customWidgetFn?: cdk.aws_lambda.IFunction;
   };
-  readonly connections: cdk.aws_ec2.Connections;
-  readonly grantPrincipal: cdk.aws_iam.IPrincipal;
+
+  private readonly deployer?: ServiceDeployer;
 
   constructor(scope: Construct, id: string, props: RestateBYOCProps) {
     super(scope, id);
@@ -76,7 +195,7 @@ export class RestateBYOC
 
     this.vpc = props.vpc;
 
-    const subnets = this.vpc.selectSubnets(
+    this.vpcSubnets = this.vpc.selectSubnets(
       props.subnets ?? {
         subnetType: cdk.aws_ec2.SubnetType.PRIVATE_WITH_EGRESS,
         onePerAz: true,
@@ -90,7 +209,7 @@ export class RestateBYOC
     ) {
       const zoneReplication =
         props.statelessNode?.defaultReplication?.zone ?? 2;
-      const zoneCount = new Set(subnets.availabilityZones).size;
+      const zoneCount = new Set(this.vpcSubnets.availabilityZones).size;
       if (zoneCount <= zoneReplication) {
         throw new Error(
           `The selected subnets are spread over only ${zoneCount} zones, which is not enough to satisfy zone replication property ${zoneReplication}. It may be necessary to provide a particular region for your stack, so that all AZs can be used.`,
@@ -180,11 +299,9 @@ export class RestateBYOC
       this,
       this.vpc,
       this.securityGroups,
-      subnets,
+      this.vpcSubnets,
       props.loadBalancer,
     );
-
-    const ingressAdvertisedAddress = `${listeners.ingress.protocol}://${listeners.ingress.lb.loadBalancerDnsName}:${listeners.ingress.port}`;
 
     const stateless = createStateless(
       this,
@@ -192,9 +309,9 @@ export class RestateBYOC
       bucketPath,
       this.ecsCluster,
       this.securityGroups,
-      subnets,
+      this.vpcSubnets,
       restateTaskProps,
-      ingressAdvertisedAddress,
+      props.addresses?.ingress ?? listeners.ingress.address,
       props.statelessNode,
     );
     this.stateless = stateless;
@@ -206,14 +323,25 @@ export class RestateBYOC
       restateTaskProps,
       props.statefulNode,
     );
-    this.statefulDefinition = statefulDefinition;
+    this.stateful = { taskDefinition: statefulDefinition };
 
-    const loadBalancer = createTargetGroups(
-      this,
-      this.vpc,
-      listeners,
-      stateless.service,
-    );
+    this.targetProps = createTargetProps(this.vpc, stateless.service);
+
+    const loadBalancer = {
+      ingress: createTargetGroup(this, "ingress", listeners.ingress, {
+        application: this.targetProps.application.ingress,
+        network: this.targetProps.network.ingress,
+      }),
+      admin: createTargetGroup(this, "admin", listeners.admin, {
+        application: this.targetProps.application.admin,
+        network: this.targetProps.network.admin,
+      }),
+      node: createTargetGroup(this, "node", listeners.node, {
+        application: this.targetProps.application.node,
+        network: this.targetProps.network.node,
+      }),
+    };
+
     this.loadBalancer = loadBalancer;
 
     const ctPrefix = clusterTaskPrefix(this.ecsCluster.clusterArn);
@@ -224,9 +352,9 @@ export class RestateBYOC
       bucketPath,
       this.ecsCluster,
       ctPrefix,
-      subnets,
+      this.vpcSubnets,
       this.securityGroups,
-      this.statefulDefinition,
+      this.stateful.taskDefinition,
       restateTaskProps,
       props.statefulNode,
       props.controller,
@@ -236,9 +364,9 @@ export class RestateBYOC
     this.restatectl = createRestatectl(
       this,
       this.vpc,
-      subnets,
+      this.vpcSubnets,
       this.securityGroups,
-      `${loadBalancer.node.protocol}://${loadBalancer.node.lb.loadBalancerDnsName}:${loadBalancer.node.port}`,
+      listeners.node.address,
       props.restatectl,
     );
 
@@ -253,7 +381,7 @@ export class RestateBYOC
       this,
       this.clusterName,
       this.vpc,
-      subnets,
+      this.vpcSubnets,
       this.securityGroups,
       this.bucket,
       this.ecsCluster,
@@ -265,16 +393,16 @@ export class RestateBYOC
       controller.taskDefinition,
       {
         ingress: {
-          loadBalancerArn: loadBalancer.ingress.lb.loadBalancerArn,
-          certificateArn: loadBalancer.ingress.certificate?.certificateArn,
-          address: ingressAdvertisedAddress,
+          loadBalancerArn: listeners.ingress.lb.loadBalancerArn,
+          certificateArn: listeners.ingress.certificate?.certificateArn,
+          address: props.addresses?.ingress ?? listeners.ingress.address,
         },
         admin: {
-          loadBalancerArn: loadBalancer.admin.lb.loadBalancerArn,
-          address: `${loadBalancer.admin.protocol}://${loadBalancer.admin.lb.loadBalancerDnsName}:${loadBalancer.admin.port}`,
+          loadBalancerArn: listeners.admin.lb.loadBalancerArn,
+          address: props.addresses?.admin ?? listeners.admin.address,
         },
         webUI: {
-          address: `${loadBalancer.admin.protocol}://${loadBalancer.admin.lb.loadBalancerDnsName}:${loadBalancer.admin.port}/ui`,
+          address: props.addresses?.webUI ?? `${listeners.admin.address}/ui`,
         },
       },
       this.restatectl,
@@ -304,6 +432,82 @@ export class RestateBYOC
         }),
       );
     }
+
+    this.deployer = createServiceDeployer(
+      this,
+      this.vpc,
+      this.vpcSubnets,
+      this.securityGroups,
+      props.serviceDeployer,
+    );
+  }
+
+  /**
+   * Deploy a Lambda-backed Restate handler to the BYOC cluster.
+   *
+   * Note that a change in the handler properties is necessary to trigger re-discovery due to how CloudFormation updates
+   * work. If you deploy a fixed Lambda alias such as `$LATEST` which isn't changing on every handler code or
+   * configuration update, you will want to set the `configurationVersion` property in `options` to a new value (e.g. a
+   * timestamp) to ensure an update to the Restate environment is triggered on stack deployment.
+   *
+   * @param handler service handler - must be a specific function version, use "latest" if you don't care about explicit versioning
+   * @param options additional options; see field documentation for details
+   * @see {ServiceRegistrationProps}
+   */
+  register(
+    handler: cdk.aws_lambda.IVersion,
+    options?: ServiceRegistrationProps,
+  ): void {
+    if (!this.deployer)
+      throw new Error(
+        "props.serviceDeployer.disabled must not be set to use register",
+      );
+
+    if (!options?.invokerRole && !options?.skipInvokeFunctionGrant) {
+      handler.grantInvoke(this);
+    }
+
+    this.deployer.register(
+      handler,
+      { adminUrl: this.loadBalancer.admin.address },
+      options,
+    );
+  }
+
+  /**
+   * Deploy a Lambda-backed Restate handler to the BYOC cluster, ensuring that a particular service name exists.
+   *
+   * Note that a change in the handler properties is necessary to trigger re-discovery due to how CloudFormation updates
+   * work. If you deploy a fixed Lambda alias such as `$LATEST` which isn't changing on every handler code or
+   * configuration update, you will want to set the `configurationVersion` property in `options` to a new value (e.g. a
+   * timestamp) to ensure an update to the Restate environment is triggered on stack deployment.
+   *
+   * @param serviceName the service name within Restate - as a safety mechanism, this must match the service's
+   *        self-reported name during discovery; if there are multiple services, one of them must match or the
+   *        deployment fails
+   * @param handler service handler - must be a specific function version, use "latest" if you don't care about explicit versioning
+   * @param options additional options; see field documentation for details
+   */
+  deployService(
+    serviceName: string,
+    handler: cdk.aws_lambda.IVersion,
+    options?: ServiceRegistrationProps,
+  ): void {
+    if (!this.deployer)
+      throw new Error(
+        "props.serviceDeployer.disabled must not be set to use deployService",
+      );
+
+    if (!options?.invokerRole && !options?.skipInvokeFunctionGrant) {
+      handler.grantInvoke(this);
+    }
+
+    this.deployer.deployService(
+      serviceName,
+      handler,
+      { adminUrl: this.loadBalancer.admin.address },
+      options,
+    );
   }
 }
 
@@ -515,6 +719,7 @@ type Listener =
       listener: cdk.aws_elasticloadbalancingv2.NetworkListener;
       port: number;
       protocol: "http" | "https";
+      address: string;
       certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
     }
   | {
@@ -523,79 +728,9 @@ type Listener =
       listener: cdk.aws_elasticloadbalancingv2.ApplicationListener;
       port: number;
       protocol: "http" | "https";
-      createActions: CreateActions;
+      address: string;
       certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
     };
-
-type MaybeSharedListener = Listener | { type: "shared" };
-
-function createListener(
-  scope: Construct,
-  name: "ingress" | "admin" | "node",
-  source?: ListenerSource,
-): MaybeSharedListener {
-  if (!source) {
-    return { type: "shared" };
-  } else {
-    if ("networkListenerProps" in source) {
-      const listener = new cdk.aws_elasticloadbalancingv2.NetworkListener(
-        scope,
-        `${name}-listener`,
-        source.networkListenerProps,
-      );
-      cdk.Tags.of(listener).add("Name", listener.node.path);
-      return {
-        type: "network",
-        lb: source.networkListenerProps.loadBalancer,
-        listener,
-        port: source.networkListenerProps.port,
-        protocol: source.networkListenerProps.certificates?.length
-          ? "https"
-          : "http",
-        certificate: source.networkListenerProps.certificates?.[0],
-      };
-    } else if ("applicationListenerProps" in source) {
-      const listener = new cdk.aws_elasticloadbalancingv2.ApplicationListener(
-        scope,
-        `${name}-listener`,
-        source.applicationListenerProps,
-      );
-      cdk.Tags.of(listener).add("Name", listener.node.path);
-      return {
-        type: "application",
-        lb: source.applicationListenerProps.loadBalancer,
-        listener,
-        port: listener.port,
-        protocol: source.applicationListenerProps.certificates?.length
-          ? "https"
-          : "http",
-        createActions: source.createActions ?? DEFAULT_ALB_CREATE_ACTION,
-        certificate: source.applicationListenerProps.certificates?.[0],
-      };
-    } else if ("providedNetworkListener" in source) {
-      return {
-        type: "network",
-        lb: source.providedNLB,
-        listener: source.providedNetworkListener,
-        port: source.port,
-        protocol: source.protocol,
-        certificate: source.certificate,
-      };
-    } else if ("providedApplicationListener" in source) {
-      return {
-        type: "application",
-        lb: source.providedALB,
-        listener: source.providedApplicationListener,
-        port: source.providedApplicationListener.port,
-        protocol: source.protocol,
-        createActions: source.createActions ?? DEFAULT_ALB_CREATE_ACTION,
-        certificate: source.certificate,
-      };
-    } else {
-      throw new Error(`Invalid ListenerSource: ${source}`);
-    }
-  }
-}
 
 type LoadBalancer =
   | {
@@ -621,17 +756,12 @@ function createSharedListener(
   scope: Construct,
   name: string,
   port: number,
-  maybeShared: MaybeSharedListener,
   sharedLb: LoadBalancer,
 ): Listener {
-  if (maybeShared.type !== "shared") {
-    return maybeShared;
-  }
-
   if (sharedLb.type == "network") {
     const networkListener = new cdk.aws_elasticloadbalancingv2.NetworkListener(
       scope,
-      `${name}-listener`,
+      `${name}-shared-listener`,
       {
         loadBalancer: sharedLb.lb,
         port,
@@ -644,12 +774,13 @@ function createSharedListener(
       listener: networkListener,
       port,
       protocol: "http",
+      address: `http://${sharedLb.lb.loadBalancerDnsName}:${port}`,
     };
   } else if (sharedLb.type == "application") {
     const applicationListener =
       new cdk.aws_elasticloadbalancingv2.ApplicationListener(
         scope,
-        `${name}-listener`,
+        `${name}-shared-listener`,
         {
           loadBalancer: sharedLb.lb,
           port,
@@ -663,7 +794,7 @@ function createSharedListener(
       listener: applicationListener,
       port,
       protocol: "http",
-      createActions: DEFAULT_ALB_CREATE_ACTION,
+      address: `http://${sharedLb.lb.loadBalancerDnsName}:${port}`,
     };
   } else {
     throw new Error(`Invalid LoadBalancer: ${sharedLb}`);
@@ -675,25 +806,8 @@ function createSharedLb(
   vpc: cdk.aws_ec2.IVpc,
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   vpcSubnets: cdk.aws_ec2.SubnetSelection,
-  {
-    ingress,
-    admin,
-    node,
-  }: {
-    ingress: MaybeSharedListener;
-    admin: MaybeSharedListener;
-    node: MaybeSharedListener;
-  },
   props?: RestateBYOCLoadBalancerProps,
 ): { ingress: Listener; admin: Listener; node: Listener } {
-  if (
-    ingress.type !== "shared" &&
-    admin.type !== "shared" &&
-    node.type !== "shared"
-  ) {
-    return { ingress, admin, node };
-  }
-
   let sharedLb: LoadBalancer;
   if (!props?.shared) {
     const lb = new cdk.aws_elasticloadbalancingv2.NetworkLoadBalancer(
@@ -739,33 +853,29 @@ function createSharedLb(
   }
 
   return {
-    ingress: createSharedListener(scope, "ingress", 8080, ingress, sharedLb),
-    admin: createSharedListener(scope, "admin", 9070, admin, sharedLb),
-    node: createSharedListener(scope, "node", 5122, node, sharedLb),
+    ingress: createSharedListener(scope, "ingress", 8080, sharedLb),
+    admin: createSharedListener(scope, "admin", 9070, sharedLb),
+    node: createSharedListener(scope, "node", 5122, sharedLb),
   };
 }
 
 function createTargetGroup(
   scope: Construct,
-  name: "ingress" | "admin" | "node",
+  targetName: "ingress" | "admin" | "node",
   listener: Listener,
-  props: cdk.aws_elasticloadbalancingv2.BaseTargetGroupProps,
-  targets: cdk.aws_ecs.IEcsLoadBalancerTarget[],
-  port: number,
+  props: {
+    application: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
+    network: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
+  },
 ): TargetGroup & Listener {
   if (listener.type == "network") {
     const targetGroup = new cdk.aws_elasticloadbalancingv2.NetworkTargetGroup(
       scope,
-      `${name}-target`,
-      {
-        ...props,
-        targets,
-        port,
-        protocol: cdk.aws_elasticloadbalancingv2.Protocol.TCP,
-      },
+      `${targetName}-shared-target`,
+      props.network,
     );
     cdk.Tags.of(targetGroup).add("Name", targetGroup.node.path);
-    listener.listener.addAction(`${name}-action`, {
+    listener.listener.addAction(`${targetName}-shared-action`, {
       action: cdk.aws_elasticloadbalancingv2.NetworkListenerAction.forward([
         targetGroup,
       ]),
@@ -778,20 +888,16 @@ function createTargetGroup(
     const targetGroup =
       new cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup(
         scope,
-        `${name}-target`,
-        {
-          ...props,
-          targets,
-          port,
-          protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
-        },
+        `${targetName}-shared-target`,
+        props.application,
       );
     cdk.Tags.of(targetGroup).add("Name", targetGroup.node.path);
 
-    const actions = listener.createActions(targetGroup);
-    for (const { id, props } of actions) {
-      listener.listener.addAction(id, props);
-    }
+    listener.listener.addAction("${targetName}-shared-action", {
+      action: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
+        targetGroup,
+      ]),
+    });
 
     return {
       ...listener,
@@ -813,112 +919,117 @@ function createListeners(
   admin: Listener;
   node: Listener;
 } {
-  const maybeSharedListeners = {
-    ingress: createListener(scope, "ingress", props?.ingress),
-    admin: createListener(scope, "admin", props?.admin),
-    node: createListener(scope, "node", props?.node),
-  };
-
-  const listeners = createSharedLb(
+  const sharedListeners = createSharedLb(
     scope,
     vpc,
     securityGroups,
     vpcSubnets,
-    maybeSharedListeners,
     props,
   );
 
-  return listeners;
+  return sharedListeners;
 }
-function createTargetGroups(
-  scope: Construct,
+
+function createTargetProps(
   vpc: cdk.aws_ec2.IVpc,
-  listeners: {
-    ingress: Listener;
-    admin: Listener;
-    node: Listener;
-  },
   statelessService: cdk.aws_ecs.FargateService,
 ): {
-  ingress: Listener & TargetGroup;
-  admin: Listener & TargetGroup;
-  node: Listener & TargetGroup;
+  application: {
+    ingress: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
+    admin: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
+    node: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
+  };
+  network: {
+    ingress: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
+    admin: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
+    node: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
+  };
 } {
-  const ingress = createTargetGroup(
-    scope,
-    "ingress",
-    listeners.ingress,
-    {
-      vpc,
-      healthCheck: {
-        enabled: true,
-        interval: cdk.Duration.seconds(5),
-        timeout: cdk.Duration.seconds(2),
-        path: "/restate/health",
-        protocol: cdk.aws_elasticloadbalancingv2.Protocol.HTTP,
-      },
+  const ingressProps = {
+    vpc,
+    healthCheck: {
+      enabled: true,
+      interval: cdk.Duration.seconds(5),
+      timeout: cdk.Duration.seconds(2),
+      path: "/restate/health",
+      protocol: cdk.aws_elasticloadbalancingv2.Protocol.HTTP,
     },
-    [
+    targets: [
       statelessService.loadBalancerTarget({
         containerName: "restate",
         containerPort: 8080,
       }),
     ],
-    8080,
-  );
+    port: 8080,
+  };
 
-  const admin = createTargetGroup(
-    scope,
-    "admin",
-    listeners.admin,
-    {
-      vpc,
-      healthCheck: {
-        enabled: true,
-        interval: cdk.Duration.seconds(5),
-        timeout: cdk.Duration.seconds(2),
-        path: "/health",
-        protocol: cdk.aws_elasticloadbalancingv2.Protocol.HTTP,
-        port: "9070",
-      },
+  const adminProps = {
+    vpc,
+    healthCheck: {
+      enabled: true,
+      interval: cdk.Duration.seconds(5),
+      timeout: cdk.Duration.seconds(2),
+      path: "/health",
+      protocol: cdk.aws_elasticloadbalancingv2.Protocol.HTTP,
+      port: "9070",
     },
-    [
+    targets: [
       statelessService.loadBalancerTarget({
         containerName: "restate",
         containerPort: 9070,
       }),
     ],
-    9070,
-  );
+    port: 9070,
+  };
 
-  const node = createTargetGroup(
-    scope,
-    "node",
-    listeners.node,
-    {
-      vpc,
-      healthCheck: {
-        enabled: true,
-        interval: cdk.Duration.seconds(5),
-        timeout: cdk.Duration.seconds(2),
-        path: "/health",
-        protocol: cdk.aws_elasticloadbalancingv2.Protocol.HTTP,
-        port: "5122",
-      },
+  const nodeProps = {
+    vpc,
+    healthCheck: {
+      enabled: true,
+      interval: cdk.Duration.seconds(5),
+      timeout: cdk.Duration.seconds(2),
+      path: "/health",
+      protocol: cdk.aws_elasticloadbalancingv2.Protocol.HTTP,
+      port: "5122",
     },
-    [
+    targets: [
       statelessService.loadBalancerTarget({
         containerName: "restate",
         containerPort: 5122,
       }),
     ],
-    5122,
-  );
+    port: 5122,
+  };
 
   return {
-    ingress,
-    admin,
-    node,
+    application: {
+      ingress: {
+        ...ingressProps,
+        protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
+      },
+      admin: {
+        ...adminProps,
+        protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
+      },
+      node: {
+        ...nodeProps,
+        protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
+      },
+    },
+    network: {
+      ingress: {
+        ...ingressProps,
+        protocol: cdk.aws_elasticloadbalancingv2.Protocol.TCP,
+      },
+      admin: {
+        ...adminProps,
+        protocol: cdk.aws_elasticloadbalancingv2.Protocol.TCP,
+      },
+      node: {
+        ...nodeProps,
+        protocol: cdk.aws_elasticloadbalancingv2.Protocol.TCP,
+      },
+    },
   };
 }
 
@@ -997,6 +1108,8 @@ function createController(
             "ecs.amazonaws.com",
           ),
       });
+      // we retain this so that AWS will still have permissions to delete the volumes even after the stack is removed
+      volumeRole.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
       cdk.Tags.of(volumeRole).add("Name", volumeRole.node.path);
     }
   }
@@ -1349,4 +1462,48 @@ function validateRestateVersion(
 
   assertSupportedRestateVersion(restateVersion);
   return restateVersion;
+}
+
+function createServiceDeployer(
+  scope: Construct,
+  vpc: cdk.aws_ec2.IVpc,
+  vpcSubnets: cdk.aws_ec2.SelectedSubnets,
+  securityGroups: cdk.aws_ec2.ISecurityGroup[],
+  serviceDeployerProps?: ServiceDeployerProps,
+): ServiceDeployer | undefined {
+  if (serviceDeployerProps?.disabled) {
+    return undefined;
+  }
+
+  const role =
+    serviceDeployerProps?.executionRole ??
+    new cdk.aws_iam.Role(scope, "service-deployer-lambda-execution-role", {
+      assumedBy: new cdk.aws_iam.ServicePrincipal("lambda.amazonaws.com"),
+    });
+
+  role.addToPrincipalPolicy(
+    new cdk.aws_iam.PolicyStatement({
+      actions: [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeSubnets",
+        "ec2:DeleteNetworkInterface",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses",
+      ],
+      resources: ["*"],
+      effect: cdk.aws_iam.Effect.ALLOW,
+      sid: "AWSLambdaVPCAccessExecutionPermissions",
+    }),
+  );
+
+  return new ServiceDeployer(scope, "service-deployer", {
+    vpc,
+    vpcSubnets,
+    securityGroups,
+    role,
+  });
 }

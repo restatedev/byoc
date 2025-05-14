@@ -35,37 +35,6 @@ describe("BYOC", () => {
     });
   });
 
-  test("With alb for admin", () => {
-    const { stack, vpc } = createStack();
-
-    const alb = new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
-      stack,
-      "alb",
-      {
-        vpc,
-      },
-    );
-
-    new RestateBYOC(stack, "with-admin-alb", {
-      vpc,
-      licenseID,
-      loadBalancer: {
-        admin: {
-          applicationListenerProps: {
-            loadBalancer: alb,
-            protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
-            port: 9070,
-          },
-        },
-      },
-    });
-
-    expect(stack).toMatchCdkSnapshot({
-      ignoreAssets: true,
-      yaml: true,
-    });
-  });
-
   test("With shared alb", () => {
     const { stack, vpc } = createStack();
 
@@ -179,6 +148,33 @@ describe("BYOC", () => {
       ignoreAssets: true,
       yaml: true,
     });
+  });
+
+  test("Without service deployer", () => {
+    const { stack, vpc } = createStack();
+
+    const byoc = new RestateBYOC(stack, "without-service-deployer", {
+      vpc,
+      licenseID,
+      serviceDeployer: {
+        disabled: true,
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+
+    expect(() =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      byoc.deployService("abc", null as any),
+    ).toThrowErrorMatchingSnapshot();
+
+    expect(() =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      byoc.register(null as any),
+    ).toThrowErrorMatchingSnapshot();
   });
 });
 

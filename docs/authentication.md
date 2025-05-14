@@ -1,11 +1,15 @@
 # Authentication
-By default, Restate will be served only on an internal NLB. Depending on your requirements you may want to
-expose ports 8080 or 9070 publicly to make it easier for developers and end users to reach.
+By default, Restate will be served only on an internal NLB. This load balancer is required for the service deployer and the restatectl lambda
+function to be able to reach Restate. Depending on your requirements you may want to expose ports 8080 or 9070 publicly via a separate load
+balancer to make it easier for developers and end users to reach.
 
 Authentication via OIDC or Cognito is strongly recommended for admin traffic (9070), as this
 access allows services to be modified and internal state to be read.
 For ingress traffic (8080 or 443) you may choose for services to enforce their own authentication and authorization.
 Alternatively, an API gateway or ALB can be used to enforce token-based auth.
+
+In the stack properties under `targetProps.application` and `targetProps.network` you will find the parameters required to create your own target
+group for the various Restate ports, which you can then attach to a load balancer.
 
 ## Securing the admin endpoint
 
@@ -25,6 +29,11 @@ const vpc = new cdk.aws_ec2.Vpc(this, "vpc", {
   maxAzs: 3,
 });
 
+const byoc = new RestateBYOC(this, "restate-byoc", {
+  vpc,
+  ...,
+});
+
 const publicAlb =
   new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
     this,
@@ -42,57 +51,50 @@ const certificate =
     certificateARN,
   );
 
-const byoc = new RestateBYOC(this, "restate-byoc", {
-  ...,
-  loadBalancer: {
-    admin: {
-      applicationListenerProps: {
-        loadBalancer: publicAlb,
-        port: 9070,
-        protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
-        certificates: [certificate],
-      },
-      createActions: (targetGroup) => [
-        {
-          id: "oidc",
-          props: {
-            action:
-              cdk.aws_elasticloadbalancingv2.ListenerAction.authenticateOidc({
-                issuer: "https://accounts.google.com",
-                authorizationEndpoint:
-                  "https://accounts.google.com/o/oauth2/v2/auth",
-                tokenEndpoint: "https://oauth2.googleapis.com/token",
-                userInfoEndpoint:
-                  "https://openidconnect.googleapis.com/v1/userinfo",
-                clientId:
-                  "client-id-from-google-cloud-console",
-                // create the client secret as a plaintext secret in secrets manager for use here
-                clientSecret: cdk.SecretValue.secretsManager(
-                  "byoc-google-sso-client-secret"
-                ),
-                next: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
-                  targetGroup,
-                ]),
-              }),
-          },
-        },
-      ],
-    },
-  },
+const adminTargetGroup =
+  new cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup(
+    this,
+    "admin-target",
+    byoc.targetProps.application.admin,
+  );
+
+publicAlb.addListener("admin-listener", {
+  port: 9070,
+  protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
+  certificates: [certificate],
+  defaultAction:
+    cdk.aws_elasticloadbalancingv2.ListenerAction.authenticateOidc({
+      issuer: "https://accounts.google.com",
+      authorizationEndpoint:
+        "https://accounts.google.com/o/oauth2/v2/auth",
+      tokenEndpoint: "https://oauth2.googleapis.com/token",
+      userInfoEndpoint:
+        "https://openidconnect.googleapis.com/v1/userinfo",
+      clientId:
+        "client-id-from-google-cloud-console",
+      // create the client secret as a plaintext secret in secrets manager for use here
+      clientSecret: cdk.SecretValue.secretsManager(
+        "byoc-google-sso-client-secret"
+      ),
+      next: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
+        targetGroup,
+      ]),
+    }),
 });
 ```
 
 ## Securing the ingress endpoint
 
-Ingress traffic may not need to be exposed publicly if clients are likely to be inside AWS and can be networked directly to a internal
-load balancer. However, if you have clients elsewhere, you may wish to use an internet facing ALB for the Restate ingress, and control access to it.
+Ingress traffic may not need to be exposed publicly if clients are likely to be inside AWS and can be networked directly to the default internal
+load balancer. However, if you have clients elsewhere, you may wish to use an internet facing ALB or API Gateway for the Restate ingress,
+and control access to it.
 
 Of course, it is always possible for your Restate services themselves to enforce authentication, perhaps by checking for particular headers.
 Where this is not convenient, AWS provides some authentication mechanisms we can use.
 
 ### API gateway authorizers
 
-An AWS API gateway can be placed in front of an internal NLB used for ingress traffic, allowing you to expose the ingress publicly while using
+An AWS API gateway can be placed in front of the default internal NLB used for ingress traffic, allowing you to expose the ingress publicly while using
 the various API gateway authentication mechanisms, such as JWT authorizers and Lambda authorizers. If using a Cognito JWT authorizer,
 you can integrate with your existing redirect-driven user authentication mechanism if clients are in the browser, or for backend clients, Cognito
 has a machine-to-machine (m2m) authentication mechanism, which you can read about
@@ -101,13 +103,14 @@ has a machine-to-machine (m2m) authentication mechanism, which you can read abou
 A Cognito based m2m authentication setup is shown below.
 
 ```ts
+const vpc = new cdk.aws_ec2.Vpc(this, "vpc", {
+  maxAzs: 3,
+});
+
 const byoc = new RestateBYOC(this, "restate-byoc", {
+  vpc,
   ...,
-  loadBalancer: {
-    // by default, ingress will share an internal NLB with the admin and node traffic. This NLB is sufficient for connecting to an API gateway.
-    ingress: undefined,
-  },
-})
+});
 
 // Cognito M2M user pool setup
 const userPool = new cdk.aws_cognito.UserPool(this, `user-pool`);
@@ -194,6 +197,11 @@ const vpc = new cdk.aws_ec2.Vpc(this, "vpc", {
   maxAzs: 3,
 });
 
+const byoc = new RestateBYOC(this, "restate-byoc", {
+  vpc,
+  ...,
+});
+
 const publicAlb =
   new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
     this,
@@ -211,46 +219,36 @@ const certificate =
     certificateARN,
   );
 
-const byoc = new RestateBYOC(this, "restate-byoc", {
-  ...,
-  loadBalancer: {
-    ingress: {
-      applicationListenerProps: {
-        loadBalancer: publicAlb,
-        port: 443,
-        protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
-        certificates: [certificate],
-      },
-      createActions: (targetGroup) => [
-        {
-          id: "token",
-          props: {
-            action: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
-              targetGroup,
-            ]),
-            priority: 1,
-            conditions: [
-              cdk.aws_elasticloadbalancingv2.ListenerCondition.httpHeader(
-                "Authorization",
-                [
-                  `Bearer ${cdk.SecretValue.secretsManager("byoc-ingress-alb-bearer-token").unsafeUnwrap()}`,
-                ],
-              ),
-            ],
-          },
-        },
-        {
-          id: "default",
-          props: {
-            action:
-              cdk.aws_elasticloadbalancingv2.ListenerAction.fixedResponse(
-                401,
-              ),
-          },
-        },
+const ingressTargetGroup =
+  new cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup(
+    this,
+    "ingress-target",
+    byoc.targetProps.application.ingress,
+  );
+
+const ingressListener = publicAlb.addListener("ingress-listener", {
+  port: 443,
+  protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
+  certificates: [certificate],
+});
+
+ingressListener.addAction("default", {
+  action: cdk.aws_elasticloadbalancingv2.ListenerAction.fixedResponse(401),
+});
+
+ingressListener.addAction("authorized", {
+  action: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
+    ingressTargetGroup,
+  ]),
+  priority: 1,
+  conditions: [
+    cdk.aws_elasticloadbalancingv2.ListenerCondition.httpHeader(
+      "Authorization",
+      [
+        `Bearer ${cdk.SecretValue.secretsManager("byoc-ingress-alb-bearer-token").unsafeUnwrap()}`,
       ],
-    },
-  },
+    ),
+  ],
 });
 ```
 
