@@ -516,9 +516,11 @@ function createStateless(
     cpu,
     memoryLimitMiB,
     entryPoint: ["bash", "-c", restateEntryPointScript],
-    image: cdk.aws_ecs.ContainerImage.fromRegistry(
-      statelessProps?.restateImage ?? DEFAULT_RESTATE_IMAGE,
-    ),
+    image:
+      statelessProps?._restateImage ??
+      cdk.aws_ecs.ContainerImage.fromRegistry(
+        statelessProps?.restateImage ?? DEFAULT_RESTATE_IMAGE,
+      ),
     portMappings: [
       {
         name: "ingress",
@@ -618,9 +620,9 @@ function createStatefulDefinition(
   const restateContainer = taskDefinition.addContainer("restate", {
     cpu,
     memoryLimitMiB,
-    image: cdk.aws_ecs.ContainerImage.fromRegistry(
-      statefulProps?.restateImage ?? DEFAULT_RESTATE_IMAGE,
-    ),
+    image:
+      statefulProps?._restateImage ??
+      cdk.aws_ecs.ContainerImage.fromRegistry(statefulProps?.restateImage ?? DEFAULT_RESTATE_IMAGE),
     entryPoint: ["bash", "-c", restateEntryPointScript],
     portMappings: [
       {
@@ -1146,9 +1148,11 @@ function createController(
   taskDefinition.addContainer("controller", {
     cpu,
     memoryLimitMiB,
-    image: cdk.aws_ecs.ContainerImage.fromRegistry(
-      controllerProps?.controllerImage ?? DEFAULT_CONTROLLER_IMAGE,
-    ),
+    image:
+      controllerProps?._controllerImage ??
+      cdk.aws_ecs.ContainerImage.fromRegistry(
+        controllerProps?.controllerImage ?? DEFAULT_CONTROLLER_IMAGE,
+      ),
     logging: controllerTaskProps.logDriver,
     stopTimeout: cdk.Duration.seconds(120), // the max
     healthCheck: {
