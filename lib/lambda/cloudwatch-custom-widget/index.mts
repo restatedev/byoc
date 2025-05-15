@@ -112,9 +112,7 @@ Retrieves Restate cluster information from restatectl and displays it
 export const handler = async (
   event: CustomDataSourceEvent | CustomDataSourceDescribeEvent | WidgetEvent,
   context: Context,
-): Promise<
-  CustomDataSourceResponse | CustomDataSourceDescribeResponse | string
-> => {
+): Promise<CustomDataSourceResponse | CustomDataSourceDescribeResponse | string> => {
   console.log(event);
   if ("EventType" in event) {
     const eventType = event.EventType;
@@ -132,17 +130,13 @@ export const handler = async (
   }
 };
 
-export const customDataSourceDescribeHandler =
-  async (): Promise<CustomDataSourceDescribeResponse> => {
-    return {
-      Description: "Obtain Restate cluster metric data",
-    };
+export const customDataSourceDescribeHandler = async (): Promise<CustomDataSourceDescribeResponse> => {
+  return {
+    Description: "Obtain Restate cluster metric data",
   };
+};
 
-export const widgetHandler = async (
-  event: WidgetEvent,
-  context: Context,
-): Promise<string> => {
+export const widgetHandler = async (event: WidgetEvent, context: Context): Promise<string> => {
   if ("describe" in event && event.describe) {
     return DOCS;
   }
@@ -162,9 +156,7 @@ export const widgetHandler = async (
   }
 };
 
-export const customDataSourceHandler = async (
-  event: CustomDataSourceEvent,
-): Promise<CustomDataSourceResponse> => {
+export const customDataSourceHandler = async (event: CustomDataSourceEvent): Promise<CustomDataSourceResponse> => {
   if (event.GetMetricDataRequest.Arguments[0] !== "volumeIOPs")
     return {
       Error: {
@@ -201,9 +193,7 @@ export const customDataSourceHandler = async (
       if (!page.Volumes?.length) continue;
 
       for (const volume of page.Volumes ?? []) {
-        const taskARN = volume.Tags?.find(
-          (tag) => tag.Key == "AmazonECSCreated",
-        )?.Value;
+        const taskARN = volume.Tags?.find((tag) => tag.Key == "AmazonECSCreated")?.Value;
         const volumeId = volume.VolumeId;
         if (!taskARN || !volumeId) continue;
         const taskId = taskARN.split("/")[2];
@@ -255,9 +245,7 @@ export const customDataSourceHandler = async (
       MetricDataResults: dataResult.MetricDataResults?.map((data) => ({
         StatusCode: data.StatusCode,
         Label: data.Label,
-        Timestamps: data.Timestamps?.map((timestamp) =>
-          Math.round(timestamp.valueOf() / 1000),
-        ),
+        Timestamps: data.Timestamps?.map((timestamp) => Math.round(timestamp.valueOf() / 1000)),
         Values: data.Values,
         Messages: data.Messages,
       })),

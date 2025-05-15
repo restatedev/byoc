@@ -1,10 +1,6 @@
 import type { Context } from "aws-lambda";
 import { EMBER_BOLD, EMBER_ITALIC, EMBER_REGULAR } from "./static.mjs";
-import {
-  ControlPanelWidgetEvent,
-  ControlPanelWidgetRefreshEvent,
-  WidgetContext,
-} from "./index.mjs";
+import { ControlPanelWidgetEvent, ControlPanelWidgetRefreshEvent, WidgetContext } from "./index.mjs";
 
 const FLEX_IF_PAGE = (i: number) => `--a${i}`;
 const CONTENTS_IF_PAGE = (i: number) => `--b${i}`;
@@ -16,11 +12,7 @@ const ONE_IF_TAB = (i: number) => `--g${i}`;
 const BLOCK_IF_TAB = (i: number) => `--h${i}`;
 const EMPTY_VAR = "--i";
 
-export function css(
-  maxTabs: number,
-  maxTableRows: number,
-  maxTableColumns: number,
-): string {
+export function css(maxTabs: number, maxTableRows: number, maxTableColumns: number): string {
   return `
 <div class="cwdb-no-default-styles"></div>
 <style>
@@ -344,17 +336,11 @@ h3.awsui_heading {
 }
 
 ${[...Array(maxTabs).keys()]
-  .map(
-    (i) =>
-      `.tab-radio-${i}:checked ~ .awsui_tabs-header { ${LABEL_COLOR_IF_TAB(i)}: #006ce0; ${ONE_IF_TAB(i)}: 1 }`,
-  )
+  .map((i) => `.tab-radio-${i}:checked ~ .awsui_tabs-header { ${LABEL_COLOR_IF_TAB(i)}: #006ce0; ${ONE_IF_TAB(i)}: 1 }`)
   .join("\n")}
 
 ${[...Array(maxTabs).keys()]
-  .map(
-    (i) =>
-      `.tab-radio-${i}:checked ~ .awsui_tabs-content-wrapper { ${BLOCK_IF_TAB(i)}: block }`,
-  )
+  .map((i) => `.tab-radio-${i}:checked ~ .awsui_tabs-content-wrapper { ${BLOCK_IF_TAB(i)}: block }`)
   .join("\n")}
 
 .awsui_tabs-content-wrapper > .awsui_tabs-content {
@@ -785,10 +771,7 @@ export function vertical(size: "s" | "m" | "l", ...inner: string[]): string {
   return `<div class="awsui_vertical awsui_vertical-${size}">${items.join("")}</div>`;
 }
 
-export function horizontal(
-  size: "xs" | "s" | "m" | "l",
-  ...inner: string[]
-): string {
+export function horizontal(size: "xs" | "s" | "m" | "l", ...inner: string[]): string {
   const items = inner.map((inner) => `<div class="awsui_child">${inner}</div>`);
   return `<div class="awsui_horizontal awsui_horizontal-${size}">${items.join("")}</div>`;
 }
@@ -881,8 +864,7 @@ export function tabs(
   );
 
   const tabContent = inner.map(
-    ({ inner }, i) =>
-      `<div class="awsui_tabs-content" style="display: var(${BLOCK_IF_TAB(i)}, none)">${inner}</div>`,
+    ({ inner }, i) => `<div class="awsui_tabs-content" style="display: var(${BLOCK_IF_TAB(i)}, none)">${inner}</div>`,
   );
   return (
     `<div class="awsui_tabs">` +
@@ -953,9 +935,7 @@ export function taskStats(
   );
 }
 
-export function usageIndicators(
-  ...inner: { title: string; usagePercent: number }[]
-): string {
+export function usageIndicators(...inner: { title: string; usagePercent: number }[]): string {
   if (inner.length == 0) return "";
 
   const items = inner.map(({ title, usagePercent }) => {
@@ -989,11 +969,7 @@ export function horizontalAttachment(
   size: "xxxs" | "xxs" | "xs" | "s" | "m" | "l" | "xl" | "xxl" | "xxxl",
   ...inner: string[]
 ): string {
-  return (
-    `<div class="ecs-horizontal-attachment ecs-horizontal-attachment-gap-${size}">` +
-    inner.join("") +
-    `</div>`
-  );
+  return `<div class="ecs-horizontal-attachment ecs-horizontal-attachment-gap-${size}">` + inner.join("") + `</div>`;
 }
 
 const ANGLE_LEFT_ICON =
@@ -1026,14 +1002,11 @@ export function paginatedTable(
   ifNone?: string,
   extraActions?: string[],
 ): string {
-  const pageIDs = [...Array(Math.ceil(rows.length / 10)).keys()].map(
-    (_, i) => `${name}-page-${i}`,
-  );
+  const pageIDs = [...Array(Math.ceil(rows.length / 10)).keys()].map((_, i) => `${name}-page-${i}`);
 
   const pageRadioName = `${name}-page`;
   const checkedPage =
-    widgetContext.forms.all?.[pageRadioName] &&
-    pageIDs.includes(widgetContext.forms.all?.[pageRadioName])
+    widgetContext.forms.all?.[pageRadioName] && pageIDs.includes(widgetContext.forms.all?.[pageRadioName])
       ? widgetContext.forms.all?.[pageRadioName]
       : pageIDs[0];
 
@@ -1062,11 +1035,7 @@ export function paginatedTable(
   const pageButtons: string[][] = pageIDs.map((_, i) => {
     const pageSet: Set<number> = new Set();
     const add = (...is: number[]) =>
-      is.forEach((i) =>
-        i >= 0 && i < pageIDs.length && pageSet.size < 9
-          ? pageSet.add(i)
-          : pageSet,
-      );
+      is.forEach((i) => (i >= 0 && i < pageIDs.length && pageSet.size < 9 ? pageSet.add(i) : pageSet));
     add(
       0,
       i,
@@ -1143,10 +1112,7 @@ export function paginatedTable(
     `<div class="awsui_actions awsui_horizontal awsui_horizontal-xs">` +
     (pageIDs.length
       ? pageIDs
-          .map(
-            (pageID, i) =>
-              `<div style="display: var(${FLEX_IF_PAGE(i)}, none)">${pageControls[i]}</div>`,
-          )
+          .map((pageID, i) => `<div style="display: var(${FLEX_IF_PAGE(i)}, none)">${pageControls[i]}</div>`)
           .join("")
       : `<div>${pageControls[0]}</div>`) +
     `<div>` +
@@ -1195,39 +1161,26 @@ export function paginatedTable(
     const compare = header.compare ?? ((a, b) => a.localeCompare(b));
 
     // an array where the first index is the first row index by this sort order, etc
-    const sortedAsc = [...Array(rows.length).keys()].sort(
-      (leftRow, rightRow) => {
-        return compare(rows[leftRow][col], rows[rightRow][col]);
-      },
-    );
-    const sortedDesc = [...Array(rows.length).keys()].sort(
-      (leftRow, rightRow) => {
-        return 0 - compare(rows[leftRow][col], rows[rightRow][col]);
-      },
-    );
+    const sortedAsc = [...Array(rows.length).keys()].sort((leftRow, rightRow) => {
+      return compare(rows[leftRow][col], rows[rightRow][col]);
+    });
+    const sortedDesc = [...Array(rows.length).keys()].sort((leftRow, rightRow) => {
+      return 0 - compare(rows[leftRow][col], rows[rightRow][col]);
+    });
     // we instead want an array where the first index is the index of row one by this sort order
     const lookupAsc: number[] = Array(sortedAsc.length);
     const lookupDesc: number[] = Array(sortedAsc.length);
-    sortedAsc.forEach(
-      (lookupIndex, sortIndex) => (lookupAsc[lookupIndex] = sortIndex),
-    );
-    sortedDesc.forEach(
-      (lookupIndex, sortIndex) => (lookupDesc[lookupIndex] = sortIndex),
-    );
+    sortedAsc.forEach((lookupIndex, sortIndex) => (lookupAsc[lookupIndex] = sortIndex));
+    sortedDesc.forEach((lookupIndex, sortIndex) => (lookupDesc[lookupIndex] = sortIndex));
     return [lookupAsc, lookupDesc];
   });
 
   const body = rows.length
     ? rows
         .map((row, i) => {
-          const rowCells = row.map(
-            (cell) => `<div class="awsui_body-cell">${cell}</div>`,
-          );
+          const rowCells = row.map((cell) => `<div class="awsui_body-cell">${cell}</div>`);
           const orderVars = columnIndices
-            .map(
-              (rows, columnIndex) =>
-                `var(${EMPTY_IF_NOT_SORT_COLUMN(columnIndex)},${rows[i]})`,
-            )
+            .map((rows, columnIndex) => `var(${EMPTY_IF_NOT_SORT_COLUMN(columnIndex)},${rows[i]})`)
             .join("");
           const displayVars = columnIndices
             .map(
@@ -1272,10 +1225,7 @@ export function paginatedTable(
   );
 }
 
-function textStatus(
-  typ: "success" | "error" | "warning" | "info",
-  inner: string,
-): string {
+function textStatus(typ: "success" | "error" | "warning" | "info", inner: string): string {
   return `<span class="awsui_color-text-status-${typ}">${inner}</span>`;
 }
 
@@ -1316,9 +1266,7 @@ export function ecsLastStatus(
   }
 }
 
-export function ecsDesiredStatus(
-  status: "PENDING" | "RUNNING" | "STOPPED" | "DELETED" | string,
-): string {
+export function ecsDesiredStatus(status: "PENDING" | "RUNNING" | "STOPPED" | "DELETED" | string): string {
   switch (status) {
     case "RUNNING":
       return "Running";
@@ -1334,14 +1282,7 @@ export function ecsDesiredStatus(
 }
 
 export function storageState(
-  state:
-    | "provisioning"
-    | "disabled"
-    | "read-only"
-    | "gone"
-    | "read-write"
-    | "data-loss"
-    | string,
+  state: "provisioning" | "disabled" | "read-only" | "gone" | "read-write" | "data-loss" | string,
 ): string {
   switch (state) {
     case "provisioning":
@@ -1361,9 +1302,7 @@ export function storageState(
   }
 }
 
-export function healthStatus(
-  status: "HEALTHY" | "UNHEALTHY" | "UNKNOWN",
-): string {
+export function healthStatus(status: "HEALTHY" | "UNHEALTHY" | "UNKNOWN"): string {
   switch (status) {
     case "HEALTHY":
       return textStatus("success", "Healthy");
@@ -1376,9 +1315,7 @@ export function healthStatus(
   }
 }
 
-export function volumeState(
-  state: "creating" | "available" | "in-use" | "deleting" | "deleted" | "error",
-): string {
+export function volumeState(state: "creating" | "available" | "in-use" | "deleting" | "deleted" | "error"): string {
   switch (state) {
     case "creating":
       return textStatus("info", "Creating");
@@ -1397,9 +1334,7 @@ export function volumeState(
   }
 }
 
-export function volumeStatus(
-  status: "ok" | "warning" | "impaired" | "insufficient-data" | "not-available",
-): string {
+export function volumeStatus(status: "ok" | "warning" | "impaired" | "insufficient-data" | "not-available"): string {
   switch (status) {
     case "ok":
       return textStatus("success", "Okay");
@@ -1416,9 +1351,7 @@ export function volumeStatus(
   }
 }
 
-export function partitionMode(
-  status: "leader" | "follower" | "unknown" | string,
-): string {
+export function partitionMode(status: "leader" | "follower" | "unknown" | string): string {
   switch (status) {
     case "leader":
       return textStatus("info", "Leader");
@@ -1441,10 +1374,7 @@ export function partitionStatus(
     case "active":
       return textStatus("success", "Active");
     case "catching-up":
-      return textStatus(
-        "info",
-        targetLSN !== "" ? `Catching up (${targetLSN})` : "Catching up",
-      );
+      return textStatus("info", targetLSN !== "" ? `Catching up (${targetLSN})` : "Catching up");
     case "unknown":
       return textStatus("warning", "Unknown");
     default:
@@ -1452,9 +1382,7 @@ export function partitionStatus(
   }
 }
 
-export function nodeStatus(
-  status: "alive" | "dead" | "suspect" | string,
-): string {
+export function nodeStatus(status: "alive" | "dead" | "suspect" | string): string {
   switch (status) {
     case "alive":
       return textStatus("success", "Alive");

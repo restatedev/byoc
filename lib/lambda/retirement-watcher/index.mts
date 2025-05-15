@@ -24,9 +24,7 @@ const client = new ecs.ECSClient({});
 
 export const handler: SQSHandler = async (event) => {
   for (const record of event.Records) {
-    let healthEvent: Partial<
-      EventBridgeEvent<"AWS Health Event", AWSHealthEvent>
-    >;
+    let healthEvent: Partial<EventBridgeEvent<"AWS Health Event", AWSHealthEvent>>;
 
     console.log("Processing health event", record?.body);
 
@@ -37,13 +35,8 @@ export const handler: SQSHandler = async (event) => {
       continue;
     }
 
-    if (
-      healthEvent?.detail?.eventTypeCode != "AWS_ECS_TASK_PATCHING_RETIREMENT"
-    ) {
-      console.log(
-        "Unexpected eventTypeCode, will ignore this event:",
-        healthEvent?.detail?.eventTypeCode,
-      );
+    if (healthEvent?.detail?.eventTypeCode != "AWS_ECS_TASK_PATCHING_RETIREMENT") {
+      console.log("Unexpected eventTypeCode, will ignore this event:", healthEvent?.detail?.eventTypeCode);
       continue;
     }
 

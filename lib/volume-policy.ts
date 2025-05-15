@@ -6,9 +6,7 @@ export const VOLUME_POLICY = new cdk.aws_iam.PolicyDocument({
       sid: "CreateEBSManagedVolume",
       effect: cdk.aws_iam.Effect.ALLOW,
       actions: ["ec2:CreateVolume"],
-      resources: [
-        `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`,
-      ],
+      resources: [`arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`],
       conditions: {
         ArnLike: {
           "aws:RequestTag/AmazonECSCreated": `arn:${cdk.Aws.PARTITION}:ecs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:task/*`,
@@ -28,9 +26,7 @@ export const VOLUME_POLICY = new cdk.aws_iam.PolicyDocument({
       sid: "TagOnCreateVolume",
       effect: cdk.aws_iam.Effect.ALLOW,
       actions: ["ec2:CreateTags"],
-      resources: [
-        `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`,
-      ],
+      resources: [`arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`],
       conditions: {
         ArnLike: {
           "aws:RequestTag/AmazonECSCreated": `arn:${cdk.Aws.PARTITION}:ecs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:task/*`,
@@ -56,9 +52,7 @@ export const VOLUME_POLICY = new cdk.aws_iam.PolicyDocument({
       sid: "ManageEBSVolumeLifecycle",
       effect: cdk.aws_iam.Effect.ALLOW,
       actions: ["ec2:AttachVolume", "ec2:DetachVolume"],
-      resources: [
-        `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`,
-      ],
+      resources: [`arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`],
       conditions: {
         StringEquals: {
           "aws:ResourceTag/AmazonECSManaged": "true",
@@ -78,9 +72,7 @@ export const VOLUME_POLICY = new cdk.aws_iam.PolicyDocument({
       sid: "DeleteEBSManagedVolume",
       effect: cdk.aws_iam.Effect.ALLOW,
       actions: ["ec2:DeleteVolume"],
-      resources: [
-        `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`,
-      ],
+      resources: [`arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`],
       conditions: {
         ArnLike: {
           "aws:ResourceTag/AmazonECSCreated": `arn:${cdk.Aws.PARTITION}:ecs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:task/*`,

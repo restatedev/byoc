@@ -134,12 +134,7 @@ export type Volume = {
   iops: number;
   throughput: number;
   state: "creating" | "available" | "in-use" | "deleting" | "deleted" | "error";
-  statusCheck:
-    | "ok"
-    | "warning"
-    | "impaired"
-    | "insufficient-data"
-    | "not-available";
+  statusCheck: "ok" | "warning" | "impaired" | "insufficient-data" | "not-available";
 };
 
 export interface TaskProps {
@@ -170,14 +165,7 @@ export type RestateTaskProps = TaskProps & {
 };
 
 export type StatefulTaskProps = RestateTaskProps & {
-  storageState:
-    | "provisioning"
-    | "disabled"
-    | "read-only"
-    | "gone"
-    | "read-write"
-    | "data-loss"
-    | string;
+  storageState: "provisioning" | "disabled" | "read-only" | "gone" | "read-write" | "data-loss" | string;
   leader: number;
   follower: number;
   nodesetMember: number;
@@ -186,24 +174,14 @@ export type StatefulTaskProps = RestateTaskProps & {
 
 export type StatelessTaskProps = RestateTaskProps;
 
-export async function controlPanelRefresh(
-  context: Context,
-  widgetContext: WidgetContext,
-) {
+export async function controlPanelRefresh(context: Context, widgetContext: WidgetContext) {
   if (typeof widgetContext.params !== "object" || widgetContext.params === null)
     throw new Error("Invalid widgetContext params");
-  if (!("command" in widgetContext.params))
-    throw new Error("Missing 'command' in widgetContext params");
+  if (!("command" in widgetContext.params)) throw new Error("Missing 'command' in widgetContext params");
   if (widgetContext.params.command !== "controlPanel")
-    throw new Error(
-      `Unexpected command ${widgetContext.params.command} in widgetContext params`,
-    );
-  if (!("input" in widgetContext.params))
-    throw new Error("Missing 'input' in widgetContext params");
-  if (
-    typeof widgetContext.params.input !== "object" ||
-    widgetContext.params.input === null
-  )
+    throw new Error(`Unexpected command ${widgetContext.params.command} in widgetContext params`);
+  if (!("input" in widgetContext.params)) throw new Error("Missing 'input' in widgetContext params");
+  if (typeof widgetContext.params.input !== "object" || widgetContext.params.input === null)
     throw new Error("Invalid widgetContext params.inputs");
 
   const params = widgetContext.params as ControlPanelWidgetEvent;
@@ -213,11 +191,7 @@ export async function controlPanelRefresh(
   });
 }
 
-export async function controlPanel(
-  context: Context,
-  widgetContext: WidgetContext,
-  event: ControlPanelWidgetEvent,
-) {
+export async function controlPanel(context: Context, widgetContext: WidgetContext, event: ControlPanelWidgetEvent) {
   const props = await getControlPanel(event.input);
   const summary = styles.contentWrapper(
     true,
@@ -282,32 +256,20 @@ export async function controlPanel(
     styles.keyValue(
       "Load balancers",
       styles.list(
-        ...props.connectivityAndSecurity.connectivity.loadBalancerArns.map(
-          (loadBalancerArn) => {
-            const parts = loadBalancerArn.split("/");
-            return styles.link(
-              `/ec2/home?region=${props.connectivityAndSecurity.region}#LoadBalancer:loadBalancerArn=${loadBalancerArn}`,
-              parts[parts.length - 2] ?? loadBalancerArn,
-            );
-          },
-        ),
+        ...props.connectivityAndSecurity.connectivity.loadBalancerArns.map((loadBalancerArn) => {
+          const parts = loadBalancerArn.split("/");
+          return styles.link(
+            `/ec2/home?region=${props.connectivityAndSecurity.region}#LoadBalancer:loadBalancerArn=${loadBalancerArn}`,
+            parts[parts.length - 2] ?? loadBalancerArn,
+          );
+        }),
       ),
     ),
     ...(props.connectivityAndSecurity.connectivity.addresses.ingress
-      ? [
-          styles.keyValue(
-            "Ingress endpoint",
-            props.connectivityAndSecurity.connectivity.addresses.ingress,
-          ),
-        ]
+      ? [styles.keyValue("Ingress endpoint", props.connectivityAndSecurity.connectivity.addresses.ingress)]
       : []),
     ...(props.connectivityAndSecurity.connectivity.addresses.admin
-      ? [
-          styles.keyValue(
-            "Admin endpoint",
-            props.connectivityAndSecurity.connectivity.addresses.admin,
-          ),
-        ]
+      ? [styles.keyValue("Admin endpoint", props.connectivityAndSecurity.connectivity.addresses.admin)]
       : []),
     ...(props.connectivityAndSecurity.connectivity.addresses.webUI
       ? [
@@ -325,12 +287,7 @@ export async function controlPanel(
   const networking = styles.vertical(
     "m",
     styles.heading("h3", `Networking`),
-    styles.keyValue(
-      "Availability Zones",
-      styles.list(
-        ...props.connectivityAndSecurity.networking.availabilityZones,
-      ),
-    ),
+    styles.keyValue("Availability Zones", styles.list(...props.connectivityAndSecurity.networking.availabilityZones)),
     styles.keyValue(
       "VPC",
       styles.link(
@@ -342,10 +299,7 @@ export async function controlPanel(
       "Subnets",
       styles.list(
         ...props.connectivityAndSecurity.networking.subnets.map((subnet) =>
-          styles.link(
-            `/vpc/home?region=${props.connectivityAndSecurity.region}#subnets:SubnetId=${subnet}`,
-            subnet,
-          ),
+          styles.link(`/vpc/home?region=${props.connectivityAndSecurity.region}#subnets:SubnetId=${subnet}`, subnet),
         ),
       ),
     ),
@@ -361,12 +315,7 @@ export async function controlPanel(
           ),
         ),
         ...(props.connectivityAndSecurity.security.certificate.expiry
-          ? [
-              styles.keyValue(
-                "Certificate expiry",
-                props.connectivityAndSecurity.security.certificate.expiry,
-              ),
-            ]
+          ? [styles.keyValue("Certificate expiry", props.connectivityAndSecurity.security.certificate.expiry)]
           : []),
       ]
     : [];
@@ -378,10 +327,7 @@ export async function controlPanel(
       "VPC Security groups",
       styles.list(
         ...props.connectivityAndSecurity.security.securityGroups.map((id) =>
-          styles.link(
-            `/ec2/v2/home?region=${props.connectivityAndSecurity.region}#SecurityGroups:search=${id}`,
-            id,
-          ),
+          styles.link(`/ec2/v2/home?region=${props.connectivityAndSecurity.region}#SecurityGroups:search=${id}`, id),
         ),
       ),
     ),
@@ -409,11 +355,7 @@ export async function controlPanel(
 
   const connectivity = styles.vertical(
     "l",
-    styles.contentWrapper(
-      true,
-      "Connectivity & security",
-      styles.columns(addresses, networking, security, identity),
-    ),
+    styles.contentWrapper(true, "Connectivity & security", styles.columns(addresses, networking, security, identity)),
   );
 
   const numericCompare = (a: string, b: string) => Number(a) - Number(b);
@@ -612,12 +554,7 @@ export async function controlPanel(
     ],
   );
 
-  const compute = styles.vertical(
-    "l",
-    statefulNodes,
-    statelessNodes,
-    controllerTasks,
-  );
+  const compute = styles.vertical("l", statefulNodes, statelessNodes, controllerTasks);
 
   const s3Bucket = styles.contentWrapper(
     true,
@@ -630,16 +567,9 @@ export async function controlPanel(
           props.storage.s3.bucket,
         ),
       ),
-      ...(props.storage.s3.totalSize
-        ? [styles.keyValue("Total size", props.storage.s3.totalSize)]
-        : []),
+      ...(props.storage.s3.totalSize ? [styles.keyValue("Total size", props.storage.s3.totalSize)] : []),
       ...(props.storage.s3.objectCount !== undefined
-        ? [
-            styles.keyValue(
-              "Number of objects",
-              `${props.storage.s3.objectCount}`,
-            ),
-          ]
+        ? [styles.keyValue("Number of objects", `${props.storage.s3.objectCount}`)]
         : []),
     ),
   );
@@ -689,11 +619,7 @@ export async function controlPanel(
   );
   const storage = styles.vertical("l", s3Bucket, volumes);
 
-  const replicationFactor = (replication?: {
-    node?: number;
-    zone?: number;
-    region?: number;
-  }) => {
+  const replicationFactor = (replication?: { node?: number; zone?: number; region?: number }) => {
     if (!replication) return undefined;
 
     if (replication.region) {
@@ -753,9 +679,7 @@ export async function controlPanel(
     partition.lastUpdate,
   ]);
 
-  const partitionReplication = replicationFactor(
-    props.replication.partitions.replication,
-  );
+  const partitionReplication = replicationFactor(props.replication.partitions.replication);
   const partitions = styles.paginatedTable(
     context,
     widgetContext,

@@ -91,9 +91,7 @@ export interface RestateBYOCProps {
   monitoring?: RestateBYOCMonitoringProps;
 }
 
-export const DEFAULT_ALB_CREATE_ACTION = (
-  targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
-) => [
+export const DEFAULT_ALB_CREATE_ACTION = (targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup) => [
   {
     id: "default-action",
     props: {
@@ -175,9 +173,7 @@ export type ListenerSource =
       createActions?: CreateActions;
     };
 
-export type CreateActions = (
-  targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
-) => {
+export type CreateActions = (targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup) => {
   id: string;
   props: cdk.aws_elasticloadbalancingv2.AddApplicationActionProps;
 }[];
@@ -315,9 +311,7 @@ export const DEFAULT_RESTATE_CPU = 16384;
 export const DEFAULT_RESTATE_MEMORY_LIMIT_MIB = 32768;
 
 export type SupportedRestateVersion = `1.3.${string}` | `1.3`;
-export function assertSupportedRestateVersion(
-  version: string,
-): asserts version is SupportedRestateVersion {
+export function assertSupportedRestateVersion(version: string): asserts version is SupportedRestateVersion {
   if (version == "1.3" || version.startsWith("1.3.")) return;
   throw new Error(`Restate version ${version} is not supported by this stack`);
 }
@@ -348,8 +342,7 @@ export interface RestateBYOCNodeProps {
   };
 }
 
-export const DEFAULT_CONTROLLER_IMAGE =
-  "docker.restate.dev/restatedev/restate-fargate-controller:0.1";
+export const DEFAULT_CONTROLLER_IMAGE = "docker.restate.dev/restatedev/restate-fargate-controller:0.1";
 export const DEFAULT_CONTROLLER_CPU = 1024;
 export const DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB = 2048;
 

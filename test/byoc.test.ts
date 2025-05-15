@@ -38,13 +38,9 @@ describe("BYOC", () => {
   test("With alb for admin", () => {
     const { stack, vpc } = createStack();
 
-    const alb = new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
-      stack,
-      "alb",
-      {
-        vpc,
-      },
-    );
+    const alb = new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(stack, "alb", {
+      vpc,
+    });
 
     new RestateBYOC(stack, "with-admin-alb", {
       vpc,

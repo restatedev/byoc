@@ -55,15 +55,11 @@ export interface ControlPanelInput {
   };
 }
 
-const controllerTaskDefinitionArnPattern =
-  /^CONTROLLER_ECS_CLUSTERS__[^_]+__ZONES__[^_]+__TASK_DEFINITION_ARN$/;
-const controllerTaskCountPattern =
-  /^CONTROLLER_ECS_CLUSTERS__[^_]+__ZONES__[^_]+__COUNT$/;
+const controllerTaskDefinitionArnPattern = /^CONTROLLER_ECS_CLUSTERS__[^_]+__ZONES__[^_]+__TASK_DEFINITION_ARN$/;
+const controllerTaskCountPattern = /^CONTROLLER_ECS_CLUSTERS__[^_]+__ZONES__[^_]+__COUNT$/;
 const pendingStatuses = new Set(["PROVISIONING", "PENDING", "ACTIVATING"]);
 
-export async function getControlPanel(
-  input: ControlPanelInput,
-): Promise<ControlPanelProps> {
+export async function getControlPanel(input: ControlPanelInput): Promise<ControlPanelProps> {
   // ListTasks scoped to ecs:cluster
   // DescribeTasks scoped to ecs:cluster
   // DescribeTaskDefinition on *
@@ -92,73 +88,47 @@ export async function getControlPanel(
     (servicesDescribe) => servicesDescribe[input.resources.statelessServiceArn],
   );
   const controllerServiceDescribe = servicesDescribe.then(
-    (servicesDescribe) =>
-      servicesDescribe[input.resources.controllerServiceArn],
+    (servicesDescribe) => servicesDescribe[input.resources.controllerServiceArn],
   );
 
-  const statelessTaskDefinition = statelessServiceDescribe.then(
-    (statelessServiceDescribe) =>
-      describeTaskDefinition(
-        ecsClient,
-        statelessServiceDescribe.taskDefinition!,
-      ),
+  const statelessTaskDefinition = statelessServiceDescribe.then((statelessServiceDescribe) =>
+    describeTaskDefinition(ecsClient, statelessServiceDescribe.taskDefinition!),
   );
 
-  const controllerTaskDefinition = controllerServiceDescribe.then(
-    (controllerServiceDescribe) =>
-      describeTaskDefinition(
-        ecsClient,
-        controllerServiceDescribe.taskDefinition!,
-      ),
+  const controllerTaskDefinition = controllerServiceDescribe.then((controllerServiceDescribe) =>
+    describeTaskDefinition(ecsClient, controllerServiceDescribe.taskDefinition!),
   );
 
-  const statelessContainerDefinition = statelessTaskDefinition.then(
-    (statelessTaskDefinition) =>
-      statelessTaskDefinition.containerDefinitions?.find(
-        (container) => container.name == "restate",
-      ),
+  const statelessContainerDefinition = statelessTaskDefinition.then((statelessTaskDefinition) =>
+    statelessTaskDefinition.containerDefinitions?.find((container) => container.name == "restate"),
   );
 
-  const controllerContainerDefinition = controllerTaskDefinition.then(
-    (controllerTaskDefinition) =>
-      controllerTaskDefinition.containerDefinitions?.find(
-        (container) => container.name == "controller",
-      ),
+  const controllerContainerDefinition = controllerTaskDefinition.then((controllerTaskDefinition) =>
+    controllerTaskDefinition.containerDefinitions?.find((container) => container.name == "controller"),
   );
 
-  const statefulDesiredCount = controllerContainerDefinition.then(
-    (controllerContainerDefinition) =>
-      controllerContainerDefinition?.environment
-        ?.filter((env) =>
-          env.name ? controllerTaskCountPattern.test(env.name) : false,
-        )
-        .reduce((count, env) => {
-          const num = Number(env.value);
-          return Number.isNaN(num) ? count : count + num;
-        }, 0),
+  const statefulDesiredCount = controllerContainerDefinition.then((controllerContainerDefinition) =>
+    controllerContainerDefinition?.environment
+      ?.filter((env) => (env.name ? controllerTaskCountPattern.test(env.name) : false))
+      .reduce((count, env) => {
+        const num = Number(env.value);
+        return Number.isNaN(num) ? count : count + num;
+      }, 0),
   );
 
-  const statefulTaskDefinition = controllerContainerDefinition.then(
-    async (controllerContainerDefinition) => {
-      const statefulTaskDefinition =
-        controllerContainerDefinition?.environment?.find((env) =>
-          env.name ? controllerTaskDefinitionArnPattern.test(env.name) : false,
-        )?.value;
+  const statefulTaskDefinition = controllerContainerDefinition.then(async (controllerContainerDefinition) => {
+    const statefulTaskDefinition = controllerContainerDefinition?.environment?.find((env) =>
+      env.name ? controllerTaskDefinitionArnPattern.test(env.name) : false,
+    )?.value;
 
-      if (!statefulTaskDefinition)
-        throw new Error(
-          "Missing stateful task definition in controller environment variables",
-        );
+    if (!statefulTaskDefinition)
+      throw new Error("Missing stateful task definition in controller environment variables");
 
-      return describeTaskDefinition(ecsClient, statefulTaskDefinition);
-    },
-  );
+    return describeTaskDefinition(ecsClient, statefulTaskDefinition);
+  });
 
-  const statefulContainerDefinition = statefulTaskDefinition.then(
-    (statefulTaskDefinition) =>
-      statefulTaskDefinition?.containerDefinitions?.find(
-        (container) => container.name == "restate",
-      ),
+  const statefulContainerDefinition = statefulTaskDefinition.then((statefulTaskDefinition) =>
+    statefulTaskDefinition?.containerDefinitions?.find((container) => container.name == "restate"),
   );
 
   const [statelessServiceName, controllerServiceName] = [
@@ -166,25 +136,16 @@ export async function getControlPanel(
     input.resources.controllerServiceArn.split("/").pop()!,
   ];
 
-  const tasks = describeTasks(
-    ecsClient,
-    input.resources.ecsClusterArn,
-    statelessServiceName,
-    controllerServiceName,
-  );
+  const tasks = describeTasks(ecsClient, input.resources.ecsClusterArn, statelessServiceName, controllerServiceName);
 
   const pendingStatefulTasks = tasks.then(
     (tasks) =>
       tasks.statefulTasks.filter(
-        (statefulTask) =>
-          statefulTask.lastStatus &&
-          pendingStatuses.has(statefulTask.lastStatus),
+        (statefulTask) => statefulTask.lastStatus && pendingStatuses.has(statefulTask.lastStatus),
       ).length,
   );
   const runningStatefulTasks = tasks.then((tasks) =>
-    tasks.statefulTasks.filter(
-      (statefulTask) => statefulTask.lastStatus == "RUNNING",
-    ),
+    tasks.statefulTasks.filter((statefulTask) => statefulTask.lastStatus == "RUNNING"),
   );
 
   const volumeInfo = tasks.then((tasks) => {
@@ -247,29 +208,27 @@ export async function getControlPanel(
             .then((describe) => describe.VolumeStatuses ?? [])
         : Promise.resolve([] as ec2.VolumeStatusItem[]);
 
-    const ebsVolumes: Promise<Volume[]> = Promise.all([
-      ebsVolumesDescribe,
-      ebsVolumesStatus,
-    ]).then(([ebsVolumesDescribe, ebsVolumesStatus]) => {
-      return ebsVolumesDescribe.map((volume) => {
-        const { iopsLimit, throughputLimit } = volumeLimits(volume);
+    const ebsVolumes: Promise<Volume[]> = Promise.all([ebsVolumesDescribe, ebsVolumesStatus]).then(
+      ([ebsVolumesDescribe, ebsVolumesStatus]) => {
+        return ebsVolumesDescribe.map((volume) => {
+          const { iopsLimit, throughputLimit } = volumeLimits(volume);
 
-        return {
-          taskArn: taskArnByVolumeId.get(volume.VolumeId!)!,
-          volumeID: volume.VolumeId!,
-          availabilityZone: volume.AvailabilityZone!,
-          type: volume.VolumeType!,
-          sizeInGiB: volume.Size!,
-          iops: iopsLimit,
-          throughput: throughputLimit,
-          state: volume.State!,
-          statusCheck:
-            ebsVolumesStatus.find(
-              (volumeStatus) => volumeStatus.VolumeId == volume.VolumeId,
-            )?.VolumeStatus?.Status ?? "not-available",
-        } satisfies Volume;
-      });
-    });
+          return {
+            taskArn: taskArnByVolumeId.get(volume.VolumeId!)!,
+            volumeID: volume.VolumeId!,
+            availabilityZone: volume.AvailabilityZone!,
+            type: volume.VolumeType!,
+            sizeInGiB: volume.Size!,
+            iops: iopsLimit,
+            throughput: throughputLimit,
+            state: volume.State!,
+            statusCheck:
+              ebsVolumesStatus.find((volumeStatus) => volumeStatus.VolumeId == volume.VolumeId)?.VolumeStatus?.Status ??
+              "not-available",
+          } satisfies Volume;
+        });
+      },
+    );
 
     return {
       ebsVolumes,
@@ -284,14 +243,8 @@ export async function getControlPanel(
     ...volumeInfo.ephemeralVolumes,
   ]);
 
-  const minuteMetrics = volumeInfo.then(
-    ({ ebsTaskFamilies, ephemeralTaskFamilies }) =>
-      getMinutelyMetrics(
-        cloudwatchClient,
-        ecsClusterName,
-        ebsTaskFamilies,
-        ephemeralTaskFamilies,
-      ),
+  const minuteMetrics = volumeInfo.then(({ ebsTaskFamilies, ephemeralTaskFamilies }) =>
+    getMinutelyMetrics(cloudwatchClient, ecsClusterName, ebsTaskFamilies, ephemeralTaskFamilies),
   );
   const cpu = minuteMetrics.then((metric) =>
     metric.cpuSizeMetric?.Values?.[0] && metric.cpuUtilMetric?.Values?.[0]
@@ -300,21 +253,16 @@ export async function getControlPanel(
   );
   const memory = minuteMetrics.then((metric) =>
     metric.memorySizeMetric?.Values?.[0] && metric.memoryUtilMetric?.Values?.[0]
-      ? (100 * metric.memoryUtilMetric.Values[0]) /
-        metric.memorySizeMetric.Values[0]
+      ? (100 * metric.memoryUtilMetric.Values[0]) / metric.memorySizeMetric.Values[0]
       : undefined,
   );
   const storagePercent = minuteMetrics.then((metric) =>
-    metric.storageSizeMetric?.Values?.[0] &&
-    metric.storageUtilMetric?.Values?.[0]
-      ? (100 * metric.storageUtilMetric.Values[0]) /
-        metric.storageSizeMetric.Values[0]
+    metric.storageSizeMetric?.Values?.[0] && metric.storageUtilMetric?.Values?.[0]
+      ? (100 * metric.storageUtilMetric.Values[0]) / metric.storageSizeMetric.Values[0]
       : undefined,
   );
 
-  const status = controllerServiceDescribe.then((controllerServiceDescribe) =>
-    getStatus(controllerServiceDescribe),
-  );
+  const status = controllerServiceDescribe.then((controllerServiceDescribe) => getStatus(controllerServiceDescribe));
 
   const dailyMetrics = getDailyMetrics(
     cloudwatchClient,
@@ -327,20 +275,13 @@ export async function getControlPanel(
     }
     return formatBytes(dailyMetrics.s3BucketSizeMetric.Values[0]);
   });
-  const s3BucketCount = dailyMetrics.then(
-    (dailyMetrics) => dailyMetrics.s3BucketCountMetric?.Values?.[0],
-  );
+  const s3BucketCount = dailyMetrics.then((dailyMetrics) => dailyMetrics.s3BucketCountMetric?.Values?.[0]);
   const certificateExpiry = dailyMetrics.then((dailyMetrics) => {
-    if (
-      !dailyMetrics.daysToExpiryMetric?.Values?.[0] ||
-      !dailyMetrics.daysToExpiryMetric?.Timestamps?.[0]
-    ) {
+    if (!dailyMetrics.daysToExpiryMetric?.Values?.[0] || !dailyMetrics.daysToExpiryMetric?.Timestamps?.[0]) {
       return undefined;
     }
     const expiry = dailyMetrics.daysToExpiryMetric.Timestamps[0];
-    expiry.setDate(
-      expiry.getDate() + dailyMetrics.daysToExpiryMetric.Values[0],
-    );
+    expiry.setDate(expiry.getDate() + dailyMetrics.daysToExpiryMetric.Values[0]);
     return expiry.toDateString();
   });
 
@@ -350,41 +291,18 @@ export async function getControlPanel(
       : undefined;
   };
 
-  const nodesConfig = getNodesConfig(
-    lambdaClient,
-    input.resources.restatectlLambdaArn,
-  );
-  const nodeState = restatectlSql(
-    lambdaClient,
-    input.resources.restatectlLambdaArn,
-    "select * from node_state",
-  );
-  const bifrostConfig = getBifrostConfig(
-    lambdaClient,
-    input.resources.restatectlLambdaArn,
-  );
-  const partitionTable = getPartitionTable(
-    lambdaClient,
-    input.resources.restatectlLambdaArn,
-  );
-  const licenseKeyOrg = getLicenseKeyOrg(
-    lambdaClient,
-    input.resources.restatectlLambdaArn,
-  );
+  const nodesConfig = getNodesConfig(lambdaClient, input.resources.restatectlLambdaArn);
+  const nodeState = restatectlSql(lambdaClient, input.resources.restatectlLambdaArn, "select * from node_state");
+  const bifrostConfig = getBifrostConfig(lambdaClient, input.resources.restatectlLambdaArn);
+  const partitionTable = getPartitionTable(lambdaClient, input.resources.restatectlLambdaArn);
+  const licenseKeyOrg = getLicenseKeyOrg(lambdaClient, input.resources.restatectlLambdaArn);
   const partitionState = restatectlSql(
     lambdaClient,
     input.resources.restatectlLambdaArn,
     "select * from partition_state order by PARTITION_ID asc, EFFECTIVE_MODE desc, PLAIN_NODE_ID asc",
   );
 
-  const nodes = Promise.all([
-    nodesConfig,
-    nodeState,
-    bifrostConfig,
-    partitionTable,
-    tasks,
-    volumes,
-  ]).then(
+  const nodes = Promise.all([nodesConfig, nodeState, bifrostConfig, partitionTable, tasks, volumes]).then(
     ([nodesConfig, nodeState, bifrostConfig, partitionTable, tasks, volumes]) =>
       getNodes(
         nodesConfig,
@@ -419,9 +337,8 @@ export async function getControlPanel(
 
   const logs = bifrostConfig.then(getLogs);
 
-  const partitions = Promise.all([partitionTable, partitionState]).then(
-    ([partitionTable, partitionState]) =>
-      getPartitions(partitionTable, partitionState),
+  const partitions = Promise.all([partitionTable, partitionState]).then(([partitionTable, partitionState]) =>
+    getPartitions(partitionTable, partitionState),
   );
 
   return {
@@ -460,10 +377,8 @@ export async function getControlPanel(
       connectivity: {
         loadBalancerArns: [
           ...new Set([
-            ...input.connectivityAndSecurity.connectivity.loadBalancerArns
-              .ingress,
-            ...input.connectivityAndSecurity.connectivity.loadBalancerArns
-              .admin,
+            ...input.connectivityAndSecurity.connectivity.loadBalancerArns.ingress,
+            ...input.connectivityAndSecurity.connectivity.loadBalancerArns.admin,
           ]),
         ].sort(),
         addresses: {
@@ -474,29 +389,22 @@ export async function getControlPanel(
       },
       networking: {
         vpc: input.connectivityAndSecurity.networking.vpc,
-        availabilityZones:
-          input.connectivityAndSecurity.networking.availabilityZones,
+        availabilityZones: input.connectivityAndSecurity.networking.availabilityZones,
         subnets: input.connectivityAndSecurity.networking.subnets,
       },
       security: {
         securityGroups: input.connectivityAndSecurity.security.securityGroups,
         certificate: input.connectivityAndSecurity.security.certificateArn
           ? {
-              id: input.connectivityAndSecurity.security.certificateArn
-                .split("/")
-                .pop()!,
+              id: input.connectivityAndSecurity.security.certificateArn.split("/").pop()!,
               expiry: await certificateExpiry,
             }
           : undefined,
       },
       identity: {
         restate: {
-          taskRole: (await statelessTaskDefinition)
-            .taskRoleArn!.split("/")
-            .pop()!,
-          taskExecutionRole: (await statelessTaskDefinition)
-            .executionRoleArn!.split("/")
-            .pop()!,
+          taskRole: (await statelessTaskDefinition).taskRoleArn!.split("/").pop()!,
+          taskExecutionRole: (await statelessTaskDefinition).executionRoleArn!.split("/").pop()!,
         },
       },
     },
@@ -544,18 +452,11 @@ async function describeServices<T extends string>(
     }),
   );
   if (describeServicesResponse.failures?.length)
-    throw new Error(
-      `DescribeServices returned a failure: ${describeServicesResponse.failures}`,
-    );
+    throw new Error(`DescribeServices returned a failure: ${describeServicesResponse.failures}`);
 
   const entries = serviceArns.map((serviceArn) => {
-    const serviceDescribe = describeServicesResponse.services?.find(
-      (service) => service.serviceArn == serviceArn,
-    );
-    if (!serviceDescribe)
-      throw new Error(
-        `DescribeServices did not return a service for ${serviceArn}`,
-      );
+    const serviceDescribe = describeServicesResponse.services?.find((service) => service.serviceArn == serviceArn);
+    if (!serviceDescribe) throw new Error(`DescribeServices did not return a service for ${serviceArn}`);
 
     return [serviceArn, serviceDescribe];
   });
@@ -563,10 +464,7 @@ async function describeServices<T extends string>(
   return Object.fromEntries(entries);
 }
 
-async function describeTaskDefinition(
-  ecsClient: ecs.ECSClient,
-  taskDefinition: string,
-): Promise<ecs.TaskDefinition> {
+async function describeTaskDefinition(ecsClient: ecs.ECSClient, taskDefinition: string): Promise<ecs.TaskDefinition> {
   const describeTaskDefinitionResponse = await ecsClient.send(
     new ecs.DescribeTaskDefinitionCommand({
       taskDefinition,
@@ -656,15 +554,9 @@ async function getDailyMetrics(
     }),
   );
 
-  const s3BucketSizeMetric = metricsResponse.MetricDataResults?.find(
-    (data) => data.Id == "s3BucketSize",
-  );
-  const s3BucketCountMetric = metricsResponse.MetricDataResults?.find(
-    (data) => data.Id == "s3BucketCount",
-  );
-  const daysToExpiryMetric = metricsResponse.MetricDataResults?.find(
-    (data) => data.Id == "daysToExpiry",
-  );
+  const s3BucketSizeMetric = metricsResponse.MetricDataResults?.find((data) => data.Id == "s3BucketSize");
+  const s3BucketCountMetric = metricsResponse.MetricDataResults?.find((data) => data.Id == "s3BucketCount");
+  const daysToExpiryMetric = metricsResponse.MetricDataResults?.find((data) => data.Id == "daysToExpiry");
   return { s3BucketSizeMetric, s3BucketCountMetric, daysToExpiryMetric };
 }
 
@@ -725,9 +617,7 @@ async function getMinutelyMetrics(
     },
   ];
 
-  const ebsSizeMetrics: cloudwatch.MetricDataQuery[] = [
-    ...ebsTaskFamilies,
-  ].flatMap((ebsTaskFamily, i) => [
+  const ebsSizeMetrics: cloudwatch.MetricDataQuery[] = [...ebsTaskFamilies].flatMap((ebsTaskFamily, i) => [
     {
       Id: `ebssize${i}`,
       ReturnData: false,
@@ -745,9 +635,7 @@ async function getMinutelyMetrics(
       },
     },
   ]);
-  const ebsUtilMetrics: cloudwatch.MetricDataQuery[] = [
-    ...ebsTaskFamilies,
-  ].flatMap((ebsTaskFamily, i) => [
+  const ebsUtilMetrics: cloudwatch.MetricDataQuery[] = [...ebsTaskFamilies].flatMap((ebsTaskFamily, i) => [
     {
       Id: `ebsutil${i}`,
       ReturnData: false,
@@ -766,9 +654,7 @@ async function getMinutelyMetrics(
     },
   ]);
 
-  const ephemeralSizeMetrics: cloudwatch.MetricDataQuery[] = [
-    ...ephemeralTaskFamilies,
-  ].flatMap((ebsTaskFamily, i) => [
+  const ephemeralSizeMetrics: cloudwatch.MetricDataQuery[] = [...ephemeralTaskFamilies].flatMap((ebsTaskFamily, i) => [
     {
       Id: `ephsize${i}`,
       ReturnData: false,
@@ -787,9 +673,7 @@ async function getMinutelyMetrics(
     },
   ]);
 
-  const ephemeralUtilMetrics: cloudwatch.MetricDataQuery[] = [
-    ...ephemeralTaskFamilies,
-  ].flatMap(
+  const ephemeralUtilMetrics: cloudwatch.MetricDataQuery[] = [...ephemeralTaskFamilies].flatMap(
     (ebsTaskFamily, i) =>
       [
         {
@@ -816,20 +700,18 @@ async function getMinutelyMetrics(
       Id: `totalstoragesize`,
       Expression:
         ebsUtilMetrics.length > 0 || ephemeralUtilMetrics.length > 0
-          ? [
-              ...ebsSizeMetrics.map((metric) => metric.Id),
-              ...ephemeralSizeMetrics.map((metric) => metric.Id),
-            ].join(" + ")
+          ? [...ebsSizeMetrics.map((metric) => metric.Id), ...ephemeralSizeMetrics.map((metric) => metric.Id)].join(
+              " + ",
+            )
           : "TIME_SERIES(0)",
     },
     {
       Id: `totalstorageutil`,
       Expression:
         ebsUtilMetrics.length > 0 || ephemeralUtilMetrics.length > 0
-          ? [
-              ...ebsUtilMetrics.map((metric) => metric.Id),
-              ...ephemeralUtilMetrics.map((metric) => metric.Id),
-            ].join(" + ")
+          ? [...ebsUtilMetrics.map((metric) => metric.Id), ...ephemeralUtilMetrics.map((metric) => metric.Id)].join(
+              " + ",
+            )
           : "TIME_SERIES(0)",
     },
   ];
@@ -851,24 +733,12 @@ async function getMinutelyMetrics(
 
   // console.log(JSON.stringify(metricsResponse));
 
-  const cpuSizeMetric = metricsResponse.MetricDataResults?.find(
-    (data) => data.Id == "cpusize",
-  );
-  const cpuUtilMetric = metricsResponse.MetricDataResults?.find(
-    (data) => data.Id == "cpuutil",
-  );
-  const memorySizeMetric = metricsResponse.MetricDataResults?.find(
-    (data) => data.Id == "memorysize",
-  );
-  const memoryUtilMetric = metricsResponse.MetricDataResults?.find(
-    (data) => data.Id == "memoryutil",
-  );
-  const storageSizeMetric = metricsResponse.MetricDataResults?.find(
-    (data) => data.Id == "totalstoragesize",
-  );
-  const storageUtilMetric = metricsResponse.MetricDataResults?.find(
-    (data) => data.Id == "totalstorageutil",
-  );
+  const cpuSizeMetric = metricsResponse.MetricDataResults?.find((data) => data.Id == "cpusize");
+  const cpuUtilMetric = metricsResponse.MetricDataResults?.find((data) => data.Id == "cpuutil");
+  const memorySizeMetric = metricsResponse.MetricDataResults?.find((data) => data.Id == "memorysize");
+  const memoryUtilMetric = metricsResponse.MetricDataResults?.find((data) => data.Id == "memoryutil");
+  const storageSizeMetric = metricsResponse.MetricDataResults?.find((data) => data.Id == "totalstoragesize");
+  const storageUtilMetric = metricsResponse.MetricDataResults?.find((data) => data.Id == "totalstorageutil");
 
   return {
     cpuSizeMetric,
@@ -890,10 +760,7 @@ function getStatus(controllerServiceDescribe: ecs.Service) {
     return a.createdAt.valueOf() - b.createdAt.valueOf();
   });
 
-  const latestDeployment =
-    controllerServiceDescribe.deployments?.[
-      controllerServiceDescribe.deployments.length - 1
-    ];
+  const latestDeployment = controllerServiceDescribe.deployments?.[controllerServiceDescribe.deployments.length - 1];
   if (!latestDeployment) return "Unknown";
 
   switch (latestDeployment.rolloutState) {
@@ -976,8 +843,7 @@ async function describeTasks(
       // we allow missing, perhaps the task deleted since we made the list call.
       (failure) => failure.reason != "MISSING",
     );
-    if (failures?.length)
-      throw new Error(`DescribeTasks returned a failure: ${failures}`);
+    if (failures?.length) throw new Error(`DescribeTasks returned a failure: ${failures}`);
   }
 
   const taskDescriptions = tasksDescriptionResponses.flatMap(
@@ -1026,8 +892,7 @@ function volumeLimits(ebsVolume: ec2.Volume) {
   let throughputLimit: number;
   switch (ebsVolume.VolumeType!) {
     case ec2.VolumeType.io1:
-      if (!ebsVolume.Iops)
-        throw new Error("io1 volumes must have an iops configured");
+      if (!ebsVolume.Iops) throw new Error("io1 volumes must have an iops configured");
       iopsLimit = ebsVolume.Iops;
       throughputLimit = Math.max(
         /* limit256 = */ Math.min(iopsLimit / 2000, 500),
@@ -1035,8 +900,7 @@ function volumeLimits(ebsVolume: ec2.Volume) {
       );
       break;
     case ec2.VolumeType.io2:
-      if (!ebsVolume.Iops)
-        throw new Error("io2 volumes must have an iops configured");
+      if (!ebsVolume.Iops) throw new Error("io2 volumes must have an iops configured");
       iopsLimit = ebsVolume.Iops;
       throughputLimit = Math.min(iopsLimit / 4, 4000);
       break;
@@ -1087,17 +951,9 @@ interface Node {
   roles: string[];
 }
 
-async function getNodesConfig(
-  lambdaClient: lambda.LambdaClient,
-  restatectlLambdaArn: string,
-): Promise<NodesConfig> {
+async function getNodesConfig(lambdaClient: lambda.LambdaClient, restatectlLambdaArn: string): Promise<NodesConfig> {
   try {
-    const output = await restatectl(lambdaClient, restatectlLambdaArn, [
-      "metadata",
-      "get",
-      "--key",
-      "nodes_config",
-    ]);
+    const output = await restatectl(lambdaClient, restatectlLambdaArn, ["metadata", "get", "--key", "nodes_config"]);
     const nodesConfig: NodesConfig = JSON.parse(output);
     return nodesConfig;
   } catch (e) {
@@ -1140,12 +996,7 @@ async function getBifrostConfig(
   restatectlLambdaArn: string,
 ): Promise<BifrostConfig> {
   try {
-    const output = await restatectl(lambdaClient, restatectlLambdaArn, [
-      "metadata",
-      "get",
-      "--key",
-      "bifrost_config",
-    ]);
+    const output = await restatectl(lambdaClient, restatectlLambdaArn, ["metadata", "get", "--key", "bifrost_config"]);
     const bifrostConfig: BifrostConfig = JSON.parse(output);
 
     bifrostConfig.logs?.sort((a, b) => a[0] - b[0]);
@@ -1174,12 +1025,7 @@ async function getPartitionTable(
   restatectlLambdaArn: string,
 ): Promise<PartitionTable> {
   try {
-    const output = await restatectl(lambdaClient, restatectlLambdaArn, [
-      "metadata",
-      "get",
-      "--key",
-      "partition_table",
-    ]);
+    const output = await restatectl(lambdaClient, restatectlLambdaArn, ["metadata", "get", "--key", "partition_table"]);
     const bifrostConfig: PartitionTable = JSON.parse(output);
     return bifrostConfig;
   } catch (e) {
@@ -1188,24 +1034,15 @@ async function getPartitionTable(
   }
 }
 
-async function getLicenseKeyOrg(
-  lambdaClient: lambda.LambdaClient,
-  restatectlLambdaArn: string,
-): Promise<string> {
+async function getLicenseKeyOrg(lambdaClient: lambda.LambdaClient, restatectlLambdaArn: string): Promise<string> {
   try {
-    const output = await restatectl(lambdaClient, restatectlLambdaArn, [
-      "metadata",
-      "get",
-      "--key",
-      "license_key",
-    ]);
+    const output = await restatectl(lambdaClient, restatectlLambdaArn, ["metadata", "get", "--key", "license_key"]);
     const licenceKey = JSON.parse(output) as { license_key?: string };
-    if (!licenceKey.license_key)
-      throw new Error("No licence_key field in result");
+    if (!licenceKey.license_key) throw new Error("No licence_key field in result");
 
-    const claims = JSON.parse(
-      Buffer.from(licenceKey.license_key.split(".")[1], "base64").toString(),
-    ) as { org?: string };
+    const claims = JSON.parse(Buffer.from(licenceKey.license_key.split(".")[1], "base64").toString()) as {
+      org?: string;
+    };
 
     if (!claims.org) throw new Error("No org field in licence key claims");
 
@@ -1229,25 +1066,18 @@ function getNodes(
     .map((node) => (node[1] !== "Tombstone" ? node[1].Node : undefined))
     .filter((node) => node !== undefined);
 
-  const nodesByName = Object.fromEntries<Node | undefined>(
-    nodes.map((node) => [node.name, node]),
-  );
+  const nodesByName = Object.fromEntries<Node | undefined>(nodes.map((node) => [node.name, node]));
 
   let nodeStatusByID: { [k: string]: string | undefined } = {};
   const nodeStateIDCol = nodeState.headers.get("PLAIN_NODE_ID");
   const nodeStateStatusCol = nodeState.headers.get("STATUS");
   if (nodeStateIDCol !== undefined && nodeStateStatusCol !== undefined) {
     nodeStatusByID = Object.fromEntries<string | undefined>(
-      nodeState.rows.map((row) => [
-        row[nodeStateIDCol],
-        row[nodeStateStatusCol],
-      ]),
+      nodeState.rows.map((row) => [row[nodeStateIDCol], row[nodeStateStatusCol]]),
     );
   }
 
-  const volumesByTaskArn = Object.fromEntries<Volume | undefined>(
-    volumes.map((volume) => [volume.taskArn, volume]),
-  );
+  const volumesByTaskArn = Object.fromEntries<Volume | undefined>(volumes.map((volume) => [volume.taskArn, volume]));
 
   const leadersByNode = new Map<number, number>();
   const followersByNode = new Map<number, number>();
@@ -1283,12 +1113,8 @@ function getNodes(
     const node = nodesByName[task.taskArn!];
     delete nodesByName[task.taskArn!];
 
-    const nodeID = node?.current_generation
-      ? `N${node.current_generation[0]}`
-      : undefined;
-    const genNodeID = nodeID
-      ? `${nodeID}:${node?.current_generation[1]}`
-      : undefined;
+    const nodeID = node?.current_generation ? `N${node.current_generation[0]}` : undefined;
+    const genNodeID = nodeID ? `${nodeID}:${node?.current_generation[1]}` : undefined;
     const nodeStatus = nodeID ? nodeStatusByID[nodeID] : undefined;
 
     // we only show stopped tasks as nodes if they are still present in nodes config. otherwise, its just confusing
@@ -1307,18 +1133,10 @@ function getNodes(
       nodeID: genNodeID ?? "",
       nodeStatus: nodeStatus ?? "",
       storageState: node?.log_server_config.storage_state ?? "",
-      leader: node?.current_generation
-        ? (leadersByNode.get(node.current_generation[0]) ?? 0)
-        : 0,
-      follower: node?.current_generation
-        ? (followersByNode.get(node.current_generation[0]) ?? 0)
-        : 0,
-      nodesetMember: node?.current_generation
-        ? (nodesetsByNode.get(node.current_generation[0]) ?? 0)
-        : 0,
-      storage: volumesByTaskArn[task.taskArn!]?.sizeInGiB
-        ? `${volumesByTaskArn[task.taskArn!]?.sizeInGiB} GB`
-        : "",
+      leader: node?.current_generation ? (leadersByNode.get(node.current_generation[0]) ?? 0) : 0,
+      follower: node?.current_generation ? (followersByNode.get(node.current_generation[0]) ?? 0) : 0,
+      nodesetMember: node?.current_generation ? (nodesetsByNode.get(node.current_generation[0]) ?? 0) : 0,
+      storage: volumesByTaskArn[task.taskArn!]?.sizeInGiB ? `${volumesByTaskArn[task.taskArn!]?.sizeInGiB} GB` : "",
     } satisfies StatefulTaskProps);
   });
 
@@ -1329,12 +1147,8 @@ function getNodes(
     const node = nodesByName[task.taskArn!];
     delete nodesByName[task.taskArn!];
 
-    const nodeID = node?.current_generation
-      ? `N${node.current_generation[0]}`
-      : undefined;
-    const genNodeID = nodeID
-      ? `${nodeID}:${node?.current_generation[1]}`
-      : undefined;
+    const nodeID = node?.current_generation ? `N${node.current_generation[0]}` : undefined;
+    const genNodeID = nodeID ? `${nodeID}:${node?.current_generation[1]}` : undefined;
     const nodeStatus = nodeID ? nodeStatusByID[nodeID] : undefined;
 
     // we only show stopped tasks as nodes if they are still present in nodes config. otherwise, its just confusing
@@ -1423,16 +1237,11 @@ async function restatectl(
     }),
   );
 
-  if (result.FunctionError)
-    throw new Error(
-      `Failed to invoke restatectl lambda: ${result.FunctionError}`,
-    );
+  if (result.FunctionError) throw new Error(`Failed to invoke restatectl lambda: ${result.FunctionError}`);
 
-  if (!result.Payload)
-    throw new Error("restatectl lambda did not return a payload");
+  if (!result.Payload) throw new Error("restatectl lambda did not return a payload");
 
-  const payload: { status: number; stdout: string; stderr: string } =
-    JSON.parse(result.Payload.transformToString());
+  const payload: { status: number; stdout: string; stderr: string } = JSON.parse(result.Payload.transformToString());
 
   if (payload.status !== 0)
     throw new Error(
@@ -1451,10 +1260,7 @@ function getLogs(bifrostConfig: BifrostConfig): {
     bifrostConfig.config?.default_provider &&
     typeof bifrostConfig.config.default_provider == "object" &&
     "replicated" in bifrostConfig.config.default_provider
-      ? parseReplicationFactor(
-          bifrostConfig.config.default_provider.replicated
-            ?.replication_property,
-        )
+      ? parseReplicationFactor(bifrostConfig.config.default_provider.replicated?.replication_property)
       : undefined;
 
   const info: LogInfo[] = [];
@@ -1482,8 +1288,7 @@ function getLogs(bifrostConfig: BifrostConfig): {
   };
 }
 
-const REPLICATION_FACTOR_EXTRACTOR =
-  /(?<scope>node|zone|region)\s*:\s*(?<factor>\d+)/gim;
+const REPLICATION_FACTOR_EXTRACTOR = /(?<scope>node|zone|region)\s*:\s*(?<factor>\d+)/gim;
 
 function parseReplicationFactor(
   factor?: string | number,
@@ -1531,10 +1336,7 @@ async function restatectlSql(
   query: string,
 ): Promise<RestatectlSqlOutput> {
   try {
-    const table = await restatectl(lambdaClient, restatectlLambdaArn, [
-      "sql",
-      query,
-    ]);
+    const table = await restatectl(lambdaClient, restatectlLambdaArn, ["sql", query]);
 
     const tableLines = table.split("\n");
     const headers = tableLines[0];
