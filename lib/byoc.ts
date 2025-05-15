@@ -559,6 +559,8 @@ function createStateless(
 
       // why? this isn't a worker! because the admin uses the presence of this flag as a signal of how to trim
       RESTATE_WORKER__SNAPSHOTS__DESTINATION: `${bucketPath}/snapshots`,
+
+      ...statelessProps?.environment,
     },
   });
 
@@ -659,6 +661,8 @@ function createStatefulDefinition(
 
       RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE:
         "true",
+
+      ...(statefulProps?.environment ?? {}),
     },
   });
 
