@@ -97,9 +97,7 @@ export const DEFAULT_ALB_CREATE_ACTION = (
   {
     id: "default-action",
     props: {
-      action: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
-        targetGroup,
-      ]),
+      action: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([targetGroup]),
     },
   },
 ];
@@ -311,8 +309,7 @@ export interface RestateBYOCEBSVolumeProps {
   throughput?: number;
 }
 
-export const DEFAULT_RESTATE_IMAGE =
-  "docker.restate.dev/restatedev/restate:1.3";
+export const DEFAULT_RESTATE_IMAGE = "docker.restate.dev/restatedev/restate:1.3";
 
 export const DEFAULT_RESTATE_CPU = 16384;
 export const DEFAULT_RESTATE_MEMORY_LIMIT_MIB = 32768;
@@ -343,6 +340,12 @@ export interface RestateBYOCNodeProps {
    * Default: 16 vCPU and 32G memory
    */
   resources?: { cpu: number; memoryLimitMiB: number };
+
+  /// P's hacks
+  overrideRestateImage?: cdk.aws_ecs.ContainerImage;
+  environment?: {
+    [key: string]: string;
+  };
 }
 
 export const DEFAULT_CONTROLLER_IMAGE =
@@ -373,6 +376,9 @@ export interface RestateBYOCControllerProps {
     - ARM cpu architecture
    */
   tasks?: Partial<RestateBYOCTaskProps>;
+
+  /// P's hacks
+  overrideControllerImage?: cdk.aws_ecs.ContainerImage;
 }
 
 export interface RestateBYOCTaskProps {
