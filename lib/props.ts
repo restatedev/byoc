@@ -45,6 +45,24 @@ export interface RestateBYOCProps {
    */
   loadBalancer?: RestateBYOCLoadBalancerProps;
   /**
+   * Human-facing addresses for Restate ports
+   * Default: The address of the shared load balancer on the relevant port
+   */
+  addresses?: {
+    /**
+     * Human-facing address for the ingress, used in the control panel and in the Restate UI
+     */
+    ingress?: string;
+    /**
+     * Human-facing address for the admin, used in the control panel
+     */
+    admin?: string;
+    /**
+     * Human-facing address for the Restate UI, used in the control panel
+     */
+    webUI?: string;
+  };
+  /**
    * An ECS cluster onto which to schedule tasks.
    * Default: A cluster will be created.
    */
@@ -89,100 +107,13 @@ export interface RestateBYOCProps {
    * Default: See the documentation for RestateBYOCMonitoringProps
    */
   monitoring?: RestateBYOCMonitoringProps;
+
+  /**
+   * Options for the ServiceDeployer
+   * Default: See the documentation for ServiceDeployerProps
+   */
+  serviceDeployer?: ServiceDeployerProps;
 }
-
-export const DEFAULT_ALB_CREATE_ACTION = (
-  targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
-) => [
-  {
-    id: "default-action",
-    props: {
-      action: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
-        targetGroup,
-      ]),
-    },
-  },
-];
-
-export type ListenerSource =
-  | {
-      /**
-       * Props to configure the creation of a new listener on a provided NLB
-       */
-      networkListenerProps: cdk.aws_elasticloadbalancingv2.NetworkListenerProps;
-    }
-  | {
-      /**
-       * Props to configure the creation of a new listener on a provided ALB
-       */
-      applicationListenerProps: cdk.aws_elasticloadbalancingv2.ApplicationListenerProps;
-
-      /**
-       * A function which produces the listener actions, given the relevant target group.
-       * Default: A single forward action is used, which will simply route to the target.
-       */
-      createActions?: CreateActions;
-    }
-  | {
-      /**
-       * An existing NLB to use
-       */
-      providedNLB: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
-      /**
-       * An existing Network Listener to use. A concrete value is required so we can change its actions.
-       */
-      providedNetworkListener: cdk.aws_elasticloadbalancingv2.NetworkListener;
-
-      /**
-       * The port of the provided listener, so that the CDK stack can build a URL for it
-       */
-      port: number;
-
-      /**
-       * The protocol of the provided listener, so that the CDK stack can build a URL for it
-       */
-      protocol: "http" | "https";
-
-      /**
-       * The certificate, if any, of the provided listener, so that control panel dashboard can link to it.
-       * Default: No certificate will be shown on the control panel dashboard
-       */
-      certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
-    }
-  | {
-      /**
-       * An existing ALB to use
-       */
-      providedALB: cdk.aws_elasticloadbalancingv2.IApplicationLoadBalancer;
-      /**
-       * An existing Application Listener to use. A concrete value is required so we can change its actions.
-       */
-      providedApplicationListener: cdk.aws_elasticloadbalancingv2.ApplicationListener;
-
-      /**
-       * The protocol of the provided listener, so that the CDK stack can build a URL for it.
-       */
-      protocol: "http" | "https";
-
-      /**
-       * The certificate, if any, of the provided listener, so that control panel dashboard can link to it.
-       * Default: No certificate will be shown on the control panel dashboard
-       */
-      certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
-
-      /**
-       * A function which produces the listener actions, given the relevant target group.
-       * Default: A single forward action is used, which will simply route to the target.
-       */
-      createActions?: CreateActions;
-    };
-
-export type CreateActions = (
-  targetGroup: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup,
-) => {
-  id: string;
-  props: cdk.aws_elasticloadbalancingv2.AddApplicationActionProps;
-}[];
 
 export type LoadBalancerSource =
   | {
@@ -212,29 +143,11 @@ export type LoadBalancerSource =
 
 export interface RestateBYOCLoadBalancerProps {
   /**
-   * Options for the shared load balancer which is used by default for ingress, admin, and node traffic
+   * Options for the shared load balancer which is used for internal ingress, admin, and node traffic on default ports.
+   * The service deployer lambda needs access to the admin port, and the restatectl lambda needs access to the node port.
    * Default: An internal NLB is created in the same vpc and with the same security groups as the rest of this stack
    */
   shared?: LoadBalancerSource;
-
-  /**
-   * Options for the listener for ingress traffic
-   * Default: A new listener at port 8080 on the shared load balancer is used
-   */
-  ingress?: ListenerSource;
-
-  /**
-   * Options for the listener for admin traffic
-   * Default: A new listener at port 9070 on the shared load balancer is used
-   */
-  admin?: ListenerSource;
-
-  /**
-   * Options for the listener for node traffic.
-   * Note if specifying a non default value that the load balancer should allow traffic from the restatectl lambda.
-   * Default: A new listener at port 5122 on the shared load balancer is used
-   */
-  node?: ListenerSource;
 }
 
 export const DEFAULT_STATELESS_DESIRED_COUNT = 3;
@@ -454,16 +367,6 @@ export interface RestateBYOCMonitoringProps {
        * Default: false
        */
       autogeneratedName?: boolean;
-
-      /**
-       * The addresses of Restate components, for use in links from the control panel
-       * Default: An address will be determined based on the configured load balancer for each component.
-       */
-      addresses?: {
-        ingress: string;
-        admin: string;
-        webUI: string;
-      };
     };
 
     customWidgets?: {
@@ -482,4 +385,18 @@ export interface RestateBYOCMonitoringProps {
       executionRole?: cdk.aws_iam.IRole;
     };
   };
+}
+
+export interface ServiceDeployerProps {
+  /**
+   * If true, do not create a ServiceDeployer. This means that calls to deployService or register will fail.
+   * Default: false
+   */
+  disabled?: boolean;
+  /**
+   * The execution role for the ServiceDeployer lambda, which must be assumable by lambda.amazonaws.com
+   * Permissions will be added to the role to allow it to execute in a vpc and send logs to cloudwatch
+   * Default: A role will be created
+   */
+  executionRole?: cdk.aws_iam.IRole;
 }
