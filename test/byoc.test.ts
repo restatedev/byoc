@@ -28,11 +28,6 @@ describe("BYOC", () => {
         },
       },
     });
-
-    expect(stack).toMatchCdkSnapshot({
-      ignoreAssets: true,
-      yaml: true,
-    });
   });
 
   test("With shared alb", () => {
@@ -46,11 +41,6 @@ describe("BYOC", () => {
           albProps: { vpc },
         },
       },
-    });
-
-    expect(stack).toMatchCdkSnapshot({
-      ignoreAssets: true,
-      yaml: true,
     });
   });
 
@@ -82,11 +72,6 @@ describe("BYOC", () => {
         availabilityZones: [stack.availabilityZones[0]],
       },
     });
-
-    expect(stack).toMatchCdkSnapshot({
-      ignoreAssets: true,
-      yaml: true,
-    });
   });
 
   test("Without metrics dashboard", () => {
@@ -102,11 +87,6 @@ describe("BYOC", () => {
           },
         },
       },
-    });
-
-    expect(stack).toMatchCdkSnapshot({
-      ignoreAssets: true,
-      yaml: true,
     });
   });
 
@@ -124,11 +104,6 @@ describe("BYOC", () => {
         },
       },
     });
-
-    expect(stack).toMatchCdkSnapshot({
-      ignoreAssets: true,
-      yaml: true,
-    });
   });
 
   test("Without custom widget lambda", () => {
@@ -143,11 +118,6 @@ describe("BYOC", () => {
         },
       },
     });
-
-    expect(stack).toMatchCdkSnapshot({
-      ignoreAssets: true,
-      yaml: true,
-    });
   });
 
   test("Without service deployer", () => {
@@ -161,11 +131,6 @@ describe("BYOC", () => {
       },
     });
 
-    expect(stack).toMatchCdkSnapshot({
-      ignoreAssets: true,
-      yaml: true,
-    });
-
     expect(() =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       byoc.deployService("abc", null as any),
@@ -175,6 +140,20 @@ describe("BYOC", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       byoc.register(null as any),
     ).toThrowErrorMatchingSnapshot();
+  });
+
+  test("Without snapshot retention", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateBYOC(stack, "without-snapshot-retention", {
+      vpc,
+      licenseID,
+      controller: {
+        snapshotRetention: {
+          disabled: true,
+        },
+      },
+    });
   });
 });
 

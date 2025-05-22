@@ -6,6 +6,8 @@ import {
   DEFAULT_CONTROLLER_CPU,
   DEFAULT_CONTROLLER_IMAGE,
   DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB,
+  DEFAULT_CONTROLLER_SNAPSHOT_RETENTION,
+  DEFAULT_PARTITIONS,
   DEFAULT_RESTATE_CPU,
   DEFAULT_RESTATE_IMAGE,
   DEFAULT_RESTATE_MEMORY_LIMIT_MIB,
@@ -316,11 +318,29 @@ export class RestateBYOC
     );
     this.stateless = stateless;
 
+    let partitionsPerNode: number;
+    {
+      const nodeCount =
+        new Set(this.vpcSubnets.availabilityZones).size *
+        (props.statefulNode?.nodesPerAz ?? DEFAULT_STATEFUL_NODES_PER_AZ);
+      const replicationFactor = props.statelessNode?.defaultReplication
+        ? "zone" in props.statelessNode.defaultReplication
+          ? props.statelessNode.defaultReplication.zone
+          : props.statelessNode.defaultReplication.node
+        : 2;
+      const partitionCount =
+        props.statelessNode?.defaultPartitions ?? DEFAULT_PARTITIONS;
+      partitionsPerNode = Math.ceil(
+        (partitionCount * replicationFactor) / nodeCount,
+      );
+    }
+
     const statefulDefinition = createStatefulDefinition(
       this,
       this.clusterName,
       bucketPath,
       restateTaskProps,
+      partitionsPerNode,
       props.statefulNode,
     );
     this.stateful = { taskDefinition: statefulDefinition };
@@ -587,7 +607,7 @@ function createStateless(
       RESTATE_ROLES: '["admin","http-ingress"]',
       RESTATE_AUTO_PROVISION: "true",
       RESTATE_SHUTDOWN_TIMEOUT: "100s", // fargate allows 120s
-      RESTATE_DEFAULT_NUM_PARTITIONS: `${statelessProps?.defaultPartitions ?? 128}`,
+      RESTATE_DEFAULT_NUM_PARTITIONS: `${statelessProps?.defaultPartitions ?? DEFAULT_PARTITIONS}`,
       RESTATE_DEFAULT_REPLICATION: replication,
 
       RESTATE_METADATA_CLIENT__TYPE: "object-store",
@@ -627,6 +647,7 @@ function createStatefulDefinition(
   clusterName: string,
   bucketPath: `s3://${string}`,
   taskProps: RestateBYOCTaskProps,
+  partitionsPerNode: number,
   statefulProps?: RestateBYOCStatefulProps,
 ) {
   const cpu = statefulProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
@@ -694,6 +715,7 @@ function createStatefulDefinition(
 
       RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS: "true",
       RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_WAL_FSYNC: "true",
+      RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET: `${partitionsPerNode}`,
 
       RESTATE_LOG_SERVER__ROCKSDB_DISABLE_WAL_FSYNC: "true",
       RESTATE_LOG_SERVER__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS: "true",
@@ -1155,6 +1177,19 @@ function createController(
     })
     .reduce((prev, curr) => ({ ...prev, ...curr }));
 
+  const ebsSnapshotRetentionPeriodString = controllerProps?.snapshotRetention
+    ?.duration
+    ? `${Math.floor(controllerProps.snapshotRetention.duration.toSeconds())}s`
+    : DEFAULT_CONTROLLER_SNAPSHOT_RETENTION;
+
+  const ebsSnapshotRetentionEnvs: { [k: string]: string } = controllerProps
+    ?.snapshotRetention?.disabled
+    ? {}
+    : {
+        CONTROLLER_EBS_SNAPSHOT_RETENTION_PERIOD:
+          ebsSnapshotRetentionPeriodString,
+      };
+
   const config = {
     CONTROLLER_LOG_FORMAT: "json",
     CONTROLLER_METADATA_PATH: `${bucketPath}/metadata`,
@@ -1166,6 +1201,7 @@ function createController(
       cluster.clusterArn,
     [`CONTROLLER_ECS_CLUSTERS__${cdk.Aws.REGION}__TASK_PREFIX`]:
       clusterTaskPrefix,
+    ...ebsSnapshotRetentionEnvs,
     ...zoneEnvs,
   };
 
@@ -1191,22 +1227,22 @@ function createController(
 
   taskDefinition.taskRole.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
-      actions: ["ecs:ListTasks", "ecs:DescribeTasks", "ecs:StopTask"],
+      actions: ["ecs:ListTasks"],
       resources: ["*"],
       conditions: {
         ArnEquals: { "ecs:cluster": cluster.clusterArn },
       },
       effect: cdk.aws_iam.Effect.ALLOW,
-      sid: "TaskActions",
+      sid: "ECSListActions",
     }),
   );
 
   taskDefinition.taskRole.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
-      actions: ["ecs:TagResource"],
+      actions: ["ecs:TagResource", "ecs:DescribeTasks", "ecs:StopTask"],
       resources: [`${clusterTaskPrefix}*`],
       effect: cdk.aws_iam.Effect.ALLOW,
-      sid: "TagTasks",
+      sid: "TaskActions",
     }),
   );
 
@@ -1260,6 +1296,82 @@ function createController(
         },
         effect: cdk.aws_iam.Effect.ALLOW,
         sid: "RunTaskPassVolumeRole",
+      }),
+    );
+  }
+
+  if (!controllerProps?.snapshotRetention?.disabled) {
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ["ec2:DescribeVolumes", "ec2:DescribeSnapshots"],
+        resources: ["*"],
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "EC2ListActions",
+      }),
+    );
+
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ["ec2:CreateSnapshot"],
+        resources: [
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}::snapshot/*`,
+        ],
+        conditions: {
+          ArnEquals: {
+            "aws:RequestTag/restate:ecsClusterArn": cluster.clusterArn,
+          },
+        },
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "CreateSnapshot",
+      }),
+    );
+
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ["ec2:CreateSnapshot"],
+        resources: [
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`,
+        ],
+        conditions: {
+          ArnEquals: {
+            "aws:ResourceTag/restate:ecsClusterArn": cluster.clusterArn,
+          },
+        },
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "SnapshotVolume",
+      }),
+    );
+
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ["ec2:CreateTags"],
+        resources: [
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}::snapshot/*`,
+        ],
+        conditions: {
+          StringEquals: {
+            "ec2:CreateAction": "CreateSnapshot",
+          },
+        },
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "TagSnapshots",
+      }),
+    );
+
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ["ec2:DeleteVolume", "ec2:DeleteSnapshot"],
+        resources: [
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`,
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}::snapshot/*`,
+        ],
+        conditions: {
+          ArnEquals: {
+            "aws:ResourceTag/restate:ecsClusterArn": cluster.clusterArn,
+          },
+        },
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "DeleteVolumeAndSnapshot",
       }),
     );
   }

@@ -151,6 +151,7 @@ export interface RestateBYOCLoadBalancerProps {
 }
 
 export const DEFAULT_STATELESS_DESIRED_COUNT = 3;
+export const DEFAULT_PARTITIONS = 128;
 
 export interface RestateBYOCStatelessProps extends RestateBYOCNodeProps {
   /**
@@ -253,7 +254,7 @@ export interface RestateBYOCNodeProps {
 
   /**
    * The resources for the fargate task that runs the node
-   * Default: 16 vCPU and 32G memory
+   * Default: 16384 CPU and 32768 memory
    */
   resources?: { cpu: number; memoryLimitMiB: number };
 }
@@ -262,6 +263,7 @@ export const DEFAULT_CONTROLLER_IMAGE =
   "docker.restate.dev/restatedev/restate-fargate-controller:0.1";
 export const DEFAULT_CONTROLLER_CPU = 1024;
 export const DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB = 2048;
+export const DEFAULT_CONTROLLER_SNAPSHOT_RETENTION = "24h";
 
 /**
  * Properties for configuring the controller
@@ -286,6 +288,23 @@ export interface RestateBYOCControllerProps {
     - ARM cpu architecture
    */
   tasks?: Partial<RestateBYOCTaskProps>;
+
+  /**
+   * Configuration for EBS snapshot retention
+   * Default: retain volumes for 24 hours
+   */
+  snapshotRetention?: {
+    /**
+     * Disable EBS snapshot retention; volumes will be deleted on task exit
+     * Default: false
+     */
+    disabled?: boolean;
+    /**
+     * The duration to retain EBS snapshots for after they are finished creating
+     * Default: 24 hours
+     */
+    duration?: cdk.Duration;
+  };
 }
 
 export interface RestateBYOCTaskProps {
