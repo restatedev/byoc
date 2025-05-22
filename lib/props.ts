@@ -262,6 +262,7 @@ export const DEFAULT_CONTROLLER_IMAGE =
   "docker.restate.dev/restatedev/restate-fargate-controller:0.1";
 export const DEFAULT_CONTROLLER_CPU = 1024;
 export const DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB = 2048;
+export const DEFAULT_CONTROLLER_SNAPSHOT_RETENTION = "24h";
 
 /**
  * Properties for configuring the controller
@@ -286,6 +287,23 @@ export interface RestateBYOCControllerProps {
     - ARM cpu architecture
    */
   tasks?: Partial<RestateBYOCTaskProps>;
+
+  /**
+   * Configuration for EBS snapshot retention
+   * Default: retain volumes for 24 hours
+   */
+  snapshotRetention?: {
+    /**
+     * Disable EBS snapshot retention; volumes will be deleted on task exit
+     * Default: false
+     */
+    disabled?: boolean;
+    /**
+     * The duration to retain EBS snapshots for after they are finished creating
+     * Default: 24 hours
+     */
+    duration?: cdk.Duration;
+  };
 }
 
 export interface RestateBYOCTaskProps {

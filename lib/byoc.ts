@@ -6,6 +6,7 @@ import {
   DEFAULT_CONTROLLER_CPU,
   DEFAULT_CONTROLLER_IMAGE,
   DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB,
+  DEFAULT_CONTROLLER_SNAPSHOT_RETENTION,
   DEFAULT_RESTATE_CPU,
   DEFAULT_RESTATE_IMAGE,
   DEFAULT_RESTATE_MEMORY_LIMIT_MIB,
@@ -1155,6 +1156,19 @@ function createController(
     })
     .reduce((prev, curr) => ({ ...prev, ...curr }));
 
+  const ebsSnapshotRetentionPeriodString = controllerProps?.snapshotRetention
+    ?.duration
+    ? `${Math.floor(controllerProps.snapshotRetention.duration.toSeconds())}s`
+    : DEFAULT_CONTROLLER_SNAPSHOT_RETENTION;
+
+  const ebsSnapshotRetentionEnvs: { [k: string]: string } = controllerProps
+    ?.snapshotRetention?.disabled
+    ? {}
+    : {
+        CONTROLLER_EBS_SNAPSHOT_RETENTION_PERIOD:
+          ebsSnapshotRetentionPeriodString,
+      };
+
   const config = {
     CONTROLLER_LOG_FORMAT: "json",
     CONTROLLER_METADATA_PATH: `${bucketPath}/metadata`,
@@ -1166,6 +1180,7 @@ function createController(
       cluster.clusterArn,
     [`CONTROLLER_ECS_CLUSTERS__${cdk.Aws.REGION}__TASK_PREFIX`]:
       clusterTaskPrefix,
+    ...ebsSnapshotRetentionEnvs,
     ...zoneEnvs,
   };
 
@@ -1191,22 +1206,22 @@ function createController(
 
   taskDefinition.taskRole.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
-      actions: ["ecs:ListTasks", "ecs:DescribeTasks", "ecs:StopTask"],
+      actions: ["ecs:ListTasks"],
       resources: ["*"],
       conditions: {
         ArnEquals: { "ecs:cluster": cluster.clusterArn },
       },
       effect: cdk.aws_iam.Effect.ALLOW,
-      sid: "TaskActions",
+      sid: "ECSListActions",
     }),
   );
 
   taskDefinition.taskRole.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
-      actions: ["ecs:TagResource"],
+      actions: ["ecs:TagResource", "ecs:DescribeTasks", "ecs:StopTask"],
       resources: [`${clusterTaskPrefix}*`],
       effect: cdk.aws_iam.Effect.ALLOW,
-      sid: "TagTasks",
+      sid: "TaskActions",
     }),
   );
 
@@ -1260,6 +1275,82 @@ function createController(
         },
         effect: cdk.aws_iam.Effect.ALLOW,
         sid: "RunTaskPassVolumeRole",
+      }),
+    );
+  }
+
+  if (!controllerProps?.snapshotRetention?.disabled) {
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ["ec2:DescribeVolumes", "ec2:DescribeSnapshots"],
+        resources: ["*"],
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "EC2ListActions",
+      }),
+    );
+
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ["ec2:CreateSnapshot"],
+        resources: [
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}::snapshot/*`,
+        ],
+        conditions: {
+          ArnEquals: {
+            "aws:RequestTag/restate:ecsClusterArn": cluster.clusterArn,
+          },
+        },
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "CreateSnapshot",
+      }),
+    );
+
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ["ec2:CreateSnapshot"],
+        resources: [
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`,
+        ],
+        conditions: {
+          ArnEquals: {
+            "aws:ResourceTag/restate:ecsClusterArn": cluster.clusterArn,
+          },
+        },
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "SnapshotVolume",
+      }),
+    );
+
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ["ec2:CreateTags"],
+        resources: [
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}::snapshot/*`,
+        ],
+        conditions: {
+          StringEquals: {
+            "ec2:CreateAction": "CreateSnapshot",
+          },
+        },
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "TagSnapshots",
+      }),
+    );
+
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ["ec2:DeleteVolume", "ec2:DeleteSnapshot"],
+        resources: [
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:volume/*`,
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}::snapshot/*`,
+        ],
+        conditions: {
+          ArnEquals: {
+            "aws:ResourceTag/restate:ecsClusterArn": cluster.clusterArn,
+          },
+        },
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "DeleteVolumeAndSnapshot",
       }),
     );
   }
