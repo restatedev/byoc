@@ -138,7 +138,7 @@ export type LoadBalancerSource =
 export interface RestateBYOCLoadBalancerProps {
   /**
    * Options for the shared load balancer which is used for internal ingress, admin, and node traffic on default ports.
-   * The service deployer lambda needs access to the admin port, and the restatectl lambda needs access to the node port.
+   * The restatectl lambda needs access to the node port.
    * Default: An internal NLB is created in the same vpc and with the same security groups as the rest of this stack
    */
   shared?: LoadBalancerSource;
@@ -398,18 +398,4 @@ export interface RestateBYOCMonitoringProps {
       executionRole?: cdk.aws_iam.IRole;
     };
   };
-}
-
-export interface ServiceDeployerProps {
-  /**
-   * If true, do not create a ServiceDeployer. This means that calls to deployService or register will fail.
-   * Default: false
-   */
-  disabled?: boolean;
-  /**
-   * The execution role for the ServiceDeployer lambda, which must be assumable by lambda.amazonaws.com
-   * Permissions will be added to the role to allow it to execute in a vpc and send logs to cloudwatch
-   * Default: A role will be created
-   */
-  executionRole?: cdk.aws_iam.IRole;
 }
