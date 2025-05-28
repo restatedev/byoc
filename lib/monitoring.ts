@@ -8,7 +8,7 @@ import {
   RestateBYOCProps,
   SupportedRestateVersion,
 } from "./props";
-import type { ControlPanelWidgetEvent } from "./lambda/cloudwatch-custom-widget/index.mts";
+import type { ControlPanelWidgetEvent } from "./lambda/cloudwatch-custom-widget/index.mjs";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const packageInfo = require("../package.json");
 
@@ -40,6 +40,7 @@ export function createMonitoring(
       address: string;
     };
   },
+  customWidgetCode: cdk.aws_lambda.Code,
   restatectlLambda?: cdk.aws_lambda.IFunction,
   props?: RestateBYOCProps,
 ): {
@@ -50,6 +51,7 @@ export function createMonitoring(
   const customWidgetFn = createCustomWidgetLambda(
     scope,
     ecsCluster,
+    customWidgetCode,
     restatectlLambda,
     props?.monitoring,
   );
@@ -490,6 +492,7 @@ export function createMetricsDashboard(
 function createCustomWidgetLambda(
   scope: Construct,
   ecsCluster: cdk.aws_ecs.ICluster,
+  code: cdk.aws_lambda.Code,
   restatectlLambda?: cdk.aws_lambda.IFunction,
   props?: RestateBYOCMonitoringProps,
 ): cdk.aws_lambda.Function | undefined {
@@ -605,9 +608,7 @@ function createCustomWidgetLambda(
       architecture: cdk.aws_lambda.Architecture.ARM_64,
       memorySize: 1024,
       handler: "index.handler",
-      code: cdk.aws_lambda.Code.fromAsset(
-        `${__dirname}/lambda/cloudwatch-custom-widget`,
-      ),
+      code,
       timeout: cdk.Duration.seconds(60),
     },
   );

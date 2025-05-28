@@ -30,23 +30,27 @@
   },
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist/*.js",
+    "dist/*.d.ts"
   ],
   "scripts": {
     "attw": "attw --pack",
     "download-restatectl": "mkdir -p lib/lambda/restatectl && curl -L https://restate.gateway.scarf.sh/v1.3.2/restatectl-aarch64-unknown-linux-musl.tar.xz | tar -Jx --strip-components=1 -C lib/lambda/restatectl restatectl-aarch64-unknown-linux-musl/restatectl && mv lib/lambda/restatectl/restatectl lib/lambda/restatectl/bootstrap",
     "lint": "eslint",
-    "build": "tsc && mkdir -p ./dist/lambda/restatectl && cp ./lib/lambda/restatectl/bootstrap ./dist/lambda/restatectl/bootstrap",
+    "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.17.4",
+    "@aws-sdk/client-account": "^3.817.0",
     "@aws-sdk/client-cloudwatch": "^3.782.0",
     "@aws-sdk/client-ec2": "^3.783.0",
     "@aws-sdk/client-ecs": "^3.778.0",
     "@aws-sdk/client-lambda": "^3.782.0",
+    "@aws-sdk/client-s3": "^3.817.0",
+    "@aws-sdk/client-s3-control": "^3.817.0",
     "@eslint/js": "^9.25.1",
     "@restatedev/restate-cdk": "0.0.0-SNAPSHOT-20250521082206",
     "@types/aws-lambda": "^8.10.148",

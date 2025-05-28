@@ -26,6 +26,7 @@ import {
 } from "./props";
 import { createMonitoring } from "./monitoring";
 import type { IRestateEnvironment } from "@restatedev/restate-cdk";
+import { getArtifacts } from "./artifacts";
 
 export class RestateBYOC
   extends Construct
@@ -92,6 +93,11 @@ export class RestateBYOC
      * The controller task definition
      */
     taskDefinition: cdk.aws_ecs.IFargateTaskDefinition;
+    /**
+     * The role passed by the controller to AWS to manage EBS volumes.
+     * Only present if EBS volumes are being used
+     */
+    volumeRole?: cdk.aws_iam.IRole;
   };
   /**
    * Properties of the listeners managed by this construct
@@ -384,19 +390,22 @@ export class RestateBYOC
     );
     this.controller = controller;
 
+    const artifacts = getArtifacts(this);
+
     this.restatectl = createRestatectl(
       this,
       this.vpc,
       this.vpcSubnets,
       this.securityGroups,
       listeners.node.address,
+      artifacts["restatectl.zip"],
       props.restatectl,
     );
 
     this.retirementWatcher = createRetirementWatcher(
       this,
-      this.ecsCluster,
       ctPrefix,
+      artifacts["retirement-watcher.zip"],
       props.retirementWatcher,
     );
 
@@ -428,6 +437,7 @@ export class RestateBYOC
           address: props.addresses?.webUI ?? `${listeners.admin.address}/ui`,
         },
       },
+      artifacts["cloudwatch-custom-widget.zip"],
       this.restatectl,
       props,
     );
@@ -997,6 +1007,7 @@ function createController(
 ): {
   service: cdk.aws_ecs.IFargateService;
   taskDefinition: cdk.aws_ecs.FargateTaskDefinition;
+  volumeRole?: cdk.aws_iam.IRole;
 } {
   const taskRole =
     controllerProps?.tasks?.taskRole ??
@@ -1316,13 +1327,13 @@ function createController(
   });
   cdk.Tags.of(service).add("Name", service.node.path);
 
-  return { service, taskDefinition };
+  return { service, taskDefinition, volumeRole };
 }
 
 function createRetirementWatcher(
   scope: Construct,
-  cluster: cdk.aws_ecs.ICluster,
   clusterTaskPrefix: string,
+  code: cdk.aws_lambda.Code,
   retirementWatcherProps?: RestateBYOCRetirementWatcherProps,
 ):
   | {
@@ -1366,9 +1377,7 @@ function createRetirementWatcher(
     runtime: cdk.aws_lambda.Runtime.NODEJS_22_X,
     architecture: cdk.aws_lambda.Architecture.ARM_64,
     handler: "index.handler",
-    code: cdk.aws_lambda.Code.fromAsset(
-      `${__dirname}/lambda/retirement-watcher`,
-    ),
+    code,
     timeout: cdk.Duration.seconds(60),
   });
   cdk.Tags.of(fn).add("Name", fn.node.path);
@@ -1430,6 +1439,7 @@ function createRestatectl(
   vpcSubnets: cdk.aws_ec2.SelectedSubnets,
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   address: string,
+  code: cdk.aws_lambda.Code,
   restatectlProps?: RestateBYOCRestatectlProps,
 ): cdk.aws_lambda.Function | undefined {
   if (restatectlProps?.disabled) return;
@@ -1464,7 +1474,7 @@ function createRestatectl(
     runtime: cdk.aws_lambda.Runtime.PROVIDED_AL2023,
     handler: "restatectl", // irrelevant
     architecture: cdk.aws_lambda.Architecture.ARM_64,
-    code: cdk.aws_lambda.Code.fromAsset(`${__dirname}/lambda/restatectl`),
+    code,
     environment: {
       RESTATECTL_ADDRESS: address,
     },

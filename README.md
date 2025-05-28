@@ -52,6 +52,8 @@ export class BYOCStack extends cdk.Stack {
 
 ## Releasing
 1. Update the NPM version in package.json and ensure it propagates to package-lock.json
+2. If any lambdas have been changed, run `./artifacts/upload.sh` in the correct AWS profile and update the object versions
+   in `lib/artifacts.ts`.
 2. Run `npm test`, confirming there are no other snapshot issues except the changed version, then `npm test -- -u` to
 update the snapshots.
 3. Push a tag eg `git tag v0.1.0 && git push origin v0.1.0`
