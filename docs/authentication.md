@@ -1,5 +1,5 @@
 # Authentication
-By default, Restate will be served only on an internal NLB. This load balancer is required for the service deployer and the restatectl lambda
+By default, Restate will be served only on an internal NLB. This load balancer is required for the restatectl lambda
 function to be able to reach Restate. Depending on your requirements you may want to expose ports 8080 or 9070 publicly via a separate load
 balancer to make it easier for developers and end users to reach.
 
