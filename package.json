@@ -48,6 +48,7 @@
     "@aws-sdk/client-ecs": "^3.778.0",
     "@aws-sdk/client-lambda": "^3.782.0",
     "@eslint/js": "^9.25.1",
+    "@restatedev/restate-cdk": "0.0.0-SNAPSHOT-20250521082206",
     "@types/aws-lambda": "^8.10.148",
     "@types/jest": "^29.5.14",
     "@types/node": "22.7.9",
@@ -67,8 +68,5 @@
   "peerDependencies": {
     "aws-cdk-lib": "^2.0.0",
     "constructs": "^10.0.0"
-  },
-  "dependencies": {
-    "@restatedev/restate-cdk": "0.0.0-SNAPSHOT-20250521082206"
   }
 }

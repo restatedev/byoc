@@ -120,28 +120,6 @@ describe("BYOC", () => {
     });
   });
 
-  test("Without service deployer", () => {
-    const { stack, vpc } = createStack();
-
-    const byoc = new RestateBYOC(stack, "without-service-deployer", {
-      vpc,
-      licenseID,
-      serviceDeployer: {
-        disabled: true,
-      },
-    });
-
-    expect(() =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      byoc.deployService("abc", null as any),
-    ).toThrowErrorMatchingSnapshot();
-
-    expect(() =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      byoc.register(null as any),
-    ).toThrowErrorMatchingSnapshot();
-  });
-
   test("Without snapshot retention", () => {
     const { stack, vpc } = createStack();
 

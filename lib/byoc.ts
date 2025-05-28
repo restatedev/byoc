@@ -22,18 +22,17 @@ import {
   RestateBYOCStatefulProps,
   RestateBYOCStatelessProps,
   RestateBYOCTaskProps,
-  ServiceDeployerProps,
   SupportedRestateVersion,
 } from "./props";
 import { createMonitoring } from "./monitoring";
-import {
-  ServiceDeployer,
-  ServiceRegistrationProps,
-} from "@restatedev/restate-cdk";
+import type { IRestateEnvironment } from "@restatedev/restate-cdk";
 
 export class RestateBYOC
   extends Construct
-  implements cdk.aws_ec2.IConnectable, cdk.aws_iam.IGrantable
+  implements
+    cdk.aws_ec2.IConnectable,
+    cdk.aws_iam.IGrantable,
+    IRestateEnvironment
 {
   /**
    * The name of the cluster
@@ -185,7 +184,10 @@ export class RestateBYOC
     customWidgetFn?: cdk.aws_lambda.IFunction;
   };
 
-  private readonly deployer?: ServiceDeployer;
+  /**
+   * Implements IRestateEnvironment
+   **/
+  public readonly adminUrl: string;
 
   constructor(scope: Construct, id: string, props: RestateBYOCProps) {
     super(scope, id);
@@ -363,6 +365,7 @@ export class RestateBYOC
     };
 
     this.loadBalancer = loadBalancer;
+    this.adminUrl = loadBalancer.admin.address;
 
     const ctPrefix = clusterTaskPrefix(this.ecsCluster.clusterArn);
 
@@ -452,82 +455,6 @@ export class RestateBYOC
         }),
       );
     }
-
-    this.deployer = createServiceDeployer(
-      this,
-      this.vpc,
-      this.vpcSubnets,
-      this.securityGroups,
-      props.serviceDeployer,
-    );
-  }
-
-  /**
-   * Deploy a Lambda-backed Restate handler to the BYOC cluster.
-   *
-   * Note that a change in the handler properties is necessary to trigger re-discovery due to how CloudFormation updates
-   * work. If you deploy a fixed Lambda alias such as `$LATEST` which isn't changing on every handler code or
-   * configuration update, you will want to set the `configurationVersion` property in `options` to a new value (e.g. a
-   * timestamp) to ensure an update to the Restate environment is triggered on stack deployment.
-   *
-   * @param handler service handler - must be a specific function version, use "latest" if you don't care about explicit versioning
-   * @param options additional options; see field documentation for details
-   * @see {ServiceRegistrationProps}
-   */
-  register(
-    handler: cdk.aws_lambda.IVersion,
-    options?: ServiceRegistrationProps,
-  ): void {
-    if (!this.deployer)
-      throw new Error(
-        "props.serviceDeployer.disabled must not be set to use register",
-      );
-
-    if (!options?.invokerRole && !options?.skipInvokeFunctionGrant) {
-      handler.grantInvoke(this);
-    }
-
-    this.deployer.register(
-      handler,
-      { adminUrl: this.loadBalancer.admin.address },
-      options,
-    );
-  }
-
-  /**
-   * Deploy a Lambda-backed Restate handler to the BYOC cluster, ensuring that a particular service name exists.
-   *
-   * Note that a change in the handler properties is necessary to trigger re-discovery due to how CloudFormation updates
-   * work. If you deploy a fixed Lambda alias such as `$LATEST` which isn't changing on every handler code or
-   * configuration update, you will want to set the `configurationVersion` property in `options` to a new value (e.g. a
-   * timestamp) to ensure an update to the Restate environment is triggered on stack deployment.
-   *
-   * @param serviceName the service name within Restate - as a safety mechanism, this must match the service's
-   *        self-reported name during discovery; if there are multiple services, one of them must match or the
-   *        deployment fails
-   * @param handler service handler - must be a specific function version, use "latest" if you don't care about explicit versioning
-   * @param options additional options; see field documentation for details
-   */
-  deployService(
-    serviceName: string,
-    handler: cdk.aws_lambda.IVersion,
-    options?: ServiceRegistrationProps,
-  ): void {
-    if (!this.deployer)
-      throw new Error(
-        "props.serviceDeployer.disabled must not be set to use deployService",
-      );
-
-    if (!options?.invokerRole && !options?.skipInvokeFunctionGrant) {
-      handler.grantInvoke(this);
-    }
-
-    this.deployer.deployService(
-      serviceName,
-      handler,
-      { adminUrl: this.loadBalancer.admin.address },
-      options,
-    );
   }
 }
 
@@ -1574,48 +1501,4 @@ function validateRestateVersion(
 
   assertSupportedRestateVersion(restateVersion);
   return restateVersion;
-}
-
-function createServiceDeployer(
-  scope: Construct,
-  vpc: cdk.aws_ec2.IVpc,
-  vpcSubnets: cdk.aws_ec2.SelectedSubnets,
-  securityGroups: cdk.aws_ec2.ISecurityGroup[],
-  serviceDeployerProps?: ServiceDeployerProps,
-): ServiceDeployer | undefined {
-  if (serviceDeployerProps?.disabled) {
-    return undefined;
-  }
-
-  const role =
-    serviceDeployerProps?.executionRole ??
-    new cdk.aws_iam.Role(scope, "service-deployer-lambda-execution-role", {
-      assumedBy: new cdk.aws_iam.ServicePrincipal("lambda.amazonaws.com"),
-    });
-
-  role.addToPrincipalPolicy(
-    new cdk.aws_iam.PolicyStatement({
-      actions: [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
-        "ec2:CreateNetworkInterface",
-        "ec2:DescribeNetworkInterfaces",
-        "ec2:DescribeSubnets",
-        "ec2:DeleteNetworkInterface",
-        "ec2:AssignPrivateIpAddresses",
-        "ec2:UnassignPrivateIpAddresses",
-      ],
-      resources: ["*"],
-      effect: cdk.aws_iam.Effect.ALLOW,
-      sid: "AWSLambdaVPCAccessExecutionPermissions",
-    }),
-  );
-
-  return new ServiceDeployer(scope, "service-deployer", {
-    vpc,
-    vpcSubnets,
-    securityGroups,
-    role,
-  });
 }
