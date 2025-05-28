@@ -107,12 +107,6 @@ export interface RestateBYOCProps {
    * Default: See the documentation for RestateBYOCMonitoringProps
    */
   monitoring?: RestateBYOCMonitoringProps;
-
-  /**
-   * Options for the ServiceDeployer
-   * Default: See the documentation for ServiceDeployerProps
-   */
-  serviceDeployer?: ServiceDeployerProps;
 }
 
 export type LoadBalancerSource =
