@@ -243,13 +243,16 @@ exports[`BYOC Default parameters 1`] = `
             - '-c'
             - >
 
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o
+              container-metadata && \\
+
               curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
               task-metadata && \\
 
               export \\
                 RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -418,13 +421,18 @@ exports[`BYOC Default parameters 1`] = `
             - '-c'
             - >
 
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o
+              container-metadata && \\
+
               curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
               task-metadata && \\
 
               export \\
                 RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
+                RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -437,8 +445,6 @@ exports[`BYOC Default parameters 1`] = `
               Value: 'false'
             - Name: RESTATE_SHUTDOWN_TIMEOUT
               Value: 100s
-            - Name: RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE
-              Value: 24576MiB
             - Name: RESTATE_METADATA_CLIENT__TYPE
               Value: object-store
             - Name: RESTATE_METADATA_CLIENT__PATH
@@ -462,7 +468,7 @@ exports[`BYOC Default parameters 1`] = `
             - Name: RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_WAL_FSYNC
               Value: 'true'
             - Name: RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET
-              Value: '86'
+              Value: (128 * 2) / (3 * 1)
             - Name: RESTATE_LOG_SERVER__ROCKSDB_DISABLE_WAL_FSYNC
               Value: 'true'
             - Name: RESTATE_LOG_SERVER__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS
@@ -1708,23 +1714,21 @@ exports[`BYOC Default parameters 1`] = `
               CPU","region":"
             - Ref: 'AWS::Region'
             - >-
-              ","metrics":[[{"label":"CPU","expression":"cpu /
-              1024"}],[{"expression":"SELECT AVG(CpuUtilized) FROM
-              SCHEMA(\\"ECS/ContainerInsights\\",
+              ","metrics":[[{"label":"CPU","expression":"SELECT AVG(CpuUtilized)
+              FROM SCHEMA(\\"ECS/ContainerInsights\\",
               ClusterName,TaskDefinitionFamily,TaskId) WHERE
               TaskDefinitionFamily =
               'RestateBYOCdefaultstatelessdefinitionFF58C79A' GROUP BY
-              TaskId","visible":false,"id":"cpu"}]],"annotations":{"horizontal":[{"value":16,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"vCPUs","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":0,"properties":{"view":"timeSeries","title":"Stateless
+              TaskId"}]],"annotations":{"horizontal":[{"value":16384,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"vCPUs","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":0,"properties":{"view":"timeSeries","title":"Stateless
               Memory","region":"
             - Ref: 'AWS::Region'
             - >-
-              ","metrics":[[{"label":"Memory","expression":"memory /
-              1024"}],[{"expression":"SELECT AVG(MemoryUtilized) FROM
-              SCHEMA(\\"ECS/ContainerInsights\\",
+              ","metrics":[[{"label":"Memory","expression":"SELECT
+              AVG(MemoryUtilized) FROM SCHEMA(\\"ECS/ContainerInsights\\",
               ClusterName,TaskDefinitionFamily,TaskId) WHERE
               TaskDefinitionFamily =
               'RestateBYOCdefaultstatelessdefinitionFF58C79A' GROUP BY
-              TaskId","visible":false,"id":"memory"}]],"annotations":{"horizontal":[{"value":32,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"GiB","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":0,"y":6,"properties":{"view":"timeSeries","title":"Stateless
+              TaskId"}]],"annotations":{"horizontal":[{"value":32768,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"MiB","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":0,"y":6,"properties":{"view":"timeSeries","title":"Stateless
               Network Tx","region":"
             - Ref: 'AWS::Region'
             - >-
@@ -1752,23 +1756,21 @@ exports[`BYOC Default parameters 1`] = `
               CPU","region":"
             - Ref: 'AWS::Region'
             - >-
-              ","metrics":[[{"label":"CPU","expression":"cpu /
-              1024"}],[{"expression":"SELECT AVG(CpuUtilized) FROM
-              SCHEMA(\\"ECS/ContainerInsights\\",
+              ","metrics":[[{"label":"CPU","expression":"SELECT AVG(CpuUtilized)
+              FROM SCHEMA(\\"ECS/ContainerInsights\\",
               ClusterName,TaskDefinitionFamily,TaskId) WHERE
               TaskDefinitionFamily =
               'RestateBYOCdefaultstatefuldefinition4D62F21B' GROUP BY
-              TaskId","visible":false,"id":"cpu"}]],"annotations":{"horizontal":[{"value":16,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"vCPUs","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":18,"properties":{"view":"timeSeries","title":"Stateful
+              TaskId"}]],"annotations":{"horizontal":[{"value":16384,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"vCPUs","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":18,"properties":{"view":"timeSeries","title":"Stateful
               Memory","region":"
             - Ref: 'AWS::Region'
             - >-
-              ","metrics":[[{"label":"Memory","expression":"memory /
-              1024"}],[{"expression":"SELECT AVG(MemoryUtilized) FROM
-              SCHEMA(\\"ECS/ContainerInsights\\",
+              ","metrics":[[{"label":"Memory","expression":"SELECT
+              AVG(MemoryUtilized) FROM SCHEMA(\\"ECS/ContainerInsights\\",
               ClusterName,TaskDefinitionFamily,TaskId) WHERE
               TaskDefinitionFamily =
               'RestateBYOCdefaultstatefuldefinition4D62F21B' GROUP BY
-              TaskId","visible":false,"id":"memory"}]],"annotations":{"horizontal":[{"value":32,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"GiB","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":0,"y":24,"properties":{"view":"timeSeries","title":"Stateful
+              TaskId"}]],"annotations":{"horizontal":[{"value":32768,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"MiB","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":0,"y":24,"properties":{"view":"timeSeries","title":"Stateful
               Network Tx","region":"
             - Ref: 'AWS::Region'
             - >-

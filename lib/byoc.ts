@@ -28,6 +28,9 @@ import { createMonitoring } from "./monitoring";
 import type { IRestateEnvironment } from "@restatedev/restate-cdk";
 import { getArtifacts } from "./artifacts";
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const PACKAGE_INFO = require("../package.json");
+
 export class RestateBYOC
   extends Construct
   implements
@@ -326,11 +329,12 @@ export class RestateBYOC
     );
     this.stateless = stateless;
 
-    let partitionsPerNode: number;
+    // we may have some refs so we have to build a bash-evaluatable string
+    let partitionsPerNode: string;
     {
-      const nodeCount =
-        new Set(this.vpcSubnets.availabilityZones).size *
-        (props.statefulNode?.nodesPerAz ?? DEFAULT_STATEFUL_NODES_PER_AZ);
+      const azCount = new Set(this.vpcSubnets.availabilityZones).size;
+      const nodesPerAz =
+        props.statefulNode?.nodesPerAz ?? DEFAULT_STATEFUL_NODES_PER_AZ;
       const replicationFactor = props.statelessNode?.defaultReplication
         ? "zone" in props.statelessNode.defaultReplication
           ? props.statelessNode.defaultReplication.zone
@@ -338,9 +342,7 @@ export class RestateBYOC
         : 2;
       const partitionCount =
         props.statelessNode?.defaultPartitions ?? DEFAULT_PARTITIONS;
-      partitionsPerNode = Math.ceil(
-        (partitionCount * replicationFactor) / nodeCount,
-      );
+      partitionsPerNode = `(${partitionCount} * ${replicationFactor}) / (${azCount} * ${nodesPerAz})`;
     }
 
     const statefulDefinition = createStatefulDefinition(
@@ -390,7 +392,7 @@ export class RestateBYOC
     );
     this.controller = controller;
 
-    const artifacts = getArtifacts(this);
+    const artifacts = getArtifacts(this, PACKAGE_INFO.version);
 
     this.restatectl = createRestatectl(
       this,
@@ -411,6 +413,7 @@ export class RestateBYOC
 
     const monitoring = createMonitoring(
       this,
+      PACKAGE_INFO.version,
       this.clusterName,
       this.vpc,
       this.vpcSubnets,
@@ -515,7 +518,7 @@ function createStateless(
   taskDefinition.addContainer("restate", {
     cpu,
     memoryLimitMiB,
-    entryPoint: ["bash", "-c", restateEntryPointScript],
+    entryPoint: ["bash", "-c", statelessEntryPointScript],
     image:
       statelessProps?._restateImage ??
       cdk.aws_ecs.ContainerImage.fromRegistry(
@@ -588,7 +591,7 @@ function createStatefulDefinition(
   clusterName: string,
   bucketPath: `s3://${string}`,
   taskProps: RestateBYOCTaskProps,
-  partitionsPerNode: number,
+  partitionsPerNode: string,
   statefulProps?: RestateBYOCStatefulProps,
 ) {
   const cpu = statefulProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
@@ -627,7 +630,7 @@ function createStatefulDefinition(
       cdk.aws_ecs.ContainerImage.fromRegistry(
         statefulProps?.restateImage ?? DEFAULT_RESTATE_IMAGE,
       ),
-    entryPoint: ["bash", "-c", restateEntryPointScript],
+    entryPoint: ["bash", "-c", statefulEntryPointScript],
     portMappings: [
       {
         name: "node",
@@ -647,8 +650,6 @@ function createStatefulDefinition(
       RESTATE_ROLES: '["log-server", "worker"]',
       RESTATE_AUTO_PROVISION: "false",
       RESTATE_SHUTDOWN_TIMEOUT: "100s", // fargate allows 120s
-
-      RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE: `${Math.round(memoryLimitMiB * 0.75)}MiB`,
 
       RESTATE_METADATA_CLIENT__TYPE: "object-store",
       RESTATE_METADATA_CLIENT__PATH: `${bucketPath}/metadata`,
@@ -1498,12 +1499,30 @@ function createRestatectl(
   return fn;
 }
 
-const restateEntryPointScript = String.raw`
+// RESTATE_NODE_NAME: task ARN
+// RESTATE_LOCATION: region.availability-zone
+// RESTATE_ADVERTISED_ADDRESS: container IPv4 address
+// RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE: 75% of container's memory limit
+// RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET: evaluate math in the string env var
+const statefulEntryPointScript = String.raw`
+curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o container-metadata && \
 curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o task-metadata && \
 export \
   RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \
   RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \
-  RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Containers[0].Networks[0].IPv4Addresses[0]' task-metadata):5122"
+  RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \
+  RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \
+  RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
+exec restate-server
+`;
+
+const statelessEntryPointScript = String.raw`
+curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o container-metadata && \
+curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o task-metadata && \
+export \
+  RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \
+  RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \
+  RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
 exec restate-server
 `;
 

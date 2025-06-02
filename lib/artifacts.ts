@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 
-export function getArtifacts(scope: Construct) {
+export function getArtifacts(scope: Construct, version: string) {
   const artifactsBucket = cdk.aws_s3.Bucket.fromBucketName(
     scope,
     "artifacts-bucket",
@@ -11,22 +11,15 @@ export function getArtifacts(scope: Construct) {
   return {
     "retirement-watcher.zip": cdk.aws_lambda.Code.fromBucketV2(
       artifactsBucket,
-      "retirement-watcher.zip",
-      { objectVersion: "ClZUAUYCBbLZfRITyEMei7FyPp2VR0KP" },
+      `${version}/assets/retirement-watcher.zip`,
     ),
     "restatectl.zip": cdk.aws_lambda.Code.fromBucketV2(
       artifactsBucket,
-      "restatectl.zip",
-      {
-        objectVersion: "0Uy2fINKlZKI0E2IPFouP2X8S0WGSabL",
-      },
+      `${version}/assets/restatectl.zip`,
     ),
     "cloudwatch-custom-widget.zip": cdk.aws_lambda.Code.fromBucketV2(
       artifactsBucket,
-      "cloudwatch-custom-widget.zip",
-      {
-        objectVersion: "kDpi8UidtYFFZTJ6Q.oxJ1jjfYCPCEvl",
-      },
+      `${version}/assets/cloudwatch-custom-widget.zip`,
     ),
   };
 }
