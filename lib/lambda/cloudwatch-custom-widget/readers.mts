@@ -1205,7 +1205,9 @@ async function getLicenseKeyOrg(
 
     const claims = JSON.parse(
       Buffer.from(licenceKey.license_key.split(".")[1], "base64").toString(),
-    ) as { org?: string };
+    ) as {
+      org?: string;
+    };
 
     if (!claims.org) throw new Error("No org field in licence key claims");
 

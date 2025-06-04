@@ -624,7 +624,9 @@ function createStatefulDefinition(
     memoryLimitMiB,
     image:
       statefulProps?._restateImage ??
-      cdk.aws_ecs.ContainerImage.fromRegistry(statefulProps?.restateImage ?? DEFAULT_RESTATE_IMAGE),
+      cdk.aws_ecs.ContainerImage.fromRegistry(
+        statefulProps?.restateImage ?? DEFAULT_RESTATE_IMAGE,
+      ),
     entryPoint: ["bash", "-c", restateEntryPointScript],
     portMappings: [
       {
