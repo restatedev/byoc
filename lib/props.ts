@@ -251,6 +251,13 @@ export interface RestateBYOCNodeProps {
    * Default: 16384 CPU and 32768 memory
    */
   resources?: { cpu: number; memoryLimitMiB: number };
+
+  /**
+   * Environment properties for the `restate` container
+   */
+  environment?: {
+    [key: string]: string;
+  };
 }
 
 export const DEFAULT_CONTROLLER_IMAGE =
