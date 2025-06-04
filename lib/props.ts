@@ -241,6 +241,12 @@ export interface RestateBYOCNodeProps {
   restateImage?: string;
 
   /**
+   * @internal
+   * Custom image to use, takes precedence over `restateImage`
+   */
+  _restateImage?: cdk.aws_ecs.ContainerImage;
+
+  /**
    * The version of Restate that restateImage contains
    * Default: This will be derived from the image suffix; it must be provided if derivation failed
    */
@@ -275,11 +281,19 @@ export interface RestateBYOCControllerProps {
    * Default: docker.restate.dev/restatedev/restate-fargate-controller:0.1
    */
   controllerImage?: string;
+
+  /**
+   * @internal
+   * Custom controller image to use, takes precedence over `controllerImage`
+   */
+  _controllerImage?: cdk.aws_ecs.ContainerImage;
+
   /**
    * The resources for the fargate task that runs the controller
    * Default: 1 vCPU and 2G memory
    */
   resources?: { cpu: number; memoryLimitMiB: number };
+
   /**
    * Fargate task configurables for the controller
    * Defaults:
