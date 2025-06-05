@@ -70,8 +70,8 @@ publicAlb.addListener("admin-listener", {
         "byoc-google-sso-client-secret"
       ),
       next: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
-        // using the cfn template directly? this is the `AdminNetworkTargetGroup` output
-        byoc.targetGroups.admin.application,
+        // using the cfn template directly? set ...and reference the `AdminNetworkTargetGroup` output
+        byoc.getAdminApplicationTargetGroup(),
       ]),
     }),
 });

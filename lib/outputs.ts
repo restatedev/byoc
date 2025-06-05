@@ -1,5 +1,5 @@
-import { RestateBYOC } from "./byoc";
 import * as cdk from "aws-cdk-lib";
+import { RestateBYOC } from "./byoc";
 
 export function createOutputs(byoc: RestateBYOC) {
   new cdk.CfnOutput(byoc, "SecurityGroups", {
@@ -20,11 +20,6 @@ export function createOutputs(byoc: RestateBYOC) {
     value: byoc.targetGroups.ingress.network.targetGroupArn,
   });
 
-  new cdk.CfnOutput(byoc, "IngressApplicationTargetGroup", {
-    description: "The ARN of the application target group for the ingress port",
-    value: byoc.targetGroups.ingress.application.targetGroupArn,
-  });
-
   new cdk.CfnOutput(byoc, "AdminNetworkListener", {
     description: "The ARN of the network listener for the admin port",
     value: byoc.listeners.admin.listener.listenerArn,
@@ -33,11 +28,6 @@ export function createOutputs(byoc: RestateBYOC) {
   new cdk.CfnOutput(byoc, "AdminNetworkTargetGroup", {
     description: "The ARN of the network target group for the admin port",
     value: byoc.targetGroups.admin.network.targetGroupArn,
-  });
-
-  new cdk.CfnOutput(byoc, "AdminApplicationTargetGroup", {
-    description: "The ARN of the application target group for the admin port",
-    value: byoc.targetGroups.admin.application.targetGroupArn,
   });
 
   new cdk.CfnOutput(byoc, "NodeNetworkListener", {

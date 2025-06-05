@@ -122,21 +122,28 @@ export class RestateBYOC
   };
 
   /**
-   * Properties of the target groups managed by this construct
+   * Properties of the target groups managed by this construct. Application Load Balancer support is optional and
+   * can be activated via {@link RestateBYOCProps}'s `loadBalancer` property when you create the cluster.
    */
   public readonly targetGroups: {
     /**
      * The ingress target groups
      */
     ingress: {
-      application: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
+      /**
+       * To enable the ALB target group, set `loadBalancer.createAlbTargets` = `true` in {@link RestateBYOCProps}.
+       */
+      application?: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
       network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
     };
     /**
      * The admin target groups
      */
     admin: {
-      application: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
+      /**
+       * To enable the ALB target group, set `loadBalancer.createAlbTargets` = `true` in {@link RestateBYOCProps}.
+       */
+      application?: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
       network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
     };
     /**
@@ -208,6 +215,8 @@ export class RestateBYOC
    * Implements IRestateEnvironment
    **/
   public readonly adminUrl: string;
+
+  private albTargetProps: AlbTargetProps;
 
   constructor(scope: Construct, id: string, props: RestateBYOCProps) {
     super(scope, id);
@@ -366,46 +375,43 @@ export class RestateBYOC
     );
     this.stateful = { taskDefinition: statefulDefinition };
 
-    const targetProps = createTargetProps(this.vpc, stateless.service);
+    const { albTargetProps, nlbTargetProps } = createTargetProps(
+      this.vpc,
+      stateless.service,
+    );
+    this.albTargetProps = albTargetProps; // ALB target groups are created lazily on-demand
 
     const ingressTargetGroup = createNetworkTargetGroup(
       this,
       "ingress",
       this.listeners.ingress,
-      targetProps.network.ingress,
+      nlbTargetProps.ingress,
     );
+    stateless.service.node.addDependency(
+      ingressTargetGroup.loadBalancerAttached,
+    );
+
     const adminTargetGroup = createNetworkTargetGroup(
       this,
       "admin",
       this.listeners.admin,
-      targetProps.network.admin,
+      nlbTargetProps.admin,
     );
+    stateless.service.node.addDependency(adminTargetGroup.loadBalancerAttached);
 
     const nodeTargetGroup = createNetworkTargetGroup(
       this,
       "node",
       this.listeners.node,
-      targetProps.network.node,
+      nlbTargetProps.node,
     );
-
-    const ingressApplicationTargetGroup = createApplicationTargetGroup(
-      this,
-      "ingress",
-      targetProps.application.ingress,
-    );
-    const adminApplicationTargetGroup = createApplicationTargetGroup(
-      this,
-      "admin",
-      targetProps.application.admin,
-    );
+    stateless.service.node.addDependency(nodeTargetGroup.loadBalancerAttached);
 
     this.targetGroups = {
       ingress: {
-        application: ingressApplicationTargetGroup,
         network: ingressTargetGroup,
       },
       admin: {
-        application: adminApplicationTargetGroup,
         network: adminTargetGroup,
       },
       node: {
@@ -513,6 +519,59 @@ export class RestateBYOC
     }
 
     createOutputs(this);
+  }
+
+  /**
+   * Lazily creates an Application Load Balancer target group for HTTP ingress service.
+   */
+  public getIngressApplicationTargetGroup(): cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup {
+    if (this.targetGroups.ingress.application) {
+      return this.targetGroups.ingress.application;
+    }
+
+    const ingressApplicationTargetGroup = createApplicationTargetGroup(
+      this,
+      "ingress",
+      this.albTargetProps.ingress,
+    );
+    this.targetGroups.ingress.application = ingressApplicationTargetGroup;
+    this.stateless.service.node.addDependency(
+      ingressApplicationTargetGroup.loadBalancerAttached,
+    );
+
+    new cdk.CfnOutput(this, "IngressApplicationTargetGroup", {
+      description:
+        "The ARN of the application target group for the ingress port",
+      value: ingressApplicationTargetGroup.targetGroupArn,
+    });
+
+    return ingressApplicationTargetGroup;
+  }
+
+  /**
+   * Lazily creates an Application Load Balancer target group for admin service.
+   */
+  public getAdminApplicationTargetGroup(): cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup {
+    if (this.targetGroups.admin.application) {
+      return this.targetGroups.admin.application;
+    }
+
+    const adminApplicationTargetGroup = createApplicationTargetGroup(
+      this,
+      "admin",
+      this.albTargetProps.admin,
+    );
+    this.targetGroups.admin.application = adminApplicationTargetGroup;
+    this.stateless.service.node.addDependency(
+      adminApplicationTargetGroup.loadBalancerAttached,
+    );
+
+    new cdk.CfnOutput(this, "AdminApplicationTargetGroup", {
+      description: "The ARN of the application target group for the admin port",
+      value: adminApplicationTargetGroup.targetGroupArn,
+    });
+
+    return adminApplicationTargetGroup;
   }
 }
 
@@ -877,15 +936,17 @@ function createListeners(
   return sharedListeners;
 }
 
+interface AlbTargetProps {
+  ingress: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
+  admin: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
+}
+
 function createTargetProps(
   vpc: cdk.aws_ec2.IVpc,
   statelessService: cdk.aws_ecs.FargateService,
 ): {
-  application: {
-    ingress: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
-    admin: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
-  };
-  network: {
+  albTargetProps: AlbTargetProps;
+  nlbTargetProps: {
     ingress: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
     admin: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
     node: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
@@ -948,7 +1009,7 @@ function createTargetProps(
   };
 
   return {
-    application: {
+    albTargetProps: {
       ingress: {
         ...ingressProps,
         protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
@@ -958,7 +1019,7 @@ function createTargetProps(
         protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
       },
     },
-    network: {
+    nlbTargetProps: {
       ingress: {
         ...ingressProps,
         protocol: cdk.aws_elasticloadbalancingv2.Protocol.TCP,
