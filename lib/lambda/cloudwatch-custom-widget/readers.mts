@@ -408,7 +408,7 @@ export async function getControlPanel(
   const nodeState = restatectlSql(
     lambdaClient,
     input.resources.restatectlLambdaArn,
-    "select * from node_state",
+    "select * from nodes",
   );
   const bifrostConfig = getBifrostConfig(
     lambdaClient,
