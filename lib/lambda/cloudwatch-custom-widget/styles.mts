@@ -41,6 +41,50 @@ export function css(
 }
 </style>
 <style type="text/css">
+/* CSS custom properties for theme colors */
+:root {
+  --awsui-color-text: #0f141a;
+  --awsui-color-text-secondary: #424650;
+  --awsui-color-text-disabled: #656871;
+  --awsui-color-background-container: #ffffff;
+  --awsui-color-background-control: #ffffff;
+  --awsui-color-background-header: #ffffff;
+  --awsui-color-border: #c6c6cd;
+  --awsui-color-border-table: #ebebf0;
+  --awsui-color-background-status-bar: #d5dbdb;
+  --restate-logo-color: #03034B;
+}
+
+/* Dark mode support - responds to user's system preference */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --awsui-color-text: #ffffff;
+    --awsui-color-text-secondary: #d5d5d5;
+    --awsui-color-text-disabled: #9d9d9d;
+    --awsui-color-background-container: #1d2129;
+    --awsui-color-background-control: #1d2129;
+    --awsui-color-background-header: #232f3e;
+    --awsui-color-border: #414d5c;
+    --awsui-color-border-table: #2e3440;
+    --awsui-color-background-status-bar: #414d5c;
+    --restate-logo-color: #424FC3;
+  }
+}
+
+/* Manual dark mode override */
+[data-awsui-color-scheme="dark"] {
+  --awsui-color-text: #ffffff;
+  --awsui-color-text-secondary: #d5d5d5;
+  --awsui-color-text-disabled: #9d9d9d;
+  --awsui-color-background-container: #1d2129;
+  --awsui-color-background-control: #1d2129;
+  --awsui-color-background-header: #232f3e;
+  --awsui-color-border: #414d5c;
+  --awsui-color-border-table: #2e3440;
+  --awsui-color-background-status-bar: #414d5c;
+  --restate-logo-color: #424FC3;
+}
+
 body {
   ${EMPTY_VAR}: var(--thisvariabledoesnotexist,);
   font-size: 14px;
@@ -50,6 +94,8 @@ body {
       Roboto,
       Arial,
       sans-serif;
+  color: var(--awsui-color-text);
+  background-color: var(--awsui-color-background-container);
 }
 
 table {
@@ -112,13 +158,14 @@ h3.awsui_heading {
 }
 
 .awsui_border {
-  border-block: solid 1px #c6c6cd;
-  border-inline: solid 1px #c6c6cd;
+  border-block: solid 1px var(--awsui-color-border);
+  border-inline: solid 1px var(--awsui-color-border);
   border-start-start-radius: 16px;
   border-start-end-radius: 16px;
   border-end-start-radius: 16px;
   border-end-end-radius: 16px;
   box-sizing: border-box;
+  background-color: var(--awsui-color-background-container);
 }
 
 .awsui_content {
@@ -151,7 +198,7 @@ h3.awsui_heading {
   inset-block-start: 0;
   inset-block-end: 0;
   inset-inline-start: 0;
-  border-inline-start: 1px solid #c6c6cd;
+  border-inline-start: 1px solid var(--awsui-color-border);
   transform: translate(-10px);
 }
 
@@ -219,7 +266,7 @@ h3.awsui_heading {
 }
 
 .awsui_tabs-header-with-divider {
-  border-block-end: 1px solid #c6c6cd;
+  border-block-end: 1px solid var(--awsui-color-border);
 }
 
 .awsui_tabs-header-scroll-container {
@@ -279,12 +326,13 @@ h3.awsui_heading {
 
 .awsui_tabs-tab-header-container > button {
   background-color: transparent;
+  color: var(--awsui-color-text);
 }
 
 .awsui_tabs-tab:not(:last-child)>.awsui_tabs-tab-header-container:before {
   content: "";
   position: absolute;
-  border-inline-end: 1px solid #c6c6cd;
+  border-inline-end: 1px solid var(--awsui-color-border);
   inset: 12px 0;
   opacity: 1;
 }
@@ -333,6 +381,7 @@ h3.awsui_heading {
   position: relative;
   min-inline-size: 0;
   word-break: break-word;
+  color: var(--awsui-color-text);
 }
 
 .awsui_tabs-content {
@@ -529,7 +578,7 @@ ${[...Array(maxTableColumns * 2).keys()]
 
 .ecs-status-bar {
   align-items: stretch;
-  background: #d5dbdb;
+  background: var(--awsui-color-background-status-bar);
   display: inline-flex;
   height: 10px;
   opacity: 0.85;
@@ -591,10 +640,10 @@ ${[...Array(maxTableColumns * 2).keys()]
 }
 
 .awsui_header-cell {
-  background: #ffffff;
-  border-block-end: 1px solid #c6c6cd;
+  background: var(--awsui-color-background-header);
+  border-block-end: 1px solid var(--awsui-color-border);
   box-sizing: border-box;
-  color: #424650;
+  color: var(--awsui-color-text-secondary);
   font-weight: bold;
   position: relative;
   text-align: start;
@@ -621,7 +670,7 @@ ${[...Array(maxTableColumns * 2).keys()]
     max-block-size: calc(100% - 18px);
     margin-block: auto;
     margin-inline: auto;
-    border-inline-start: 2px solid #8c8c94;
+    border-inline-start: 2px solid var(--awsui-color-border);
     box-sizing: border-box;
 }
 
@@ -631,7 +680,7 @@ ${[...Array(maxTableColumns * 2).keys()]
 }
 
 .awsui_body-cell {
-  border-block-end: 1px solid #ebebf0;
+  border-block-end: 1px solid var(--awsui-color-border-table);
   border-block-start: 1px solid #0000;
   box-sizing: border-box;
   word-wrap: break-word;
@@ -648,10 +697,11 @@ ${[...Array(maxTableColumns * 2).keys()]
   padding-inline-start: 19px;
   padding-inline-end: 19px;
   order: inherit;
+  color: var(--awsui-color-text);
 }
 
 .awsui_button {
-  background: #ffffff;
+  background: var(--awsui-color-background-control);
   color: #006ce0;
   border-color: #006ce0;
   position: relative;
@@ -697,7 +747,7 @@ ${[...Array(maxTableColumns * 2).keys()]
 }
 
 .awsui_counter {
-  color: #656871;
+  color: var(--awsui-color-text-disabled);
   font-weight: normal;
 }
 
@@ -719,7 +769,7 @@ ${[...Array(maxTableColumns * 2).keys()]
 }
 
 .awsui_page-button {
-  color: #424650;
+  color: var(--awsui-color-text-secondary);
   background: #0000;
   box-sizing: border-box;
   cursor: pointer;
@@ -732,7 +782,7 @@ ${[...Array(maxTableColumns * 2).keys()]
 }
 
 .awsui_page-button-disabled {
-  color: #b4b4bb;
+  color: var(--awsui-color-text-disabled);
   cursor: default;
 }
 
@@ -770,7 +820,7 @@ ${[...Array(maxTableColumns * 2).keys()]
 .awsui_no-rows {
   margin: 12px auto 12px auto;
   display: table;
-  color: #0f141a;
+  color: var(--awsui-color-text);
   font-weight: bold;
 }
 </style>`;
@@ -1158,7 +1208,7 @@ export function paginatedTable(
       `${headerName}` +
       `</div>` +
       // show the unfilled asc if neither the desc nor the asc is selected - clicking takes us to asc
-      `<label for="${name}-sort-${i}-asc" class="awsui_sorting_icon" style="color: #424650; display: var(${NONE_IF_SORT_COLUMN(i * 2 + 1)}, var(${NONE_IF_SORT_COLUMN(i * 2)}, block));">` +
+      `<label for="${name}-sort-${i}-asc" class="awsui_sorting_icon" style="color: var(--awsui-color-text-secondary); display: var(${NONE_IF_SORT_COLUMN(i * 2 + 1)}, var(${NONE_IF_SORT_COLUMN(i * 2)}, block));">` +
       `<span class="awsui_icon-inner">` +
       `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">` +
       `<path d="m8 5 4 6H4l4-6Z" class="stroke-linejoin-round"></path>` +
@@ -1166,7 +1216,7 @@ export function paginatedTable(
       `</span>` +
       `</label>` +
       // show the filled asc if its selected - clicking takes it to desc
-      `<label for="${name}-sort-${i}-desc" class="awsui_sorting_icon" style="color: #0f141a; display: var(${BLOCK_IF_SORT_COLUMN(i * 2)}, none);">` +
+      `<label for="${name}-sort-${i}-desc" class="awsui_sorting_icon" style="color: var(--awsui-color-text); display: var(${BLOCK_IF_SORT_COLUMN(i * 2)}, none);">` +
       `<span class="awsui_icon-inner">` +
       `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">` +
       `<path d="m8 5 4 6H4l4-6Z" class="filled stroke-linejoin-round"></path>` +
@@ -1174,7 +1224,7 @@ export function paginatedTable(
       `</span>` +
       `</label>` +
       // show the filled desc if its selected - clicking takes us to asc
-      `<label for="${name}-sort-${i}-asc" class="awsui_sorting_icon" style="color: #0f141a; display: var(${BLOCK_IF_SORT_COLUMN(i * 2 + 1)}, none)">` +
+      `<label for="${name}-sort-${i}-asc" class="awsui_sorting_icon" style="color: var(--awsui-color-text); display: var(${BLOCK_IF_SORT_COLUMN(i * 2 + 1)}, none)">` +
       `<span class="awsui_icon-inner">` +
       `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">` +
       `<path d="m8 11 4-6H4l4 6Z" class="filled stroke-linejoin-round"></path>` +

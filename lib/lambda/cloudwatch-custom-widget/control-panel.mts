@@ -1,6 +1,6 @@
 import * as styles from "./styles.mjs";
 import type { Context } from "aws-lambda";
-import { RESTATE_LOGO } from "./static.mjs";
+import { RESTATE_LOGO_SVG } from "./static.mjs";
 import { ControlPanelWidgetEvent, WidgetContext } from "./index.mjs";
 import { getControlPanel } from "./readers.mjs";
 
@@ -234,7 +234,7 @@ export async function controlPanel(
   const props = await getControlPanel(event.input);
   const summary = styles.contentWrapper(
     true,
-    `<div class="awsui_horizontal awsui_horizontal-s"><div>Summary</div><img alt="restate logo" src="${RESTATE_LOGO}" width="85px"></img><div>`,
+    `<div class="awsui_horizontal awsui_horizontal-s"><div>Summary</div><div style="width: 85px">${RESTATE_LOGO_SVG}</div><div>`,
     styles.columns(
       styles.vertical(
         "s",
