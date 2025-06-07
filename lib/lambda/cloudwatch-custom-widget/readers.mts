@@ -1138,6 +1138,9 @@ interface Node {
   log_server_config: {
     storage_state: string;
   };
+  worker_config: {
+    worker_state: string;
+  };
   name: string;
   roles: string[];
 }
@@ -1366,6 +1369,7 @@ function getNodes(
       nodeID: genNodeID ?? "",
       nodeStatus: nodeStatus ?? "",
       storageState: node?.log_server_config.storage_state ?? "",
+      workerState: node?.worker_config.worker_state ?? "",
       leader: node?.current_generation
         ? (leadersByNode.get(node.current_generation[0]) ?? 0)
         : 0,
@@ -1443,6 +1447,7 @@ function getNodes(
         nodeID: genNodeID,
         nodeStatus: nodeStatus ?? "",
         storageState: node.log_server_config.storage_state,
+        workerState: node.worker_config.worker_state,
         leader: leadersByNode.get(node.current_generation[0]) ?? 0,
         follower: followersByNode.get(node.current_generation[0]) ?? 0,
         nodesetMember: nodesetsByNode.get(node.current_generation[0]) ?? 0,
