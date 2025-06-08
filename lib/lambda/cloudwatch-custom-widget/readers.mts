@@ -1295,7 +1295,7 @@ function getNodes(
 
   let nodeStatusByID: { [k: string]: string | undefined } = {};
   const nodeStateIDCol = nodeState.headers.get("PLAIN_NODE_ID");
-  const nodeStateStatusCol = nodeState.headers.get("STATUS");
+  const nodeStateStatusCol = nodeState.headers.get("STATE");
   if (nodeStateIDCol !== undefined && nodeStateStatusCol !== undefined) {
     nodeStatusByID = Object.fromEntries<string | undefined>(
       nodeState.rows.map((row) => [
@@ -1660,7 +1660,7 @@ function getPartitions(
       status: getLabel("REPLAY_STATUS", row),
       leader: getLabel("LEADER", row),
       appliedLSN,
-      persistedLSN: getLabel("PERSISTED_LOG_LSN", row),
+      durableLSN: getLabel("DURABLE_LOG_LSN", row),
       archivedLSN: getLabel("ARCHIVED_LOG_LSN", row),
       targetTailLSN,
       lsnLag,
