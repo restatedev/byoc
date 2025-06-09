@@ -9,11 +9,10 @@ import {
   SupportedRestateVersion,
 } from "./props";
 import type { ControlPanelWidgetEvent } from "./lambda/cloudwatch-custom-widget/index.mjs";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const packageInfo = require("../package.json");
 
 export function createMonitoring(
   scope: Construct,
+  stackVersion: string,
   clusterName: string,
   vpc: cdk.aws_ec2.IVpc,
   subnets: cdk.aws_ec2.SelectedSubnets,
@@ -93,7 +92,7 @@ export function createMonitoring(
               summary: {
                 clusterName,
                 restateVersion: statelessRestateVersion,
-                stackVersion: packageInfo.version,
+                stackVersion: stackVersion,
                 metricsDashboardName: metricsDashboard?.dashboardName,
               },
               resources: {
@@ -165,13 +164,8 @@ export function createMetricsDashboard(
       view: cloudwatch.GraphWidgetView.TIME_SERIES,
       left: [
         new cloudwatch.MathExpression({
-          expression: `cpu / 1024`,
+          expression: `SELECT AVG(CpuUtilized) FROM SCHEMA("ECS/ContainerInsights", ClusterName,TaskDefinitionFamily,TaskId) WHERE TaskDefinitionFamily = '${taskFamily}' GROUP BY TaskId`,
           label: "CPU",
-          usingMetrics: {
-            cpu: new cloudwatch.MathExpression({
-              expression: `SELECT AVG(CpuUtilized) FROM SCHEMA("ECS/ContainerInsights", ClusterName,TaskDefinitionFamily,TaskId) WHERE TaskDefinitionFamily = '${taskFamily}' GROUP BY TaskId`,
-            }),
-          },
         }),
       ],
       width: 12,
@@ -182,7 +176,7 @@ export function createMetricsDashboard(
       },
       leftAnnotations: [
         {
-          value: cpuLimit / 1024,
+          value: cpuLimit,
           label: "Limit",
         },
       ],
@@ -198,24 +192,19 @@ export function createMetricsDashboard(
       view: cloudwatch.GraphWidgetView.TIME_SERIES,
       left: [
         new cloudwatch.MathExpression({
-          expression: `memory / 1024`,
+          expression: `SELECT AVG(MemoryUtilized) FROM SCHEMA("ECS/ContainerInsights", ClusterName,TaskDefinitionFamily,TaskId) WHERE TaskDefinitionFamily = '${taskFamily}' GROUP BY TaskId`,
           label: "Memory",
-          usingMetrics: {
-            memory: new cloudwatch.MathExpression({
-              expression: `SELECT AVG(MemoryUtilized) FROM SCHEMA("ECS/ContainerInsights", ClusterName,TaskDefinitionFamily,TaskId) WHERE TaskDefinitionFamily = '${taskFamily}' GROUP BY TaskId`,
-            }),
-          },
         }),
       ],
       width: 12,
       height: 6,
       leftYAxis: {
-        label: "GiB",
+        label: "MiB",
         showUnits: false,
       },
       leftAnnotations: [
         {
-          value: memoryLimit / 1024,
+          value: memoryLimit,
           label: "Limit",
         },
       ],
@@ -240,18 +229,34 @@ export function createMetricsDashboard(
     });
 
   const ebsVolume = props?.statefulNode?.ebsVolume;
-  const volumeSize = ebsVolume?.sizeInGiB ?? 200;
 
+  let volumeSize: number;
   let iopsLimit: number;
   let throughputLimit: number;
   switch (ebsVolume?.volumeType) {
-    case undefined: // default ephemeral volume
-      iopsLimit = 600;
-      throughputLimit = 150;
-      break;
+    case undefined:
+    case cdk.aws_ec2.EbsDeviceVolumeType.GP2:
+      if (!ebsVolume) {
+        // default ephemeral volume, which is gp2
+        volumeSize = 200;
+        iopsLimit = 600;
+        throughputLimit = 150;
+        break;
+      } else {
+        // ebs volume, but requesting gp2
+        if (cdk.isResolvableObject(ebsVolume.sizeInGiB))
+          throw new Error("Cannot use a cfn token for gp2 volume size");
+        volumeSize = ebsVolume.sizeInGiB;
+        iopsLimit = Math.min(ebsVolume.sizeInGiB * 3, 16000);
+        throughputLimit = Math.max(Math.min(iopsLimit / 4, 250), 128);
+        break;
+      }
     case cdk.aws_ec2.EbsDeviceVolumeType.IO1:
-      if (!ebsVolume?.iops)
+      if (!ebsVolume.iops)
         throw new Error("io1 volumes must have an iops configured");
+      if (cdk.isResolvableObject(ebsVolume.iops))
+        throw new Error("Cannot use a cfn token for io1 iops");
+      volumeSize = ebsVolume.sizeInGiB;
       iopsLimit = ebsVolume.iops;
       throughputLimit = Math.max(
         /* limit256 = */ Math.min(iopsLimit / 2000, 500),
@@ -259,24 +264,30 @@ export function createMetricsDashboard(
       );
       break;
     case cdk.aws_ec2.EbsDeviceVolumeType.IO2:
-      if (!ebsVolume?.iops)
+      if (!ebsVolume.iops)
         throw new Error("io2 volumes must have an iops configured");
+      if (cdk.isResolvableObject(ebsVolume.iops))
+        throw new Error("Cannot use a cfn token for io2 iops");
+      volumeSize = ebsVolume.sizeInGiB;
       iopsLimit = ebsVolume.iops;
       throughputLimit = Math.min(iopsLimit / 4, 4000);
       break;
-    case cdk.aws_ec2.EbsDeviceVolumeType.GP2:
-      iopsLimit = Math.min(volumeSize * 3, 16000);
-      throughputLimit = Math.max(Math.min(iopsLimit / 4, 250), 128);
-      break;
     case cdk.aws_ec2.EbsDeviceVolumeType.GP3:
+      volumeSize = ebsVolume.sizeInGiB;
       iopsLimit = ebsVolume.iops ?? 3000;
       throughputLimit = ebsVolume?.throughput ?? 125;
       break;
     case cdk.aws_ec2.EbsDeviceVolumeType.ST1:
+      if (cdk.isResolvableObject(ebsVolume.sizeInGiB))
+        throw new Error("Cannot use a cfn token for st1 volume size");
+      volumeSize = ebsVolume.sizeInGiB;
       throughputLimit = Math.min((ebsVolume.sizeInGiB * 40) / 1000, 500);
       iopsLimit = throughputLimit; // assumes 1M i/o
       break;
     case cdk.aws_ec2.EbsDeviceVolumeType.SC1:
+      if (cdk.isResolvableObject(ebsVolume.sizeInGiB))
+        throw new Error("Cannot use a cfn token for sc1 volume size");
+      volumeSize = ebsVolume.sizeInGiB;
       throughputLimit = Math.min((ebsVolume.sizeInGiB * 12) / 1000, 192);
       iopsLimit = throughputLimit; // assumes 1M i/o
       break;

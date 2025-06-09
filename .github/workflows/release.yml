@@ -20,11 +20,19 @@ jobs:
         with:
           node-version: "22.x"
           registry-url: "https://registry.npmjs.org"
+      - uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: arn:aws:iam::654654156625:role/restate-byoc-artifacts-upload
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: eu-central-1
 
       - run: npm ci
       - run: npm run download-restatectl
       - run: npm run build
       - run: npm run test
+      - run: npm run publish-stack
+        env:
+          AWS_REGION: eu-central-1
       - run: |
           if [[ ${{ github.event.release.prerelease }} == true ]]; then
             npm publish --tag next --access public

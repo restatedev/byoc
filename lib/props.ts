@@ -267,7 +267,7 @@ export interface RestateBYOCNodeProps {
 }
 
 export const DEFAULT_CONTROLLER_IMAGE =
-  "docker.restate.dev/restatedev/restate-fargate-controller:0.1";
+  "docker.restate.dev/restatedev/restate-fargate-controller:0.2";
 export const DEFAULT_CONTROLLER_CPU = 1024;
 export const DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB = 2048;
 export const DEFAULT_CONTROLLER_SNAPSHOT_RETENTION = "24h";

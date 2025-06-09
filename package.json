@@ -36,6 +36,7 @@
   "scripts": {
     "attw": "attw --pack",
     "download-restatectl": "mkdir -p lib/lambda/restatectl && curl -L https://restate.gateway.scarf.sh/v1.3.2/restatectl-aarch64-unknown-linux-musl.tar.xz | tar -Jx --strip-components=1 -C lib/lambda/restatectl restatectl-aarch64-unknown-linux-musl/restatectl && mv lib/lambda/restatectl/restatectl lib/lambda/restatectl/bootstrap",
+    "publish-stack": "./artifacts/publish_stack.mts",
     "lint": "eslint",
     "build": "tsc",
     "watch": "tsc -w",
