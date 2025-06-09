@@ -218,5 +218,5 @@ function removeBootstrapDependencies(templateJson: {
   return modifiedTemplate;
 }
 
-publishStack("xlarge").catch(console.error);
-publishStack("medium").catch(console.error);
+await publishStack("xlarge");
+await publishStack("medium");
