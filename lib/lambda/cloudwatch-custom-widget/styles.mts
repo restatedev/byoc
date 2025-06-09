@@ -1,10 +1,6 @@
 import type { Context } from "aws-lambda";
 import { EMBER_BOLD, EMBER_ITALIC, EMBER_REGULAR } from "./static.mjs";
-import {
-  ControlPanelWidgetEvent,
-  ControlPanelWidgetRefreshEvent,
-  WidgetContext,
-} from "./index.mjs";
+import { ControlPanelWidgetRefreshEvent, WidgetContext } from "./index.mjs";
 
 const FLEX_IF_PAGE = (i: number) => `--a${i}`;
 const CONTENTS_IF_PAGE = (i: number) => `--b${i}`;
@@ -1018,7 +1014,6 @@ export interface TableHeader {
 export function paginatedTable(
   context: Context,
   widgetContext: WidgetContext,
-  event: ControlPanelWidgetEvent,
   name: string,
   header: string,
   tableHeaders: TableHeader[],
@@ -1413,6 +1408,25 @@ export function volumeStatus(
       return "N/A";
     default:
       return status;
+  }
+}
+
+export function snapshotState(
+  state: "pending" | "completed" | "error" | "recoverable" | "recovering",
+): string {
+  switch (state) {
+    case "pending":
+      return textStatus("info", "Pending");
+    case "completed":
+      return textStatus("success", "Completed");
+    case "error":
+      return textStatus("error", "Error");
+    case "recoverable":
+      return textStatus("warning", "Recoverable");
+    case "recovering":
+      return textStatus("warning", "Recovering");
+    default:
+      return state;
   }
 }
 

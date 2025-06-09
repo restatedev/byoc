@@ -539,7 +539,11 @@ function createCustomWidgetLambda(
 
   role.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
-      actions: ["ec2:DescribeVolumes", "ec2:DescribeVolumeStatus"],
+      actions: [
+        "ec2:DescribeVolumes",
+        "ec2:DescribeVolumeStatus",
+        "ec2:DescribeSnapshots",
+      ],
       resources: ["*"],
       effect: cdk.aws_iam.Effect.ALLOW,
       sid: "EC2ReadActions",

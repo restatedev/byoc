@@ -88,6 +88,10 @@ export interface ControlPanelProps {
       objectCount?: number;
     };
     volumes: Volume[];
+    snapshots: {
+      retention?: string;
+      info: Snapshot[];
+    };
   };
   replication: {
     partitions: {
@@ -126,7 +130,7 @@ export interface PartitionInfo {
 }
 
 export type Volume = {
-  taskArn: string;
+  taskArn?: string;
   volumeID?: string;
   availabilityZone: string;
   type: string;
@@ -140,6 +144,14 @@ export type Volume = {
     | "impaired"
     | "insufficient-data"
     | "not-available";
+};
+
+export type Snapshot = {
+  snapshotID: string;
+  volumeSizeInGiB: number;
+  snapshotSize: string;
+  state: "pending" | "completed" | "error" | "recoverable" | "recovering";
+  startTime: string;
 };
 
 export interface TaskProps {
@@ -470,7 +482,6 @@ export async function controlPanel(
   const statefulNodes = styles.paginatedTable(
     context,
     widgetContext,
-    event,
     "statefulNodes",
     "Stateful nodes",
     statefulNodesHeaders,
@@ -530,7 +541,6 @@ export async function controlPanel(
   const statelessNodes = styles.paginatedTable(
     context,
     widgetContext,
-    event,
     "statelessNodes",
     "Stateless nodes",
     statelessNodesHeaders,
@@ -590,7 +600,6 @@ export async function controlPanel(
   const controllerTasks = styles.paginatedTable(
     context,
     widgetContext,
-    event,
     "controllerTasks",
     "Controller tasks",
     controllerHeaders,
@@ -656,17 +665,19 @@ export async function controlPanel(
   ];
 
   const volumeRows: string[][] = props.storage.volumes.map((volume) => {
-    const taskID = volume.taskArn.split("/").pop()!;
+    const taskID = volume.taskArn?.split("/").pop();
     return [
       volume.volumeID
         ? styles.link(
             `/ec2/home?region=${props.connectivityAndSecurity.region}#VolumeDetails:volumeId=${volume.volumeID}`,
             volume.volumeID,
           )
-        : styles.link(
-            `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${taskID}/volumes?region=${props.connectivityAndSecurity.region}`,
-            `${taskID} (ephemeral)`,
-          ),
+        : taskID
+          ? styles.link(
+              `/ecs/v2/clusters/${props.nodes.clusterName}/tasks/${taskID}/volumes?region=${props.connectivityAndSecurity.region}`,
+              `${taskID} (ephemeral)`,
+            )
+          : "",
       volume.type,
       `${volume.sizeInGiB} GB`,
       `${volume.iops}`,
@@ -680,14 +691,49 @@ export async function controlPanel(
   const volumes = styles.paginatedTable(
     context,
     widgetContext,
-    event,
     "volumes",
     "Volumes",
     volumeHeaders,
     volumeRows,
     "No volumes",
   );
-  const storage = styles.vertical("l", s3Bucket, volumes);
+
+  const snapshotHeaders: styles.TableHeader[] = [
+    { name: "Snapshot" },
+    { name: "Full snapshot size" },
+    { name: "Volume size" },
+    { name: "Status" },
+    { name: "Created at" },
+  ];
+
+  const snapshotRows: string[][] = props.storage.snapshots.info.map(
+    (snapshot) => {
+      return [
+        styles.link(
+          `/ec2/home?region=${props.connectivityAndSecurity.region}#SnapshotDetails:snapshotId=${snapshot.snapshotID}`,
+          snapshot.snapshotID,
+        ),
+        snapshot.snapshotSize,
+        `${snapshot.volumeSizeInGiB} GB`,
+        styles.snapshotState(snapshot.state),
+        snapshot.startTime,
+      ];
+    },
+  );
+
+  const snapshots = styles.paginatedTable(
+    context,
+    widgetContext,
+    "snapshots",
+    "EBS Snapshots",
+    snapshotHeaders,
+    snapshotRows,
+    props.storage.snapshots.retention
+      ? `No EBS snapshots; snapshots are retained for ${props.storage.snapshots.retention}`
+      : `No EBS snapshots; snapshot retention is disabled`,
+  );
+
+  const storage = styles.vertical("l", s3Bucket, volumes, snapshots);
 
   const replicationFactor = (replication?: {
     node?: number;
@@ -759,7 +805,6 @@ export async function controlPanel(
   const partitions = styles.paginatedTable(
     context,
     widgetContext,
-    event,
     "partitions",
     partitionReplication
       ? `<span>Partitions ${styles.counter(`(${props.replication.partitions.count})`)}</span><span style="color: #656871; font-weight: normal; line-height: 16px; margin: 6px; font-size: 12px">Replicated over ${partitionReplication}</span>`
@@ -789,7 +834,6 @@ export async function controlPanel(
   const logs = styles.paginatedTable(
     context,
     widgetContext,
-    event,
     "logs",
     zoneReplication
       ? `<span>Logs ${styles.counter(`(${props.replication.logs.count})`)}</span><span style="color: #656871; font-weight: normal; line-height: 16px; margin: 6px; font-size: 12px">Replicated over ${zoneReplication}</span>`
