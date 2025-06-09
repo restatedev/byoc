@@ -40,7 +40,7 @@ async function publishStack(templateName: string) {
     // Step 3: Synthesize the CDK stack
     console.log(`Synthesizing stack ${STACK_NAME}...`);
     execSync(
-      `npx cdk --app './templates/${templateName}.ts' synth ${STACK_NAME}`,
+      `npm run cdk -- --app './templates/${templateName}.ts' synth ${STACK_NAME}`,
       {
         stdio: "inherit",
       },
