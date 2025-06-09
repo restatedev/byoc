@@ -27,6 +27,7 @@ import {
 import { createMonitoring } from "./monitoring";
 import type { IRestateEnvironment } from "@restatedev/restate-cdk";
 import { getArtifacts } from "./artifacts";
+import { createOutputs } from "./outputs";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PACKAGE_INFO = require("../package.json");
@@ -105,34 +106,44 @@ export class RestateBYOC
   /**
    * Properties of the listeners managed by this construct
    */
-  public readonly loadBalancer: {
+  public readonly listeners: {
     /**
-     * The ingress listener and target group properties
+     * The ingress listener properties
      */
-    ingress: TargetGroup & Listener;
+    ingress: Listener;
     /**
-     * The admin listener and target group properties
+     * The admin listener properties
      */
-    admin: TargetGroup & Listener;
+    admin: Listener;
     /**
-     * The node listener and target group properties
+     * The node listener properties
      */
-    node: TargetGroup & Listener;
+    node: Listener;
   };
+
   /**
-   * Properties that can be used to create new application or network target groups
-   * point to ports of the stateless nodes
+   * Properties of the target groups managed by this construct
    */
-  public readonly targetProps: {
-    application: {
-      ingress: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
-      admin: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
-      node: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
+  public readonly targetGroups: {
+    /**
+     * The ingress target groups
+     */
+    ingress: {
+      application: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
+      network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
     };
-    network: {
-      ingress: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
-      admin: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
-      node: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
+    /**
+     * The admin target groups
+     */
+    admin: {
+      application: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
+      network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
+    };
+    /**
+     * The node target group. Only an NLB target group is created as a ECS service has a limit of 5 overall.
+     */
+    node: {
+      network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
     };
   };
 
@@ -308,7 +319,7 @@ export class RestateBYOC
         cdk.aws_ecs.CpuArchitecture.ARM64,
     };
 
-    const listeners = createListeners(
+    this.listeners = createListeners(
       this,
       this.vpc,
       this.securityGroups,
@@ -324,7 +335,7 @@ export class RestateBYOC
       this.securityGroups,
       this.vpcSubnets,
       restateTaskProps,
-      props.addresses?.ingress ?? listeners.ingress.address,
+      props.addresses?.ingress ?? this.listeners.ingress.address,
       props.statelessNode,
     );
     this.stateless = stateless;
@@ -355,25 +366,54 @@ export class RestateBYOC
     );
     this.stateful = { taskDefinition: statefulDefinition };
 
-    this.targetProps = createTargetProps(this.vpc, stateless.service);
+    const targetProps = createTargetProps(this.vpc, stateless.service);
 
-    const loadBalancer = {
-      ingress: createTargetGroup(this, "ingress", listeners.ingress, {
-        application: this.targetProps.application.ingress,
-        network: this.targetProps.network.ingress,
-      }),
-      admin: createTargetGroup(this, "admin", listeners.admin, {
-        application: this.targetProps.application.admin,
-        network: this.targetProps.network.admin,
-      }),
-      node: createTargetGroup(this, "node", listeners.node, {
-        application: this.targetProps.application.node,
-        network: this.targetProps.network.node,
-      }),
+    const ingressTargetGroup = createNetworkTargetGroup(
+      this,
+      "ingress",
+      this.listeners.ingress,
+      targetProps.network.ingress,
+    );
+    const adminTargetGroup = createNetworkTargetGroup(
+      this,
+      "admin",
+      this.listeners.admin,
+      targetProps.network.admin,
+    );
+
+    const nodeTargetGroup = createNetworkTargetGroup(
+      this,
+      "node",
+      this.listeners.node,
+      targetProps.network.node,
+    );
+
+    const ingressApplicationTargetGroup = createApplicationTargetGroup(
+      this,
+      "ingress",
+      targetProps.application.ingress,
+    );
+    const adminApplicationTargetGroup = createApplicationTargetGroup(
+      this,
+      "admin",
+      targetProps.application.admin,
+    );
+
+    this.targetGroups = {
+      ingress: {
+        application: ingressApplicationTargetGroup,
+        network: ingressTargetGroup,
+      },
+      admin: {
+        application: adminApplicationTargetGroup,
+        network: adminTargetGroup,
+      },
+      node: {
+        network: nodeTargetGroup,
+      },
     };
 
-    this.loadBalancer = loadBalancer;
-    this.adminUrl = loadBalancer.admin.address;
+    this.adminUrl = this.listeners.admin.address;
 
     const ctPrefix = clusterTaskPrefix(this.ecsCluster.clusterArn);
 
@@ -399,7 +439,7 @@ export class RestateBYOC
       this.vpc,
       this.vpcSubnets,
       this.securityGroups,
-      listeners.node.address,
+      this.listeners.node.address,
       artifacts["restatectl.zip"],
       props.restatectl,
     );
@@ -428,16 +468,17 @@ export class RestateBYOC
       controller.taskDefinition,
       {
         ingress: {
-          loadBalancerArn: listeners.ingress.lb.loadBalancerArn,
-          certificateArn: listeners.ingress.certificate?.certificateArn,
-          address: props.addresses?.ingress ?? listeners.ingress.address,
+          loadBalancerArn: this.listeners.ingress.lb.loadBalancerArn,
+          certificateArn: this.listeners.ingress.certificate?.certificateArn,
+          address: props.addresses?.ingress ?? this.listeners.ingress.address,
         },
         admin: {
-          loadBalancerArn: listeners.admin.lb.loadBalancerArn,
-          address: props.addresses?.admin ?? listeners.admin.address,
+          loadBalancerArn: this.listeners.admin.lb.loadBalancerArn,
+          address: props.addresses?.admin ?? this.listeners.admin.address,
         },
         webUI: {
-          address: props.addresses?.webUI ?? `${listeners.admin.address}/ui`,
+          address:
+            props.addresses?.webUI ?? `${this.listeners.admin.address}/ui`,
         },
       },
       artifacts["cloudwatch-custom-widget.zip"],
@@ -468,6 +509,8 @@ export class RestateBYOC
         }),
       );
     }
+
+    createOutputs(this);
   }
 }
 
@@ -680,45 +723,20 @@ function createStatefulDefinition(
   return taskDefinition;
 }
 
-type Listener =
-  | {
-      type: "network";
-      lb: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
-      listener: cdk.aws_elasticloadbalancingv2.NetworkListener;
-      port: number;
-      protocol: "http" | "https";
-      address: string;
-      certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
-    }
-  | {
-      type: "application";
-      lb: cdk.aws_elasticloadbalancingv2.IApplicationLoadBalancer;
-      listener: cdk.aws_elasticloadbalancingv2.ApplicationListener;
-      port: number;
-      protocol: "http" | "https";
-      address: string;
-      certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
-    };
+type Listener = {
+  type: "network";
+  lb: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
+  listener: cdk.aws_elasticloadbalancingv2.NetworkListener;
+  port: number;
+  protocol: "http" | "https";
+  address: string;
+  certificate?: cdk.aws_elasticloadbalancingv2.IListenerCertificate;
+};
 
-type LoadBalancer =
-  | {
-      type: "network";
-      lb: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
-    }
-  | {
-      type: "application";
-      lb: cdk.aws_elasticloadbalancingv2.IApplicationLoadBalancer;
-    };
-
-type TargetGroup =
-  | {
-      type: "network";
-      targetGroup: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
-    }
-  | {
-      type: "application";
-      targetGroup: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
-    };
+type LoadBalancer = {
+  type: "network";
+  lb: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
+};
 
 function createSharedListener(
   scope: Construct,
@@ -740,26 +758,6 @@ function createSharedListener(
       type: "network",
       lb: sharedLb.lb,
       listener: networkListener,
-      port,
-      protocol: "http",
-      address: `http://${sharedLb.lb.loadBalancerDnsName}:${port}`,
-    };
-  } else if (sharedLb.type == "application") {
-    const applicationListener =
-      new cdk.aws_elasticloadbalancingv2.ApplicationListener(
-        scope,
-        `${name}-shared-listener`,
-        {
-          loadBalancer: sharedLb.lb,
-          port,
-          protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
-        },
-      );
-    cdk.Tags.of(applicationListener).add("Name", applicationListener.node.path);
-    return {
-      type: "application",
-      lb: sharedLb.lb,
-      listener: applicationListener,
       port,
       protocol: "http",
       address: `http://${sharedLb.lb.loadBalancerDnsName}:${port}`,
@@ -802,20 +800,9 @@ function createSharedLb(
     );
     cdk.Tags.of(lb).add("Name", lb.node.path);
     sharedLb = { type: "network", lb };
-  } else if ("albProps" in props.shared) {
-    const lb = new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
-      scope,
-      "shared-alb",
-      props.shared.albProps,
-    );
-    cdk.Tags.of(lb).add("Name", lb.node.path);
-    sharedLb = { type: "application", lb };
   } else if ("nlb" in props.shared) {
     const lb = props.shared.nlb;
     sharedLb = { type: "network", lb };
-  } else if ("alb" in props.shared) {
-    const lb = props.shared.alb;
-    sharedLb = { type: "application", lb };
   } else {
     throw new Error(`Invalid RestateBYOCLoadBalancerProps: ${props}`);
   }
@@ -827,20 +814,17 @@ function createSharedLb(
   };
 }
 
-function createTargetGroup(
+function createNetworkTargetGroup(
   scope: Construct,
   targetName: "ingress" | "admin" | "node",
   listener: Listener,
-  props: {
-    application: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
-    network: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
-  },
-): TargetGroup & Listener {
+  props: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps,
+): cdk.aws_elasticloadbalancingv2.INetworkTargetGroup {
   if (listener.type == "network") {
     const targetGroup = new cdk.aws_elasticloadbalancingv2.NetworkTargetGroup(
       scope,
       `${targetName}-shared-target`,
-      props.network,
+      props,
     );
     cdk.Tags.of(targetGroup).add("Name", targetGroup.node.path);
     listener.listener.addAction(`${targetName}-shared-action`, {
@@ -848,32 +832,25 @@ function createTargetGroup(
         targetGroup,
       ]),
     });
-    return {
-      ...listener,
-      targetGroup: targetGroup,
-    };
-  } else if (listener.type == "application") {
-    const targetGroup =
-      new cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup(
-        scope,
-        `${targetName}-shared-target`,
-        props.application,
-      );
-    cdk.Tags.of(targetGroup).add("Name", targetGroup.node.path);
-
-    listener.listener.addAction("${targetName}-shared-action", {
-      action: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
-        targetGroup,
-      ]),
-    });
-
-    return {
-      ...listener,
-      targetGroup: targetGroup,
-    };
+    return targetGroup;
   } else {
     throw new Error(`Invalid Listener: ${listener}`);
   }
+}
+
+function createApplicationTargetGroup(
+  scope: Construct,
+  targetName: "ingress" | "admin",
+  props: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps,
+): cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup {
+  const targetGroup = new cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup(
+    scope,
+    `${targetName}-application-target`,
+    props,
+  );
+  cdk.Tags.of(targetGroup).add("Name", targetGroup.node.path);
+
+  return targetGroup;
 }
 
 function createListeners(
@@ -905,7 +882,6 @@ function createTargetProps(
   application: {
     ingress: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
     admin: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
-    node: cdk.aws_elasticloadbalancingv2.ApplicationTargetGroupProps;
   };
   network: {
     ingress: cdk.aws_elasticloadbalancingv2.NetworkTargetGroupProps;
@@ -977,10 +953,6 @@ function createTargetProps(
       },
       admin: {
         ...adminProps,
-        protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
-      },
-      node: {
-        ...nodeProps,
         protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
       },
     },

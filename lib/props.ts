@@ -118,21 +118,9 @@ export type LoadBalancerSource =
     }
   | {
       /**
-       * Props to configure the creation of a new ALB
-       */
-      albProps: cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancerProps;
-    }
-  | {
-      /**
        * An existing NLB to use
        */
       nlb: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
-    }
-  | {
-      /**
-       * An existing ALB to use
-       */
-      alb: cdk.aws_elasticloadbalancingv2.IApplicationLoadBalancer;
     };
 
 export interface RestateBYOCLoadBalancerProps {

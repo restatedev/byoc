@@ -388,6 +388,14 @@ exports[`BYOC Default parameters 1`] = `
           ContainerPort: 5122
           TargetGroupArn:
             Ref: defaultnodesharedtarget1C48E466
+        - ContainerName: restate
+          ContainerPort: 8080
+          TargetGroupArn:
+            Ref: defaultingressapplicationtarget4D4B5C43
+        - ContainerName: restate
+          ContainerPort: 9070
+          TargetGroupArn:
+            Ref: defaultadminapplicationtargetEA91BC80
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -588,6 +596,45 @@ exports[`BYOC Default parameters 1`] = `
       Tags:
         - Key: Name
           Value: RestateBYOC/default/node-shared-target
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  defaultingressapplicationtarget4D4B5C43:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /restate/health
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 8080
+      Protocol: HTTP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/default/ingress-application-target
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: 'false'
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  defaultadminapplicationtargetEA91BC80:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /health
+      HealthCheckPort: '9070'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 9070
+      Protocol: HTTP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/default/admin-application-target
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: 'false'
       TargetType: ip
       VpcId:
         'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
@@ -1894,5 +1941,44 @@ exports[`BYOC Default parameters 1`] = `
             - >-
               "}}}},"title":"","updateOn":{"refresh":true,"resize":true,"timeRange":true}}}]}
       DashboardName: RestateBYOC_default_control-panel
+Outputs:
+  defaultSecurityGroupsCF504A2A:
+    Description: The security group IDs of the cluster
+    Value:
+      'Fn::GetAtt':
+        - defaultsecuritygroupE8DEFA55
+        - GroupId
+  defaultIngressNetworkListener8FF05F67:
+    Description: The ARN of the network listener for the ingress port
+    Value:
+      Ref: defaultingresssharedlistener3AB06661
+  defaultIngressNetworkTargetGroup19AC7829:
+    Description: The ARN of the network target group for the ingress port
+    Value:
+      Ref: defaultingresssharedtarget501739FD
+  defaultIngressApplicationTargetGroup53AC987A:
+    Description: The ARN of the application target group for the ingress port
+    Value:
+      Ref: defaultingressapplicationtarget4D4B5C43
+  defaultAdminNetworkListenerE2AFE07B:
+    Description: The ARN of the network listener for the admin port
+    Value:
+      Ref: defaultadminsharedlistener2B6E2F69
+  defaultAdminNetworkTargetGroupB2510956:
+    Description: The ARN of the network target group for the admin port
+    Value:
+      Ref: defaultadminsharedtarget04FDBD2A
+  defaultAdminApplicationTargetGroup055AABB6:
+    Description: The ARN of the application target group for the admin port
+    Value:
+      Ref: defaultadminapplicationtargetEA91BC80
+  defaultNodeNetworkListenerB7066909:
+    Description: The ARN of the network listener for the node port
+    Value:
+      Ref: defaultnodesharedlistenerF94E5381
+  defaultNodeNetworkTargetGroupA587B228:
+    Description: The ARN of the network target group for the node port
+    Value:
+      Ref: defaultnodesharedtarget1C48E466
 "
 `;
