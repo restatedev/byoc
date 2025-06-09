@@ -6,6 +6,7 @@ import type {
   ControlPanelProps,
   LogInfo,
   PartitionInfo,
+  Snapshot,
   StatefulTaskProps,
   StatelessTaskProps,
   TaskProps,
@@ -126,6 +127,15 @@ export async function getControlPanel(
       ),
   );
 
+  const controllerVolumeRetention = controllerContainerDefinition
+    .then((def) => def?.environment)
+    .then(
+      (env) =>
+        env?.find(
+          (env) => env.name == "CONTROLLER_EBS_SNAPSHOT_RETENTION_PERIOD",
+        )?.value,
+    );
+
   const statefulDesiredCount = controllerContainerDefinition.then(
     (controllerContainerDefinition) =>
       controllerContainerDefinition?.environment
@@ -230,22 +240,32 @@ export async function getControlPanel(
         ? ec2Client
             .send(
               new ec2.DescribeVolumesCommand({
-                VolumeIds: ebsVolumeIds,
+                Filters: [
+                  {
+                    Name: "tag:restate:ecsClusterArn",
+                    Values: [input.resources.ecsClusterArn],
+                  },
+                ],
               }),
             )
             .then((describe) => describe.Volumes ?? [])
         : Promise.resolve([] as ec2.Volume[]);
 
-    const ebsVolumesStatus =
-      ebsVolumeIds.length > 0
-        ? ec2Client
-            .send(
-              new ec2.DescribeVolumeStatusCommand({
-                VolumeIds: ebsVolumeIds,
-              }),
-            )
-            .then((describe) => describe.VolumeStatuses ?? [])
-        : Promise.resolve([] as ec2.VolumeStatusItem[]);
+    const ebsVolumesStatus = ebsVolumesDescribe
+      .then((ebsVolumesDescribe) =>
+        ebsVolumesDescribe.map((volume) => volume.VolumeId!),
+      )
+      .then((volumeIDs) =>
+        volumeIDs.length > 0
+          ? ec2Client
+              .send(
+                new ec2.DescribeVolumeStatusCommand({
+                  VolumeIds: ebsVolumeIds,
+                }),
+              )
+              .then((status) => status.VolumeStatuses ?? [])
+          : Promise.resolve([] as ec2.VolumeStatusItem[]),
+      );
 
     const ebsVolumes: Promise<Volume[]> = Promise.all([
       ebsVolumesDescribe,
@@ -255,7 +275,7 @@ export async function getControlPanel(
         const { iopsLimit, throughputLimit } = volumeLimits(volume);
 
         return {
-          taskArn: taskArnByVolumeId.get(volume.VolumeId!)!,
+          taskArn: taskArnByVolumeId.get(volume.VolumeId!),
           volumeID: volume.VolumeId!,
           availabilityZone: volume.AvailabilityZone!,
           type: volume.VolumeType!,
@@ -271,8 +291,37 @@ export async function getControlPanel(
       });
     });
 
+    const ebsSnapshots = ec2Client
+      .send(
+        new ec2.DescribeSnapshotsCommand({
+          Filters: [
+            {
+              Name: "tag:restate:ecsClusterArn",
+              Values: [input.resources.ecsClusterArn],
+            },
+          ],
+        }),
+      )
+      .then((describe) => describe.Snapshots ?? [])
+      .then((snapshots) =>
+        snapshots.map(
+          (snapshot) =>
+            ({
+              snapshotID: snapshot.SnapshotId!,
+              startTime: snapshot.StartTime?.toISOString() ?? "Not Started",
+              volumeSizeInGiB: snapshot.VolumeSize!,
+              snapshotSize:
+                snapshot.FullSnapshotSizeInBytes !== undefined
+                  ? formatBytes(snapshot.FullSnapshotSizeInBytes)
+                  : "N/A",
+              state: snapshot.State!,
+            }) satisfies Snapshot,
+        ),
+      );
+
     return {
       ebsVolumes,
+      ebsSnapshots,
       ephemeralVolumes,
       ebsTaskFamilies,
       ephemeralTaskFamilies,
@@ -283,6 +332,8 @@ export async function getControlPanel(
     ...(await volumeInfo.ebsVolumes),
     ...volumeInfo.ephemeralVolumes,
   ]);
+
+  const ebsSnapshots = volumeInfo.then((volumeInfo) => volumeInfo.ebsSnapshots);
 
   const minuteMetrics = volumeInfo.then(
     ({ ebsTaskFamilies, ephemeralTaskFamilies }) =>
@@ -524,6 +575,10 @@ export async function getControlPanel(
         objectCount: await s3BucketCount,
       },
       volumes: await volumes,
+      snapshots: {
+        retention: await controllerVolumeRetention,
+        info: await ebsSnapshots,
+      },
     },
     replication: {
       logs: await logs,
@@ -1248,7 +1303,9 @@ function getNodes(
   }
 
   const volumesByTaskArn = Object.fromEntries<Volume | undefined>(
-    volumes.map((volume) => [volume.taskArn, volume]),
+    volumes
+      .filter((volume) => volume.taskArn !== undefined)
+      .map((volume) => [volume.taskArn!, volume]),
   );
 
   const leadersByNode = new Map<number, number>();

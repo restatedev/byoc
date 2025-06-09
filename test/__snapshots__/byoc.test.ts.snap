@@ -1607,6 +1607,7 @@ exports[`BYOC Default parameters 1`] = `
           - Action:
               - 'ec2:DescribeVolumes'
               - 'ec2:DescribeVolumeStatus'
+              - 'ec2:DescribeSnapshots'
             Effect: Allow
             Resource: '*'
             Sid: EC2ReadActions
