@@ -1845,7 +1845,7 @@ exports[`BYOC Default parameters 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/default","restateVersion":"1.3","stackVersion":"0.2.0","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/default","restateVersion":"1.3","stackVersion":"0.3.0","metricsDashboardName":"
             - Ref: defaultmetrics63974EF8
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
