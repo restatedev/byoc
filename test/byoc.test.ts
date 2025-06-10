@@ -30,20 +30,6 @@ describe("BYOC", () => {
     });
   });
 
-  test("With shared alb", () => {
-    const { stack, vpc } = createStack();
-
-    new RestateBYOC(stack, "with-shared-alb", {
-      vpc,
-      licenseID,
-      loadBalancer: {
-        shared: {
-          albProps: { vpc },
-        },
-      },
-    });
-  });
-
   test("With too few AZs", () => {
     const { stack, vpc } = createStack();
 

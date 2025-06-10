@@ -8,8 +8,8 @@ access allows services to be modified and internal state to be read.
 For ingress traffic (8080 or 443) you may choose for services to enforce their own authentication and authorization.
 Alternatively, an API gateway or ALB can be used to enforce token-based auth.
 
-In the stack properties under `targetProps.application` and `targetProps.network` you will find the parameters required to create your own target
-group for the various Restate ports, which you can then attach to a load balancer.
+The construct creates application and network target groups for ingress and admin ports
+(see property `targetGroups` or the corresponding cfn outputs).
 
 ## Securing the admin endpoint
 
@@ -51,13 +51,6 @@ const certificate =
     certificateARN,
   );
 
-const adminTargetGroup =
-  new cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup(
-    this,
-    "admin-target",
-    byoc.targetProps.application.admin,
-  );
-
 publicAlb.addListener("admin-listener", {
   port: 9070,
   protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
@@ -77,7 +70,8 @@ publicAlb.addListener("admin-listener", {
         "byoc-google-sso-client-secret"
       ),
       next: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
-        targetGroup,
+        // using the cfn template directly? this is the `AdminNetworkTargetGroup` output
+        byoc.targetGroups.admin.application,
       ]),
     }),
 });
@@ -162,6 +156,7 @@ const cognitoAuthorizer = new cdk.aws_apigatewayv2_authorizers.HttpJwtAuthorizer
 const ingressApi = new cdk.aws_apigatewayv2.HttpApi(this, "ingress-api");
 const ingressLink = ingressApi.addVpcLink({
   vpc,
+  // using the cfn template directly? this is the `SecurityGroups` output
   securityGroups: byoc.securityGroups,
 });
 ingressApi.addRoutes({
@@ -169,7 +164,8 @@ ingressApi.addRoutes({
   authorizer: cognitoAuthorizer,
   integration: new cdk.aws_apigatewayv2_integrations.HttpNlbIntegration(
     "ingress-nlb",
-    byoc.loadBalancer.ingress.listener,
+    // using the cfn template directly? this is the `IngressNetworkListener` output
+    byoc.listeners.ingress.listener,
     { vpcLink: ingressLink },
   ),
 });
@@ -219,13 +215,6 @@ const certificate =
     certificateARN,
   );
 
-const ingressTargetGroup =
-  new cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup(
-    this,
-    "ingress-target",
-    byoc.targetProps.application.ingress,
-  );
-
 const ingressListener = publicAlb.addListener("ingress-listener", {
   port: 443,
   protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
@@ -238,7 +227,8 @@ ingressListener.addAction("default", {
 
 ingressListener.addAction("authorized", {
   action: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
-    ingressTargetGroup,
+    // using the cfn template directly? this is the `IngressNetworkTargetGroup` output
+    byoc.targetGroups.ingress.application,
   ]),
   priority: 1,
   conditions: [
