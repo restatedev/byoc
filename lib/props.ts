@@ -1,4 +1,5 @@
 import * as cdk from "aws-cdk-lib";
+import { ArtifactDistribution } from "./artifacts";
 
 export interface RestateBYOCProps {
   /**
@@ -107,6 +108,12 @@ export interface RestateBYOCProps {
    * Default: See the documentation for RestateBYOCMonitoringProps
    */
   monitoring?: RestateBYOCMonitoringProps;
+
+  /**
+   * @internal
+   * Override the artifact distribution mode for development
+   */
+  _useBundledArtifacts?: boolean;
 }
 
 export type LoadBalancerSource =
