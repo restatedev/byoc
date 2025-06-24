@@ -26,7 +26,7 @@ import {
 } from "./props";
 import { createMonitoring } from "./monitoring";
 import type { IRestateEnvironment } from "@restatedev/restate-cdk";
-import { getArtifacts } from "./artifacts";
+import { bundleArtifacts, getArtifacts } from "./artifacts";
 import { createOutputs } from "./outputs";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -432,7 +432,9 @@ export class RestateBYOC
     );
     this.controller = controller;
 
-    const artifacts = getArtifacts(this, PACKAGE_INFO.version);
+    const artifacts = props._usePublicDistributionArtifacts
+      ? getArtifacts(this, PACKAGE_INFO.version)
+      : bundleArtifacts();
 
     this.restatectl = createRestatectl(
       this,
