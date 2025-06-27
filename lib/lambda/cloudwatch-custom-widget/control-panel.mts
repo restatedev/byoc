@@ -190,6 +190,7 @@ export type StatefulTaskProps = RestateTaskProps & {
     | "read-write"
     | "data-loss"
     | string;
+  workerState: "provisioning" | "draining" | "active" | "disabled" | string;
   leader: number;
   follower: number;
   nodesetMember: number;
@@ -436,6 +437,7 @@ export async function controlPanel(
     { name: "Availability zone" },
     { name: "Node status" },
     { name: "Storage state" },
+    { name: "Worker state" },
     { name: "Leader", compare: numericCompare },
     { name: "Follower", compare: numericCompare },
     { name: "Nodeset member", compare: numericCompare },
@@ -460,6 +462,7 @@ export async function controlPanel(
       node.availabilityZone,
       styles.nodeStatus(node.nodeStatus),
       styles.storageState(node.storageState),
+      styles.workerState(node.workerState),
       `${node.leader}`,
       `${node.follower}`,
       `${node.nodesetMember}`,
