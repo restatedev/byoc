@@ -1138,6 +1138,9 @@ interface Node {
   log_server_config: {
     storage_state: string;
   };
+  worker_config: {
+    worker_state: string;
+  };
   name: string;
   roles: string[];
 }
@@ -1292,7 +1295,7 @@ function getNodes(
 
   let nodeStatusByID: { [k: string]: string | undefined } = {};
   const nodeStateIDCol = nodeState.headers.get("PLAIN_NODE_ID");
-  const nodeStateStatusCol = nodeState.headers.get("STATUS");
+  const nodeStateStatusCol = nodeState.headers.get("STATE");
   if (nodeStateIDCol !== undefined && nodeStateStatusCol !== undefined) {
     nodeStatusByID = Object.fromEntries<string | undefined>(
       nodeState.rows.map((row) => [
@@ -1366,6 +1369,7 @@ function getNodes(
       nodeID: genNodeID ?? "",
       nodeStatus: nodeStatus ?? "",
       storageState: node?.log_server_config.storage_state ?? "",
+      workerState: node?.worker_config.worker_state ?? "",
       leader: node?.current_generation
         ? (leadersByNode.get(node.current_generation[0]) ?? 0)
         : 0,
@@ -1443,6 +1447,7 @@ function getNodes(
         nodeID: genNodeID,
         nodeStatus: nodeStatus ?? "",
         storageState: node.log_server_config.storage_state,
+        workerState: node.worker_config.worker_state,
         leader: leadersByNode.get(node.current_generation[0]) ?? 0,
         follower: followersByNode.get(node.current_generation[0]) ?? 0,
         nodesetMember: nodesetsByNode.get(node.current_generation[0]) ?? 0,
@@ -1655,7 +1660,7 @@ function getPartitions(
       status: getLabel("REPLAY_STATUS", row),
       leader: getLabel("LEADER", row),
       appliedLSN,
-      persistedLSN: getLabel("PERSISTED_LOG_LSN", row),
+      durableLSN: getLabel("DURABLE_LOG_LSN", row),
       archivedLSN: getLabel("ARCHIVED_LOG_LSN", row),
       targetTailLSN,
       lsnLag,

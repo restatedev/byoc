@@ -122,7 +122,7 @@ export interface PartitionInfo {
   status: string;
   leader: string;
   appliedLSN: string;
-  persistedLSN: string;
+  durableLSN: string;
   archivedLSN: string;
   targetTailLSN: string;
   lsnLag: string;
@@ -190,6 +190,7 @@ export type StatefulTaskProps = RestateTaskProps & {
     | "read-write"
     | "data-loss"
     | string;
+  workerState: "provisioning" | "draining" | "active" | "disabled" | string;
   leader: number;
   follower: number;
   nodesetMember: number;
@@ -436,6 +437,7 @@ export async function controlPanel(
     { name: "Availability zone" },
     { name: "Node status" },
     { name: "Storage state" },
+    { name: "Worker state" },
     { name: "Leader", compare: numericCompare },
     { name: "Follower", compare: numericCompare },
     { name: "Nodeset member", compare: numericCompare },
@@ -460,6 +462,7 @@ export async function controlPanel(
       node.availabilityZone,
       styles.nodeStatus(node.nodeStatus),
       styles.storageState(node.storageState),
+      styles.workerState(node.workerState),
       `${node.leader}`,
       `${node.follower}`,
       `${node.nodesetMember}`,
@@ -772,7 +775,7 @@ export async function controlPanel(
     { name: "Status" },
     { name: "Leader" },
     { name: "Applied LSN", compare: numericCompare },
-    { name: "Persisted LSN", compare: numericCompare },
+    { name: "Durable LSN", compare: numericCompare },
     {
       name: "Archived LSN",
       compare: (a: string, b: string) => {
@@ -793,7 +796,7 @@ export async function controlPanel(
     styles.partitionStatus(partition.status, partition.targetTailLSN),
     partition.leader,
     partition.appliedLSN,
-    partition.persistedLSN,
+    partition.durableLSN,
     partition.archivedLSN,
     partition.lsnLag,
     partition.lastUpdate,
