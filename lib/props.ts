@@ -217,16 +217,22 @@ export interface RestateBYOCEBSVolumeProps {
 }
 
 export const DEFAULT_RESTATE_IMAGE =
-  "docker.restate.dev/restatedev/restate:1.3";
+  "docker.restate.dev/restatedev/restate:1.4";
 
 export const DEFAULT_RESTATE_CPU = 16384;
 export const DEFAULT_RESTATE_MEMORY_LIMIT_MIB = 32768;
 
-export type SupportedRestateVersion = `1.3.${string}` | `1.3`;
+export type SupportedRestateVersion = `1.4.${string}` | `1.4` | `1.3.2` | `1.3`;
 export function assertSupportedRestateVersion(
   version: string,
 ): asserts version is SupportedRestateVersion {
-  if (version == "1.3" || version.startsWith("1.3.")) return;
+  if (
+    version == "1.3" ||
+    version == "1.3.2" ||
+    version == "1.4" ||
+    version.startsWith("1.4.")
+  )
+    return;
   throw new Error(`Restate version ${version} is not supported by this stack`);
 }
 
