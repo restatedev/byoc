@@ -1344,13 +1344,30 @@ export function storageState(
     case "disabled":
       return textStatus("warning", "Disabled");
     case "read-only":
-      return textStatus("warning", "Read only");
+      return textStatus("warning", "Read-only");
     case "gone":
       return textStatus("error", "Gone");
     case "read-write":
       return textStatus("success", "Read/Write");
     case "data-loss":
       return textStatus("error", "Data loss");
+    default:
+      return state;
+  }
+}
+
+export function workerState(
+  state: "provisioning" | "active" | "draining" | "disabled" | string,
+): string {
+  switch (state) {
+    case "provisioning":
+      return textStatus("info", "Provisioning");
+    case "active":
+      return textStatus("success", "Active");
+    case "draining":
+      return textStatus("warning", "Draining");
+    case "disabled":
+      return textStatus("error", "Disabled");
     default:
       return state;
   }
