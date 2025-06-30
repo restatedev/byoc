@@ -107,6 +107,15 @@ export interface RestateBYOCProps {
    * Default: See the documentation for RestateBYOCMonitoringProps
    */
   monitoring?: RestateBYOCMonitoringProps;
+
+  /**
+   * @internal
+   *
+   * Override the artifact distribution mode for development. Set this to `false` to use artifacts
+   * like `restatectl` and the CloudWatch widget directly from the codebase, rather than the
+   * reference the public bucket artifacts.
+   */
+  _usePublicDistributionArtifacts?: boolean;
 }
 
 export type LoadBalancerSource =
