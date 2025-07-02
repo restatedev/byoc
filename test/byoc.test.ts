@@ -119,6 +119,55 @@ describe("BYOC", () => {
       },
     });
   });
+
+  test("With admin ALB target group", () => {
+    const { stack, vpc } = createStack();
+
+    const byoc = new RestateBYOC(stack, "with-alb-target-groups", {
+      vpc,
+      licenseID,
+    });
+
+    const publicAlb =
+      new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
+        stack,
+        "public-alb",
+        {
+          vpc,
+          internetFacing: true,
+        },
+      );
+
+    const certificate =
+      cdk.aws_certificatemanager.Certificate.fromCertificateArn(
+        stack,
+        "certificate",
+        "cert-arn",
+      );
+
+    publicAlb.addListener("admin-listener", {
+      port: 9070,
+      protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
+      certificates: [certificate],
+      defaultAction:
+        cdk.aws_elasticloadbalancingv2.ListenerAction.authenticateOidc({
+          issuer: "https://accounts.google.com",
+          authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+          tokenEndpoint: "https://oauth2.googleapis.com/token",
+          userInfoEndpoint: "https://openidconnect.googleapis.com/v1/userinfo",
+          clientId: "client-id",
+          clientSecret: cdk.SecretValue.secretsManager(
+            "byoc-google-sso-client-secret",
+          ),
+          next: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
+            byoc.targetGroups.admin.application,
+          ]),
+        }),
+    });
+
+    // validate that reading it twice doesn't create resources twice
+    const _ = byoc.targetGroups.admin.application;
+  });
 });
 
 function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {
