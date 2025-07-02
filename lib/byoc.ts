@@ -133,7 +133,7 @@ export class RestateBYOC
       /**
        * To enable the ALB target group, set `loadBalancer.createAlbTargets` = `true` in {@link RestateBYOCProps}.
        */
-      application?: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
+      application: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
       network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
     };
     /**
@@ -143,7 +143,7 @@ export class RestateBYOC
       /**
        * To enable the ALB target group, set `loadBalancer.createAlbTargets` = `true` in {@link RestateBYOCProps}.
        */
-      application?: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
+      application: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
       network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
     };
     /**
@@ -215,8 +215,6 @@ export class RestateBYOC
    * Implements IRestateEnvironment
    **/
   public readonly adminUrl: string;
-
-  private albTargetProps: AlbTargetProps;
 
   constructor(scope: Construct, id: string, props: RestateBYOCProps) {
     super(scope, id);
@@ -379,7 +377,6 @@ export class RestateBYOC
       this.vpc,
       stateless.service,
     );
-    this.albTargetProps = albTargetProps; // ALB target groups are created lazily on-demand
 
     const ingressTargetGroup = createNetworkTargetGroup(
       this,
@@ -407,7 +404,45 @@ export class RestateBYOC
     );
     stateless.service.node.addDependency(nodeTargetGroup.loadBalancerAttached);
 
-    this.targetGroups = {
+    const getIngressApplicationTargetGroup = () => {
+      const ingressApplicationTargetGroup = createApplicationTargetGroup(
+        this,
+        "ingress",
+        albTargetProps.ingress,
+      );
+      this.stateless.service.node.addDependency(
+        ingressApplicationTargetGroup.loadBalancerAttached,
+      );
+
+      new cdk.CfnOutput(this, "IngressApplicationTargetGroup", {
+        description:
+          "The ARN of the application target group for the ingress port",
+        value: ingressApplicationTargetGroup.targetGroupArn,
+      });
+
+      return ingressApplicationTargetGroup;
+    };
+
+    const getAdminApplicationTargetGroup = () => {
+      const adminApplicationTargetGroup = createApplicationTargetGroup(
+        this,
+        "admin",
+        albTargetProps.admin,
+      );
+      this.stateless.service.node.addDependency(
+        adminApplicationTargetGroup.loadBalancerAttached,
+      );
+
+      new cdk.CfnOutput(this, "AdminApplicationTargetGroup", {
+        description:
+          "The ARN of the application target group for the admin port",
+        value: adminApplicationTargetGroup.targetGroupArn,
+      });
+
+      return adminApplicationTargetGroup;
+    };
+
+    const targetGroups = {
       ingress: {
         network: ingressTargetGroup,
       },
@@ -418,6 +453,48 @@ export class RestateBYOC
         network: nodeTargetGroup,
       },
     };
+
+    if (props.loadBalancer?.createAlbTargets) {
+      this.targetGroups = {
+        ...targetGroups,
+        ingress: {
+          ...targetGroups.ingress,
+          application: getIngressApplicationTargetGroup(),
+        },
+        admin: {
+          ...targetGroups.admin,
+          application: getAdminApplicationTargetGroup(),
+        },
+      };
+    } else {
+      this.targetGroups = {
+        ...targetGroups,
+        ingress: {
+          ...targetGroups.ingress,
+          get application() {
+            delete (
+              this as {
+                application?: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
+              }
+            ).application;
+            this.application = getIngressApplicationTargetGroup();
+            return this.application;
+          },
+        },
+        admin: {
+          ...targetGroups.admin,
+          get application() {
+            delete (
+              this as {
+                application?: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
+              }
+            ).application;
+            this.application = getAdminApplicationTargetGroup();
+            return this.application;
+          },
+        },
+      };
+    }
 
     this.adminUrl = this.listeners.admin.address;
 
@@ -519,59 +596,6 @@ export class RestateBYOC
     }
 
     createOutputs(this);
-  }
-
-  /**
-   * Lazily creates an Application Load Balancer target group for HTTP ingress service.
-   */
-  public getIngressApplicationTargetGroup(): cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup {
-    if (this.targetGroups.ingress.application) {
-      return this.targetGroups.ingress.application;
-    }
-
-    const ingressApplicationTargetGroup = createApplicationTargetGroup(
-      this,
-      "ingress",
-      this.albTargetProps.ingress,
-    );
-    this.targetGroups.ingress.application = ingressApplicationTargetGroup;
-    this.stateless.service.node.addDependency(
-      ingressApplicationTargetGroup.loadBalancerAttached,
-    );
-
-    new cdk.CfnOutput(this, "IngressApplicationTargetGroup", {
-      description:
-        "The ARN of the application target group for the ingress port",
-      value: ingressApplicationTargetGroup.targetGroupArn,
-    });
-
-    return ingressApplicationTargetGroup;
-  }
-
-  /**
-   * Lazily creates an Application Load Balancer target group for admin service.
-   */
-  public getAdminApplicationTargetGroup(): cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup {
-    if (this.targetGroups.admin.application) {
-      return this.targetGroups.admin.application;
-    }
-
-    const adminApplicationTargetGroup = createApplicationTargetGroup(
-      this,
-      "admin",
-      this.albTargetProps.admin,
-    );
-    this.targetGroups.admin.application = adminApplicationTargetGroup;
-    this.stateless.service.node.addDependency(
-      adminApplicationTargetGroup.loadBalancerAttached,
-    );
-
-    new cdk.CfnOutput(this, "AdminApplicationTargetGroup", {
-      description: "The ARN of the application target group for the admin port",
-      value: adminApplicationTargetGroup.targetGroupArn,
-    });
-
-    return adminApplicationTargetGroup;
   }
 }
 

@@ -139,6 +139,12 @@ export interface RestateBYOCLoadBalancerProps {
    * Default: An internal NLB is created in the same vpc and with the same security groups as the rest of this stack
    */
   shared?: LoadBalancerSource;
+
+  /**
+   * If set, always create ALB targets. ECS requires that the target is attached to a load balancer within the same stack as the ECS Service.
+   * Default: ALB targets are created lazily when accessed via `byoc.targetGroups.{ingress,admin}.application`
+   */
+  createAlbTargets?: boolean;
 }
 
 export const DEFAULT_STATELESS_DESIRED_COUNT = 3;
