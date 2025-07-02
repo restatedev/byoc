@@ -1927,3 +1927,2031 @@ Outputs:
       Ref: defaultnodesharedtarget1C48E466
 "
 `;
+
+exports[`BYOC With otel collector 1`] = `
+"Resources:
+  withotelcollectorsecuritygroupBD4A7399:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: RestateBYOC/with-otel-collector/security-group
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: '-1'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/security-group
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  withotelcollectorsecuritygroupfromRestateBYOCwithotelcollectorsecuritygroup8F266FC48080E57FC3B5:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: 'from RestateBYOCwithotelcollectorsecuritygroup8F266FC4:8080'
+      FromPort: 8080
+      GroupId:
+        'Fn::GetAtt':
+          - withotelcollectorsecuritygroupBD4A7399
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - withotelcollectorsecuritygroupBD4A7399
+          - GroupId
+      ToPort: 8080
+  withotelcollectorsecuritygroupfromRestateBYOCwithotelcollectorsecuritygroup8F266FC490706978750A:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: 'from RestateBYOCwithotelcollectorsecuritygroup8F266FC4:9070'
+      FromPort: 9070
+      GroupId:
+        'Fn::GetAtt':
+          - withotelcollectorsecuritygroupBD4A7399
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - withotelcollectorsecuritygroupBD4A7399
+          - GroupId
+      ToPort: 9070
+  withotelcollectorsecuritygroupfromRestateBYOCwithotelcollectorsecuritygroup8F266FC451227B061610:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: 'from RestateBYOCwithotelcollectorsecuritygroup8F266FC4:5122'
+      FromPort: 5122
+      GroupId:
+        'Fn::GetAtt':
+          - withotelcollectorsecuritygroupBD4A7399
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - withotelcollectorsecuritygroupBD4A7399
+          - GroupId
+      ToPort: 5122
+  withotelcollectorbucket91BBB0A6:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withotelcollectorbucketPolicyEBDF0D9E:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket:
+        Ref: withotelcollectorbucket91BBB0A6
+      PolicyDocument:
+        Statement:
+          - Action: 's3:*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Resource:
+              - 'Fn::GetAtt':
+                  - withotelcollectorbucket91BBB0A6
+                  - Arn
+              - 'Fn::Join':
+                  - ''
+                  - - 'Fn::GetAtt':
+                        - withotelcollectorbucket91BBB0A6
+                        - Arn
+                    - /*
+        Version: '2012-10-17'
+  withotelcollectorcluster09679981:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/cluster
+  withotelcollectorrestatetaskrole86DA1F80:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  withotelcollectorrestatetaskroleDefaultPolicyEFEF2082:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::GetAtt':
+                      - withotelcollectorbucket91BBB0A6
+                      - Arn
+                  - /*
+            Sid: ReadWriteBucket
+          - Action: 's3:ListBucket'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withotelcollectorbucket91BBB0A6
+                - Arn
+            Sid: ListBucket
+        Version: '2012-10-17'
+      PolicyName: withotelcollectorrestatetaskroleDefaultPolicyEFEF2082
+      Roles:
+        - Ref: withotelcollectorrestatetaskrole86DA1F80
+  withotelcollectorrestateexecutionroleEB9F4CAC:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  withotelcollectorrestateexecutionroleDefaultPolicyC64BE7CC:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withotelcollectorstatelessdefinitionrestateLogGroup9C507C4C
+                - Arn
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - >-
+                  withotelcollectorstatelessdefinitionotelcollectorLogGroupBD6FEFA3
+                - Arn
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withotelcollectorstatefuldefinitionrestateLogGroupBF29129D
+                - Arn
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - >-
+                  withotelcollectorstatefuldefinitionotelcollectorLogGroup08E99608
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: withotelcollectorrestateexecutionroleDefaultPolicyC64BE7CC
+      Roles:
+        - Ref: withotelcollectorrestateexecutionroleEB9F4CAC
+  withotelcollectorsharednlbB07E655C:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      LoadBalancerAttributes:
+        - Key: deletion_protection.enabled
+          Value: 'false'
+        - Key: load_balancing.cross_zone.enabled
+          Value: 'false'
+        - Key: dns_record.client_routing_policy
+          Value: availability_zone_affinity
+      Scheme: internal
+      SecurityGroups:
+        - 'Fn::GetAtt':
+            - withotelcollectorsecuritygroupBD4A7399
+            - GroupId
+      Subnets:
+        - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+        - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+        - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/shared-nlb
+      Type: network
+  withotelcollectoringresssharedlistener92B1BA62:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: withotelcollectoringresssharedtarget878F9905
+          Type: forward
+      LoadBalancerArn:
+        Ref: withotelcollectorsharednlbB07E655C
+      Port: 8080
+      Protocol: TCP
+  withotelcollectoradminsharedlistenerF5722F86:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: withotelcollectoradminsharedtarget90E7DEFD
+          Type: forward
+      LoadBalancerArn:
+        Ref: withotelcollectorsharednlbB07E655C
+      Port: 9070
+      Protocol: TCP
+  withotelcollectornodesharedlistenerF009ADCC:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: withotelcollectornodesharedtarget3F81F89C
+          Type: forward
+      LoadBalancerArn:
+        Ref: withotelcollectorsharednlbB07E655C
+      Port: 5122
+      Protocol: TCP
+  withotelcollectorstatelessdefinition55F766B0:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 16128
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o
+              container-metadata && \\
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+              exec restate-server
+          Environment:
+            - Name: RESTATE_LOG_FORMAT
+              Value: json
+            - Name: RESTATE_CLUSTER_NAME
+              Value: RestateBYOC/with-otel-collector
+            - Name: RESTATE_ROLES
+              Value: '["admin","http-ingress"]'
+            - Name: RESTATE_AUTO_PROVISION
+              Value: 'true'
+            - Name: RESTATE_SHUTDOWN_TIMEOUT
+              Value: 100s
+            - Name: RESTATE_DEFAULT_NUM_PARTITIONS
+              Value: '128'
+            - Name: RESTATE_DEFAULT_REPLICATION
+              Value: '{zone: 2}'
+            - Name: RESTATE_METADATA_CLIENT__TYPE
+              Value: object-store
+            - Name: RESTATE_METADATA_CLIENT__PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: withotelcollectorbucket91BBB0A6
+                    - /metadata
+            - Name: RESTATE_BIFROST__DEFAULT_PROVIDER
+              Value: replicated
+            - Name: >-
+                RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE
+              Value: 'true'
+            - Name: RESTATE_INGRESS__ADVERTISED_INGRESS_ENDPOINT
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 'http://'
+                    - 'Fn::GetAtt':
+                        - withotelcollectorsharednlbB07E655C
+                        - DNSName
+                    - ':8080'
+            - Name: RESTATE_WORKER__SNAPSHOTS__DESTINATION
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: withotelcollectorbucket91BBB0A6
+                    - /snapshots
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:8080/restate/health'
+            Interval: 30
+            Retries: 3
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: withotelcollectorstatelessdefinitionrestateLogGroup9C507C4C
+              awslogs-stream-prefix: restate
+              awslogs-region: region
+          Memory: 32256
+          Name: restate
+          PortMappings:
+            - ContainerPort: 8080
+              Name: ingress
+              Protocol: tcp
+            - ContainerPort: 9070
+              Name: admin
+              Protocol: tcp
+            - ContainerPort: 5122
+              Name: node
+              Protocol: tcp
+          StopTimeout: 120
+        - Cpu: 256
+          Environment:
+            - Name: AOT_CONFIG_CONTENT
+              Value: >-
+                {"receivers":{"otlp":{"protocols":{"grpc":{"endpoint":"localhost:4317"}}},"prometheus":{"config":{"scrape_configs":[{"job_name":"restate","static_configs":[{"targets":["localhost:5122"]}],"scrape_interval":"60s"}]}},"awsecscontainermetrics":{"collection_interval":"60s"}},"processors":{"batch/traces":{"timeout":"5s","send_batch_size":50},"batch/metrics":{"timeout":"60s"},"filter/ecs":{"metrics":{"include":{"match_type":"strict","metric_names":["ecs.task.memory.reserved","ecs.task.memory.utilized","ecs.task.cpu.utilized","ecs.task.cpu.reserved","ecs.task.network.io.usage.rx_bytes","ecs.task.network.io.usage.tx_bytes","ecs.task.storage.read_bytes","ecs.task.storage.write_bytes"]}}},"metricstransform/ecs":{"transforms":[{"include":"ecs.task.memory.utilized","action":"update","new_name":"restate_ecs_memory_utilized"},{"include":"ecs.task.memory.reserved","action":"update","new_name":"restate_ecs_memory_reserved"},{"include":"ecs.task.cpu.utilized","action":"update","new_name":"restate_ecs_cpu_utilized"},{"include":"ecs.task.cpu.reserved","action":"update","new_name":"restate_ecs_cpu_reserved"},{"include":"ecs.task.network.io.usage.rx_bytes","action":"update","new_name":"restate_ecs_network_io_usage_rx_bytes"},{"include":"ecs.task.network.io.usage.tx_bytes","action":"update","new_name":"restate_ecs_network_io_usage_tx_bytes"},{"include":"ecs.task.storage.read_bytes","action":"update","new_name":"restate_ecs_storage_read_bytes"},{"include":"ecs.task.storage.write_bytes","action":"update","new_name":"restate_ecs_storage_write_bytes"}]},"resource/ecs":{"attributes":[{"key":"service.name","value":"restate","action":"upsert"},{"key":"cluster_name","value":"\${env:RESTATE_CLUSTER_NAME}","action":"insert"},{"key":"node_name","from_attribute":"aws.ecs.task.arn","action":"insert"},{"key":"availability_zone","from_attribute":"cloud.zone","action":"insert"},{"pattern":"aws.*","action":"delete"},{"pattern":"cloud.*","action":"delete"}]}},"exporters":{"awsemf":{"namespace":"Restate/Metrics","log_group_name":"/restate/metrics"}},"service":{"pipelines":{"metrics/restate":{"receivers":["prometheus"],"processors":["batch/metrics"],"exporters":["awsemf"]},"metrics/ecs":{"receivers":["awsecscontainermetrics"],"processors":["filter/ecs","metricstransform/ecs","resource/ecs"],"exporters":["awsemf"]}},"extensions":["health_check","zpages","sigv4auth"]},"extensions":{"health_check":{},"zpages":{},"sigv4auth":{}}}
+            - Name: RESTATE_CLUSTER_NAME
+              Value: RestateBYOC/with-otel-collector
+          Essential: false
+          HealthCheck:
+            Command:
+              - CMD
+              - /healthcheck
+            Interval: 5
+            Retries: 3
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: >-
+                  withotelcollectorstatelessdefinitionotelcollectorLogGroupBD6FEFA3
+              awslogs-stream-prefix: restate
+              awslogs-region: region
+          Memory: 512
+          Name: otel-collector
+          RestartPolicy:
+            Enabled: true
+            RestartAttemptPeriod: 60
+          StopTimeout: 30
+      Cpu: '16384'
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - withotelcollectorrestateexecutionroleEB9F4CAC
+          - Arn
+      Family: RestateBYOCwithotelcollectorstatelessdefinition8B26C72F
+      Memory: '32768'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/stateless-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - withotelcollectorrestatetaskrole86DA1F80
+          - Arn
+  withotelcollectorstatelessdefinitionrestateLogGroup9C507C4C:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/stateless-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withotelcollectorstatelessdefinitionotelcollectorLogGroupBD6FEFA3:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/stateless-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withotelcollectorstatelessserviceService8ABCCEA9:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      Cluster:
+        Ref: withotelcollectorcluster09679981
+      DeploymentConfiguration:
+        Alarms:
+          AlarmNames: []
+          Enable: false
+          Rollback: false
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DesiredCount: 3
+      EnableECSManagedTags: false
+      EnableExecuteCommand: false
+      HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: restate
+          ContainerPort: 8080
+          TargetGroupArn:
+            Ref: withotelcollectoringresssharedtarget878F9905
+        - ContainerName: restate
+          ContainerPort: 9070
+          TargetGroupArn:
+            Ref: withotelcollectoradminsharedtarget90E7DEFD
+        - ContainerName: restate
+          ContainerPort: 5122
+          TargetGroupArn:
+            Ref: withotelcollectornodesharedtarget3F81F89C
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - 'Fn::GetAtt':
+                - withotelcollectorsecuritygroupBD4A7399
+                - GroupId
+          Subnets:
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/stateless-service
+      TaskDefinition:
+        Ref: withotelcollectorstatelessdefinition55F766B0
+    DependsOn:
+      - withotelcollectoradminsharedlistenerF5722F86
+      - withotelcollectoringresssharedlistener92B1BA62
+      - withotelcollectornodesharedlistenerF009ADCC
+      - withotelcollectorrestatetaskroleDefaultPolicyEFEF2082
+      - withotelcollectorrestatetaskrole86DA1F80
+  withotelcollectorstatefuldefinitionFB434419:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 16128
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o
+              container-metadata && \\
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
+                RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
+              exec restate-server
+          Environment:
+            - Name: RESTATE_LOG_FORMAT
+              Value: json
+            - Name: RESTATE_CLUSTER_NAME
+              Value: RestateBYOC/with-otel-collector
+            - Name: RESTATE_ROLES
+              Value: '["log-server", "worker"]'
+            - Name: RESTATE_AUTO_PROVISION
+              Value: 'false'
+            - Name: RESTATE_SHUTDOWN_TIMEOUT
+              Value: 100s
+            - Name: RESTATE_METADATA_CLIENT__TYPE
+              Value: object-store
+            - Name: RESTATE_METADATA_CLIENT__PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: withotelcollectorbucket91BBB0A6
+                    - /metadata
+            - Name: RESTATE_WORKER__SNAPSHOTS__DESTINATION
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: withotelcollectorbucket91BBB0A6
+                    - /snapshots
+            - Name: RESTATE_WORKER__SNAPSHOTS__SNAPSHOT_INTERVAL_NUM_RECORDS
+              Value: '1000000'
+            - Name: RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS
+              Value: 'true'
+            - Name: RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_WAL_FSYNC
+              Value: 'true'
+            - Name: RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET
+              Value: (128 * 2) / (3 * 1)
+            - Name: RESTATE_LOG_SERVER__ROCKSDB_DISABLE_WAL_FSYNC
+              Value: 'true'
+            - Name: RESTATE_LOG_SERVER__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS
+              Value: 'true'
+            - Name: >-
+                RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE
+              Value: 'true'
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:5122/health'
+            Interval: 30
+            Retries: 3
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: withotelcollectorstatefuldefinitionrestateLogGroupBF29129D
+              awslogs-stream-prefix: restate
+              awslogs-region: region
+          Memory: 32256
+          MountPoints:
+            - ContainerPath: /restate-data
+              ReadOnly: false
+              SourceVolume: restate-data
+          Name: restate
+          PortMappings:
+            - ContainerPort: 5122
+              Name: node
+              Protocol: tcp
+          RestartPolicy:
+            Enabled: true
+            RestartAttemptPeriod: 60
+          StopTimeout: 120
+        - Cpu: 256
+          Environment:
+            - Name: AOT_CONFIG_CONTENT
+              Value: >-
+                {"receivers":{"otlp":{"protocols":{"grpc":{"endpoint":"localhost:4317"}}},"prometheus":{"config":{"scrape_configs":[{"job_name":"restate","static_configs":[{"targets":["localhost:5122"]}],"scrape_interval":"60s"}]}},"awsecscontainermetrics":{"collection_interval":"60s"}},"processors":{"batch/traces":{"timeout":"5s","send_batch_size":50},"batch/metrics":{"timeout":"60s"},"filter/ecs":{"metrics":{"include":{"match_type":"strict","metric_names":["ecs.task.memory.reserved","ecs.task.memory.utilized","ecs.task.cpu.utilized","ecs.task.cpu.reserved","ecs.task.network.io.usage.rx_bytes","ecs.task.network.io.usage.tx_bytes","ecs.task.storage.read_bytes","ecs.task.storage.write_bytes"]}}},"metricstransform/ecs":{"transforms":[{"include":"ecs.task.memory.utilized","action":"update","new_name":"restate_ecs_memory_utilized"},{"include":"ecs.task.memory.reserved","action":"update","new_name":"restate_ecs_memory_reserved"},{"include":"ecs.task.cpu.utilized","action":"update","new_name":"restate_ecs_cpu_utilized"},{"include":"ecs.task.cpu.reserved","action":"update","new_name":"restate_ecs_cpu_reserved"},{"include":"ecs.task.network.io.usage.rx_bytes","action":"update","new_name":"restate_ecs_network_io_usage_rx_bytes"},{"include":"ecs.task.network.io.usage.tx_bytes","action":"update","new_name":"restate_ecs_network_io_usage_tx_bytes"},{"include":"ecs.task.storage.read_bytes","action":"update","new_name":"restate_ecs_storage_read_bytes"},{"include":"ecs.task.storage.write_bytes","action":"update","new_name":"restate_ecs_storage_write_bytes"}]},"resource/ecs":{"attributes":[{"key":"service.name","value":"restate","action":"upsert"},{"key":"cluster_name","value":"\${env:RESTATE_CLUSTER_NAME}","action":"insert"},{"key":"node_name","from_attribute":"aws.ecs.task.arn","action":"insert"},{"key":"availability_zone","from_attribute":"cloud.zone","action":"insert"},{"pattern":"aws.*","action":"delete"},{"pattern":"cloud.*","action":"delete"}]}},"exporters":{"awsemf":{"namespace":"Restate/Metrics","log_group_name":"/restate/metrics"}},"service":{"pipelines":{"metrics/restate":{"receivers":["prometheus"],"processors":["batch/metrics"],"exporters":["awsemf"]},"metrics/ecs":{"receivers":["awsecscontainermetrics"],"processors":["filter/ecs","metricstransform/ecs","resource/ecs"],"exporters":["awsemf"]}},"extensions":["health_check","zpages","sigv4auth"]},"extensions":{"health_check":{},"zpages":{},"sigv4auth":{}}}
+            - Name: RESTATE_CLUSTER_NAME
+              Value: RestateBYOC/with-otel-collector
+          Essential: false
+          HealthCheck:
+            Command:
+              - CMD
+              - /healthcheck
+            Interval: 5
+            Retries: 3
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: >-
+                  withotelcollectorstatefuldefinitionotelcollectorLogGroup08E99608
+              awslogs-stream-prefix: restate
+              awslogs-region: region
+          Memory: 512
+          Name: otel-collector
+          RestartPolicy:
+            Enabled: true
+            RestartAttemptPeriod: 60
+          StopTimeout: 30
+      Cpu: '16384'
+      EphemeralStorage:
+        SizeInGiB: 200
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - withotelcollectorrestateexecutionroleEB9F4CAC
+          - Arn
+      Family: RestateBYOCwithotelcollectorstatefuldefinition83529E5C
+      Memory: '32768'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/stateful-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - withotelcollectorrestatetaskrole86DA1F80
+          - Arn
+      Volumes:
+        - ConfiguredAtLaunch: false
+          Name: restate-data
+  withotelcollectorstatefuldefinitionrestateLogGroupBF29129D:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/stateful-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withotelcollectorstatefuldefinitionotelcollectorLogGroup08E99608:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/stateful-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withotelcollectoringresssharedtarget878F9905:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /restate/health
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 8080
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/ingress-shared-target
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  withotelcollectoradminsharedtarget90E7DEFD:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /health
+      HealthCheckPort: '9070'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 9070
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/admin-shared-target
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  withotelcollectornodesharedtarget3F81F89C:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /health
+      HealthCheckPort: '5122'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 5122
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/node-shared-target
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  withotelcollectorcontrollertaskrole025F5504:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  withotelcollectorcontrollertaskroleDefaultPolicyE9B648FA:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: 'ecs:ListTasks'
+            Condition:
+              ArnEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - withotelcollectorcluster09679981
+                    - Arn
+            Effect: Allow
+            Resource: '*'
+            Sid: ECSListActions
+          - Action:
+              - 'ecs:TagResource'
+              - 'ecs:DescribeTasks'
+              - 'ecs:StopTask'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - withotelcollectorcluster09679981
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TaskActions
+          - Action: 'ecs:RunTask'
+            Condition:
+              ArnEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - withotelcollectorcluster09679981
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - ':'
+                      - - 'Fn::Select':
+                            - 0
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withotelcollectorstatefuldefinitionFB434419
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withotelcollectorstatefuldefinitionFB434419
+                        - 'Fn::Select':
+                            - 2
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withotelcollectorstatefuldefinitionFB434419
+                        - 'Fn::Select':
+                            - 3
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withotelcollectorstatefuldefinitionFB434419
+                        - 'Fn::Select':
+                            - 4
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withotelcollectorstatefuldefinitionFB434419
+                        - 'Fn::Select':
+                            - 5
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withotelcollectorstatefuldefinitionFB434419
+                  - ':*'
+            Sid: RunTask
+          - Action: 'iam:PassRole'
+            Condition:
+              StringEquals:
+                'iam:PassedToService': ecs-tasks.amazonaws.com
+            Effect: Allow
+            Resource:
+              - 'Fn::GetAtt':
+                  - withotelcollectorrestatetaskrole86DA1F80
+                  - Arn
+              - 'Fn::GetAtt':
+                  - withotelcollectorrestateexecutionroleEB9F4CAC
+                  - Arn
+            Sid: RunTaskPassRole
+          - Action:
+              - 'ec2:DescribeVolumes'
+              - 'ec2:DescribeSnapshots'
+            Effect: Allow
+            Resource: '*'
+            Sid: EC2ListActions
+          - Action: 'ec2:CreateSnapshot'
+            Condition:
+              ArnEquals:
+                'aws:RequestTag/restate:ecsClusterArn':
+                  'Fn::GetAtt':
+                    - withotelcollectorcluster09679981
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - '::snapshot/*'
+            Sid: CreateSnapshot
+          - Action: 'ec2:CreateSnapshot'
+            Condition:
+              ArnEquals:
+                'aws:ResourceTag/restate:ecsClusterArn':
+                  'Fn::GetAtt':
+                    - withotelcollectorcluster09679981
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':volume/*'
+            Sid: SnapshotVolume
+          - Action: 'ec2:CreateTags'
+            Condition:
+              StringEquals:
+                'ec2:CreateAction': CreateSnapshot
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - '::snapshot/*'
+            Sid: TagSnapshots
+          - Action:
+              - 'ec2:DeleteVolume'
+              - 'ec2:DeleteSnapshot'
+            Condition:
+              ArnEquals:
+                'aws:ResourceTag/restate:ecsClusterArn':
+                  'Fn::GetAtt':
+                    - withotelcollectorcluster09679981
+                    - Arn
+            Effect: Allow
+            Resource:
+              - 'Fn::Join':
+                  - ''
+                  - - 'arn:'
+                    - Ref: 'AWS::Partition'
+                    - ':ec2:'
+                    - Ref: 'AWS::Region'
+                    - ':'
+                    - Ref: 'AWS::AccountId'
+                    - ':volume/*'
+              - 'Fn::Join':
+                  - ''
+                  - - 'arn:'
+                    - Ref: 'AWS::Partition'
+                    - ':ec2:'
+                    - Ref: 'AWS::Region'
+                    - '::snapshot/*'
+            Sid: DeleteVolumeAndSnapshot
+          - Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::GetAtt':
+                      - withotelcollectorbucket91BBB0A6
+                      - Arn
+                  - /*
+            Sid: ReadWriteBucket
+          - Action: 's3:ListBucket'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withotelcollectorbucket91BBB0A6
+                - Arn
+            Sid: ListBucket
+        Version: '2012-10-17'
+      PolicyName: withotelcollectorcontrollertaskroleDefaultPolicyE9B648FA
+      Roles:
+        - Ref: withotelcollectorcontrollertaskrole025F5504
+  withotelcollectorcontrollerexecutionrole5AE5C9E0:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  withotelcollectorcontrollerexecutionroleDefaultPolicy435FD9C3:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - >-
+                  withotelcollectorcontrollerdefinitioncontrollerLogGroup514C9EF0
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: withotelcollectorcontrollerexecutionroleDefaultPolicy435FD9C3
+      Roles:
+        - Ref: withotelcollectorcontrollerexecutionrole5AE5C9E0
+  withotelcollectorcontrollerdefinitionD29F6C59:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 1024
+          Environment:
+            - Name: RUST_LOG
+              Value: 'info,restate_fargate_controller=debug'
+            - Name: CONTROLLER_LOG_FORMAT
+              Value: json
+            - Name: CONTROLLER_METADATA_PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: withotelcollectorbucket91BBB0A6
+                    - /metadata
+            - Name: CONTROLLER_RECONCILE_INTERVAL
+              Value: 10s
+            - Name: CONTROLLER_CLUSTER__CLUSTER_ARN
+              Value:
+                'Fn::GetAtt':
+                  - withotelcollectorcluster09679981
+                  - Arn
+            - Name: CONTROLLER_LICENSE_ID
+              Value: foo
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __REGION
+              Value:
+                Ref: 'AWS::Region'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __CLUSTER_ARN
+              Value:
+                'Fn::GetAtt':
+                  - withotelcollectorcluster09679981
+                  - Arn
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __TASK_PREFIX
+              Value:
+                'Fn::Join':
+                  - /
+                  - - 'Fn::Join':
+                        - ':'
+                        - - 'Fn::Select':
+                              - 0
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - withotelcollectorcluster09679981
+                                              - Arn
+                          - 'Fn::Select':
+                              - 1
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - withotelcollectorcluster09679981
+                                              - Arn
+                          - 'Fn::Select':
+                              - 2
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - withotelcollectorcluster09679981
+                                              - Arn
+                          - 'Fn::Select':
+                              - 3
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - withotelcollectorcluster09679981
+                                              - Arn
+                          - 'Fn::Select':
+                              - 4
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - withotelcollectorcluster09679981
+                                              - Arn
+                          - task
+                    - 'Fn::Select':
+                        - 1
+                        - 'Fn::Split':
+                            - /
+                            - 'Fn::GetAtt':
+                                - withotelcollectorcluster09679981
+                                - Arn
+                    - ''
+            - Name: CONTROLLER_EBS_SNAPSHOT_RETENTION_PERIOD
+              Value: 24h
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__ENABLE_EXECUTE_COMMAND
+              Value: 'false'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__SECURITY_GROUPS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::GetAtt':
+                        - withotelcollectorsecuritygroupBD4A7399
+                        - GroupId
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__SUBNETS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::ImportValue': >-
+                        VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__TASK_DEFINITION_ARN
+              Value:
+                Ref: withotelcollectorstatefuldefinitionFB434419
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__COUNT
+              Value: '1'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__ENABLE_EXECUTE_COMMAND
+              Value: 'false'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__SECURITY_GROUPS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::GetAtt':
+                        - withotelcollectorsecuritygroupBD4A7399
+                        - GroupId
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__SUBNETS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::ImportValue': >-
+                        VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__TASK_DEFINITION_ARN
+              Value:
+                Ref: withotelcollectorstatefuldefinitionFB434419
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__COUNT
+              Value: '1'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__ENABLE_EXECUTE_COMMAND
+              Value: 'false'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__SECURITY_GROUPS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::GetAtt':
+                        - withotelcollectorsecuritygroupBD4A7399
+                        - GroupId
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__SUBNETS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::ImportValue': >-
+                        VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__TASK_DEFINITION_ARN
+              Value:
+                Ref: withotelcollectorstatefuldefinitionFB434419
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__COUNT
+              Value: '1'
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:8080/health'
+            Interval: 30
+            Retries: 10
+            StartPeriod: 300
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: >-
+                  withotelcollectorcontrollerdefinitioncontrollerLogGroup514C9EF0
+              awslogs-stream-prefix: controller
+              awslogs-region: region
+          Memory: 2048
+          Name: controller
+          StopTimeout: 120
+      Cpu: '1024'
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - withotelcollectorcontrollerexecutionrole5AE5C9E0
+          - Arn
+      Family: RestateBYOCwithotelcollectorcontrollerdefinitionB39134AC
+      Memory: '2048'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/controller-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - withotelcollectorcontrollertaskrole025F5504
+          - Arn
+  withotelcollectorcontrollerdefinitioncontrollerLogGroup514C9EF0:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/controller-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withotelcollectorcontrollerserviceService83299A78:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      Cluster:
+        Ref: withotelcollectorcluster09679981
+      DeploymentConfiguration:
+        Alarms:
+          AlarmNames: []
+          Enable: false
+          Rollback: false
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      DesiredCount: 1
+      EnableECSManagedTags: false
+      EnableExecuteCommand: false
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - 'Fn::GetAtt':
+                - withotelcollectorsecuritygroupBD4A7399
+                - GroupId
+          Subnets:
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/controller-service
+      TaskDefinition:
+        Ref: withotelcollectorcontrollerdefinitionD29F6C59
+    DependsOn:
+      - withotelcollectorcontrollertaskroleDefaultPolicyE9B648FA
+      - withotelcollectorcontrollertaskrole025F5504
+  withotelcollectorrestatectllambdaexecutionroleA0831EA5:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  withotelcollectorrestatectllambdaexecutionroleDefaultPolicy07728179:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:DescribeNetworkInterfaces'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DeleteNetworkInterface'
+              - 'ec2:AssignPrivateIpAddresses'
+              - 'ec2:UnassignPrivateIpAddresses'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCAccessExecutionPermissions
+        Version: '2012-10-17'
+      PolicyName: withotelcollectorrestatectllambdaexecutionroleDefaultPolicy07728179
+      Roles:
+        - Ref: withotelcollectorrestatectllambdaexecutionroleA0831EA5
+  withotelcollectorrestatectllambda4FF04021:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Environment:
+        Variables:
+          RESTATECTL_ADDRESS:
+            'Fn::Join':
+              - ''
+              - - 'http://'
+                - 'Fn::GetAtt':
+                    - withotelcollectorsharednlbB07E655C
+                    - DNSName
+                - ':5122'
+      Handler: restatectl
+      Role:
+        'Fn::GetAtt':
+          - withotelcollectorrestatectllambdaexecutionroleA0831EA5
+          - Arn
+      Runtime: provided.al2023
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/restatectl-lambda
+      Timeout: 10
+      VpcConfig:
+        SecurityGroupIds:
+          - 'Fn::GetAtt':
+              - withotelcollectorsecuritygroupBD4A7399
+              - GroupId
+        SubnetIds:
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+    DependsOn:
+      - withotelcollectorrestatectllambdaexecutionroleDefaultPolicy07728179
+      - withotelcollectorrestatectllambdaexecutionroleA0831EA5
+  withotelcollectorretirementwatcherlambdaexecutionroleC58542B9:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  withotelcollectorretirementwatcherlambdaexecutionroleDefaultPolicy34803E07:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaBasicExecutionPermissions
+          - Action: 'ecs:TagResource'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - withotelcollectorcluster09679981
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TagTasks
+          - Action:
+              - 'sqs:ReceiveMessage'
+              - 'sqs:ChangeMessageVisibility'
+              - 'sqs:GetQueueUrl'
+              - 'sqs:DeleteMessage'
+              - 'sqs:GetQueueAttributes'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withotelcollectorretirementwatcherqueue9A16F3EA
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: >-
+        withotelcollectorretirementwatcherlambdaexecutionroleDefaultPolicy34803E07
+      Roles:
+        - Ref: withotelcollectorretirementwatcherlambdaexecutionroleC58542B9
+  withotelcollectorretirementwatcherlambdaD651D071:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Handler: index.handler
+      Role:
+        'Fn::GetAtt':
+          - withotelcollectorretirementwatcherlambdaexecutionroleC58542B9
+          - Arn
+      Runtime: nodejs22.x
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/retirement-watcher-lambda
+      Timeout: 60
+    DependsOn:
+      - >-
+        withotelcollectorretirementwatcherlambdaexecutionroleDefaultPolicy34803E07
+      - withotelcollectorretirementwatcherlambdaexecutionroleC58542B9
+  withotelcollectorretirementwatcherlambdaSqsEventSourceRestateBYOCwithotelcollectorretirementwatcherqueue2005046DEEAC319F:
+    Type: 'AWS::Lambda::EventSourceMapping'
+    Properties:
+      BatchSize: 1
+      EventSourceArn:
+        'Fn::GetAtt':
+          - withotelcollectorretirementwatcherqueue9A16F3EA
+          - Arn
+      FunctionName:
+        Ref: withotelcollectorretirementwatcherlambdaD651D071
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/retirement-watcher-lambda
+  withotelcollectorretirementwatcherqueue9A16F3EA:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/retirement-watcher-queue
+      VisibilityTimeout: 60
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  withotelcollectorretirementwatcherqueuePolicy29D1C5CB:
+    Type: 'AWS::SQS::QueuePolicy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'sqs:SendMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
+            Condition:
+              ArnEquals:
+                'aws:SourceArn':
+                  'Fn::GetAtt':
+                    - withotelcollectorretirementwatcherruleC06121B4
+                    - Arn
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Resource:
+              'Fn::GetAtt':
+                - withotelcollectorretirementwatcherqueue9A16F3EA
+                - Arn
+        Version: '2012-10-17'
+      Queues:
+        - Ref: withotelcollectorretirementwatcherqueue9A16F3EA
+  withotelcollectorretirementwatcherruleC06121B4:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        detail:
+          eventTypeCode:
+            - equals-ignore-case: AWS_ECS_TASK_PATCHING_RETIREMENT
+          service:
+            - equals-ignore-case: ecs
+        resources:
+          - prefix:
+              'Fn::Join':
+                - /
+                - - 'Fn::Join':
+                      - ':'
+                      - - 'Fn::Select':
+                            - 0
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - withotelcollectorcluster09679981
+                                            - Arn
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - withotelcollectorcluster09679981
+                                            - Arn
+                        - 'Fn::Select':
+                            - 2
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - withotelcollectorcluster09679981
+                                            - Arn
+                        - 'Fn::Select':
+                            - 3
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - withotelcollectorcluster09679981
+                                            - Arn
+                        - 'Fn::Select':
+                            - 4
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - withotelcollectorcluster09679981
+                                            - Arn
+                        - task
+                  - 'Fn::Select':
+                      - 1
+                      - 'Fn::Split':
+                          - /
+                          - 'Fn::GetAtt':
+                              - withotelcollectorcluster09679981
+                              - Arn
+                  - ''
+        detail-type:
+          - equals-ignore-case: AWS Health Event
+      State: ENABLED
+      Targets:
+        - Arn:
+            'Fn::GetAtt':
+              - withotelcollectorretirementwatcherqueue9A16F3EA
+              - Arn
+          Id: Target0
+  withotelcollectorcloudwatchcustomwidgetexecutionrole56230195:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  withotelcollectorcloudwatchcustomwidgetexecutionroleDefaultPolicy6173D3CE:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaBasicExecutionPermissions
+          - Action: 'lambda:InvokeFunction'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withotelcollectorrestatectllambda4FF04021
+                - Arn
+            Sid: InvokeRestatectl
+          - Action:
+              - 'ec2:DescribeVolumes'
+              - 'ec2:DescribeVolumeStatus'
+              - 'ec2:DescribeSnapshots'
+            Effect: Allow
+            Resource: '*'
+            Sid: EC2ReadActions
+          - Action: 'ecs:DescribeTaskDefinition'
+            Effect: Allow
+            Resource: '*'
+            Sid: ECSReadActions
+          - Action: 'ecs:ListTasks'
+            Condition:
+              StringEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - withotelcollectorcluster09679981
+                    - Arn
+            Effect: Allow
+            Resource: '*'
+            Sid: ECSListTasks
+          - Action: 'ecs:DescribeTasks'
+            Condition:
+              StringEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - withotelcollectorcluster09679981
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ecs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':task/'
+                  - Ref: withotelcollectorcluster09679981
+                  - /*
+            Sid: ECSDescribeTasks
+          - Action: 'ecs:DescribeServices'
+            Condition:
+              StringEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - withotelcollectorcluster09679981
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ecs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':service/'
+                  - Ref: withotelcollectorcluster09679981
+                  - /*
+            Sid: ECSDescribeServices
+          - Action: 'cloudwatch:GetMetricData'
+            Effect: Allow
+            Resource: '*'
+            Sid: CloudWatchReadActions
+        Version: '2012-10-17'
+      PolicyName: >-
+        withotelcollectorcloudwatchcustomwidgetexecutionroleDefaultPolicy6173D3CE
+      Roles:
+        - Ref: withotelcollectorcloudwatchcustomwidgetexecutionrole56230195
+  withotelcollectorcloudwatchcustomwidgetlambdaECB1432F:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Handler: index.handler
+      MemorySize: 1024
+      Role:
+        'Fn::GetAtt':
+          - withotelcollectorcloudwatchcustomwidgetexecutionrole56230195
+          - Arn
+      Runtime: nodejs22.x
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/cloudwatch-custom-widget-lambda
+      Timeout: 60
+    DependsOn:
+      - >-
+        withotelcollectorcloudwatchcustomwidgetexecutionroleDefaultPolicy6173D3CE
+      - withotelcollectorcloudwatchcustomwidgetexecutionrole56230195
+  withotelcollectorcloudwatchcustomwidgetlambdacloudwatchcustomwidgetlambdaallowdatasourceAF3A7C1A:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - withotelcollectorcloudwatchcustomwidgetlambdaECB1432F
+          - Arn
+      Principal: lambda.datasource.cloudwatch.amazonaws.com
+  withotelcollectormetrics493AA233:
+    Type: 'AWS::CloudWatch::Dashboard'
+    Properties:
+      DashboardBody:
+        'Fn::Join':
+          - ''
+          - - >-
+              {"widgets":[{"type":"metric","width":12,"height":6,"x":0,"y":0,"properties":{"view":"timeSeries","title":"Stateless
+              CPU","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"CPU","expression":"SELECT AVG(CpuUtilized)
+              FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatelessdefinition8B26C72F' GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":16384,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"vCPUs","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":0,"properties":{"view":"timeSeries","title":"Stateless
+              Memory","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Memory","expression":"SELECT
+              AVG(MemoryUtilized) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatelessdefinition8B26C72F' GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":32768,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"MiB","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":0,"y":6,"properties":{"view":"timeSeries","title":"Stateless
+              Network Tx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Tx","expression":"SELECT
+              AVG(NetworkTxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatelessdefinition8B26C72F' GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":6,"properties":{"view":"timeSeries","title":"Stateless
+              Network Rx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Rx","expression":"SELECT
+              AVG(NetworkRxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatelessdefinition8B26C72F' GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":12,"properties":{"view":"table","title":"Stateless
+              Logs","region":"region","query":"SOURCE '
+            - Ref: withotelcollectorstatelessdefinitionrestateLogGroup9C507C4C
+            - >-
+              ' | fields @logStream, @timestamp, level, fields.message,
+              target\\n          | sort @timestamp desc\\n          | limit
+              500"}},{"type":"metric","width":12,"height":6,"x":0,"y":18,"properties":{"view":"timeSeries","title":"Stateful
+              CPU","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"CPU","expression":"SELECT AVG(CpuUtilized)
+              FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatefuldefinition83529E5C' GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":16384,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"vCPUs","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":18,"properties":{"view":"timeSeries","title":"Stateful
+              Memory","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Memory","expression":"SELECT
+              AVG(MemoryUtilized) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatefuldefinition83529E5C' GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":32768,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"MiB","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":0,"y":24,"properties":{"view":"timeSeries","title":"Stateful
+              Network Tx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Tx","expression":"SELECT
+              AVG(NetworkTxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatefuldefinition83529E5C' GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":24,"properties":{"view":"timeSeries","title":"Stateful
+              Network Rx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Rx","expression":"SELECT
+              AVG(NetworkRxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatefuldefinition83529E5C' GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":30,"properties":{"view":"table","title":"Stateful
+              Logs","region":"region","query":"SOURCE '
+            - Ref: withotelcollectorstatefuldefinitionrestateLogGroupBF29129D
+            - >-
+              ' | fields @logStream, @timestamp, level, fields.message,
+              target\\n          | sort @timestamp desc\\n          | limit
+              500"}},{"type":"metric","width":8,"height":6,"x":0,"y":36,"properties":{"view":"timeSeries","title":"Ephemeral
+              Volume Usage (Total size 200GiB)","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Usage","expression":"SELECT
+              MAX(EphemeralStorageUtilized) FROM
+              SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily) WHERE TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatefuldefinition83529E5C'"}]],"annotations":{"horizontal":[{"value":200,"label":"Volume
+              size","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"GiB","showUnits":false}},"liveData":false}},{"type":"metric","width":8,"height":6,"x":8,"y":36,"properties":{"view":"timeSeries","title":"Volume
+              Write Throughput (Limited to 150 MiB/sec)","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Write","expression":"RATE(count) /
+              1048576"}],[{"expression":"SELECT MAX(StorageWriteBytes) FROM
+              SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatefuldefinition83529E5C' GROUP BY
+              TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"metric","width":8,"height":6,"x":16,"y":36,"properties":{"view":"timeSeries","title":"Volume
+              Read Throughput (Limited to 150 MiB/sec)","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Read","expression":"RATE(count) /
+              1048576"}],[{"expression":"SELECT MAX(StorageReadBytes) FROM
+              SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithotelcollectorstatefuldefinition83529E5C' GROUP BY
+              TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":42,"properties":{"view":"table","title":"Controller
+              Logs","region":"region","query":"SOURCE '
+            - Ref: withotelcollectorcontrollerdefinitioncontrollerLogGroup514C9EF0
+            - >-
+              ' | fields @logStream, @timestamp, level, fields.message,
+              target\\n          | sort @timestamp desc\\n          | limit
+              500"}}]}
+      DashboardName: RestateBYOC_with-otel-collector_metrics
+  withotelcollectorcontrolpanel249EF470:
+    Type: 'AWS::CloudWatch::Dashboard'
+    Properties:
+      DashboardBody:
+        'Fn::Join':
+          - ''
+          - - >-
+              {"widgets":[{"type":"custom","width":24,"height":26,"x":0,"y":0,"properties":{"endpoint":"
+            - 'Fn::GetAtt':
+                - withotelcollectorcloudwatchcustomwidgetlambdaECB1432F
+                - Arn
+            - '","params":{"command":"controlPanel","input":{"region":"'
+            - Ref: 'AWS::Region'
+            - >-
+              ","summary":{"clusterName":"RestateBYOC/with-otel-collector","restateVersion":"1.4","stackVersion":"0.4.0-dev","metricsDashboardName":"
+            - Ref: withotelcollectormetrics493AA233
+            - '"},"resources":{"ecsClusterArn":"'
+            - 'Fn::GetAtt':
+                - withotelcollectorcluster09679981
+                - Arn
+            - '","statelessServiceArn":"'
+            - Ref: withotelcollectorstatelessserviceService8ABCCEA9
+            - '","controllerServiceArn":"'
+            - Ref: withotelcollectorcontrollerserviceService83299A78
+            - '","restatectlLambdaArn":"'
+            - 'Fn::GetAtt':
+                - withotelcollectorrestatectllambda4FF04021
+                - Arn
+            - >-
+              "},"connectivityAndSecurity":{"connectivity":{"loadBalancerArns":{"ingress":["
+            - Ref: withotelcollectorsharednlbB07E655C
+            - '"],"admin":["'
+            - Ref: withotelcollectorsharednlbB07E655C
+            - '"]},"addresses":{"ingress":"http://'
+            - 'Fn::GetAtt':
+                - withotelcollectorsharednlbB07E655C
+                - DNSName
+            - ':8080","admin":"http://'
+            - 'Fn::GetAtt':
+                - withotelcollectorsharednlbB07E655C
+                - DNSName
+            - ':9070","webUI":"http://'
+            - 'Fn::GetAtt':
+                - withotelcollectorsharednlbB07E655C
+                - DNSName
+            - ':9070/ui"}},"networking":{"vpc":"'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+            - '","availabilityZones":["dummy1a","dummy1b","dummy1c"],"subnets":["'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+            - '","'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+            - '","'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+            - '"]},"security":{"securityGroups":["'
+            - 'Fn::GetAtt':
+                - withotelcollectorsecuritygroupBD4A7399
+                - GroupId
+            - '"]}},"storage":{"s3":{"bucket":"'
+            - Ref: withotelcollectorbucket91BBB0A6
+            - >-
+              "}}}},"title":"","updateOn":{"refresh":true,"resize":true,"timeRange":true}}}]}
+      DashboardName: RestateBYOC_with-otel-collector_control-panel
+Outputs:
+  withotelcollectorSecurityGroups05665198:
+    Description: The security group IDs of the cluster
+    Value:
+      'Fn::GetAtt':
+        - withotelcollectorsecuritygroupBD4A7399
+        - GroupId
+  withotelcollectorIngressNetworkListener1F059E1B:
+    Description: The ARN of the network listener for the ingress port
+    Value:
+      Ref: withotelcollectoringresssharedlistener92B1BA62
+  withotelcollectorIngressNetworkTargetGroup7FAC75AC:
+    Description: The ARN of the network target group for the ingress port
+    Value:
+      Ref: withotelcollectoringresssharedtarget878F9905
+  withotelcollectorAdminNetworkListenerC345BDBB:
+    Description: The ARN of the network listener for the admin port
+    Value:
+      Ref: withotelcollectoradminsharedlistenerF5722F86
+  withotelcollectorAdminNetworkTargetGroupD4894232:
+    Description: The ARN of the network target group for the admin port
+    Value:
+      Ref: withotelcollectoradminsharedtarget90E7DEFD
+  withotelcollectorNodeNetworkListenerDF53C8EC:
+    Description: The ARN of the network listener for the node port
+    Value:
+      Ref: withotelcollectornodesharedlistenerF009ADCC
+  withotelcollectorNodeNetworkTargetGroupA7210A1E:
+    Description: The ARN of the network target group for the node port
+    Value:
+      Ref: withotelcollectornodesharedtarget3F81F89C
+"
+`;

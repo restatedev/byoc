@@ -382,6 +382,123 @@ export interface RestateBYOCRetirementWatcherProps {
   executionRole?: cdk.aws_iam.IRole;
 }
 
+export const DEFAULT_OTEL_COLLECTOR_IMAGE =
+  "public.ecr.aws/aws-observability/aws-otel-collector:latest";
+export const DEFAULT_OTEL_COLLECTOR_CPU = 256;
+export const DEFAULT_OTEL_COLLECTOR_MEMORY_LIMIT_MIB = 512;
+
+export interface RestateBYOCOtelCollectorProps {
+  /**
+   * If true, create OTEL collector sidecars for telemetry collection.
+   * Default: false
+   */
+  enabled: true;
+
+  /**
+   * Options to configure Restate's OTEL trace sampling
+   * Default: Restate will not send OTEL traces to the collector
+   */
+  traceOptions?:
+    | {
+        /**
+         * The type of the sampler
+         * always_off - never sample
+         * always_on - always sample
+         * parentbased_always_on - always sample unless the parent was not sampled
+         * parentbased_always_off - never sample unless the parent was sampled
+         */
+        sampler:
+          | "always_off" //
+          | "always_on"
+          | "parentbased_always_on"
+          | "parentbased_always_off";
+      }
+    | {
+        /**
+         * The type of the sampler
+         * traceidratio - sample a proportion of traces given by samplerArg
+         * parentbased_traceidratio - recommended. sample if the parent was sampled, otherwise sample a proportion of traces given by samplerArg
+         */
+        sampler: "traceidratio" | "parentbased_traceidratio";
+        /**
+         * The sampling ratio, as a number between 0 and 1
+         */
+        samplerArg: string;
+      };
+
+  /**
+   * The OTEL collector image to use
+   * Default: public.ecr.aws/aws-observability/aws-otel-collector:latest
+   */
+  image?: string;
+
+  /**
+   * The resources for the OTEL collector sidecar container
+   * Default: 256 CPU and 512 memory
+   */
+  resources?: { cpu: number; memoryLimitMiB: number };
+
+  /**
+   * The health check for the OTEL collector sidecar container
+   * Set to null to disable health checking
+   * Default: /healthcheck command
+   */
+  healthCheck?: cdk.aws_ecs.HealthCheck | null;
+
+  /**
+   * The secret environment variables to pass to the container.
+   *
+   * Default: No secret environment variables.
+   */
+  secrets?: { [key: string]: cdk.aws_ecs.Secret };
+
+  /**
+   * Configuration for the OTEL collector
+   */
+  configuration:
+    | {
+        /**
+         * How often to collect metrics from Restate
+         */
+        restateScrapeInterval?: cdk.Duration;
+
+        /**
+         * How often to collect metrics from ECS
+         */
+        ecsCollectionInterval?: cdk.Duration;
+
+        /**
+         * Exporter definitions, indexed by their ID
+         * eg: {awsemf: {namespace: 'Restate/Metrics', log_group_name: '/restate/metrics'}}
+         * Do not include secrets directly here; instead refer to env vars like ${env:MY_SECRET}
+         * and add the appropriate environment variables to the secrets field.
+         */
+        exporters: {
+          [id: string]: object;
+        };
+
+        /**
+         * Exporter IDs
+         */
+        traceExporterIds?: string[];
+
+        /**
+         * Destination endpoints for metrics and traces
+         */
+        metricExporterIds?: string[];
+      }
+    | {
+        /**
+         * Custom OTEL collector configuration YAML
+         * If provided, this will override the default configuration
+         * Please ensure that service.extensions includes health_check, or disable the health check above.
+         * Do not include secrets directly here; instead refer to env vars like ${env:MY_SECRET}
+         * and add the appropriate environment variables to the secrets field.
+         */
+        customConfig: string;
+      };
+}
+
 export interface RestateBYOCMonitoringProps {
   dashboard?: {
     metrics?: {
@@ -428,4 +545,10 @@ export interface RestateBYOCMonitoringProps {
       executionRole?: cdk.aws_iam.IRole;
     };
   };
+
+  /**
+   * Options for OpenTelemetry collector sidecars
+   * Default: OTEL collector sidecars are disabled
+   */
+  otelCollector?: RestateBYOCOtelCollectorProps;
 }

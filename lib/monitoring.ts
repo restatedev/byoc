@@ -2,9 +2,13 @@ import { Construct } from "constructs";
 import * as cdk from "aws-cdk-lib";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import {
+  DEFAULT_OTEL_COLLECTOR_CPU,
+  DEFAULT_OTEL_COLLECTOR_IMAGE,
+  DEFAULT_OTEL_COLLECTOR_MEMORY_LIMIT_MIB,
   DEFAULT_RESTATE_CPU,
   DEFAULT_RESTATE_MEMORY_LIMIT_MIB,
   RestateBYOCMonitoringProps,
+  RestateBYOCOtelCollectorProps,
   RestateBYOCProps,
   SupportedRestateVersion,
 } from "./props";
@@ -636,4 +640,261 @@ function createCustomWidgetLambda(
   });
 
   return fn;
+}
+
+export function otelCollectorContainerProps(
+  clusterName: string,
+  logDriver?: cdk.aws_ecs.LogDriver,
+  otelCollectorProps?: RestateBYOCOtelCollectorProps,
+): cdk.aws_ecs.ContainerDefinitionOptions | undefined {
+  if (!otelCollectorProps?.enabled) {
+    return;
+  }
+
+  const otelConfig = otelCollectorConfig(otelCollectorProps);
+
+  const otelCollectorCpu =
+    otelCollectorProps.resources?.cpu ?? DEFAULT_OTEL_COLLECTOR_CPU;
+  const otelCollectorMemoryLimitMiB =
+    otelCollectorProps.resources?.memoryLimitMiB ??
+    DEFAULT_OTEL_COLLECTOR_MEMORY_LIMIT_MIB;
+
+  return {
+    cpu: otelCollectorCpu,
+    memoryLimitMiB: otelCollectorMemoryLimitMiB,
+    image: cdk.aws_ecs.ContainerImage.fromRegistry(
+      otelCollectorProps?.image ?? DEFAULT_OTEL_COLLECTOR_IMAGE,
+    ),
+    logging: logDriver,
+    stopTimeout: cdk.Duration.seconds(30),
+    healthCheck:
+      otelCollectorProps.healthCheck === null
+        ? undefined
+        : (otelCollectorProps.healthCheck ?? {
+            command: ["CMD", "/healthcheck"],
+            timeout: cdk.Duration.seconds(5),
+            interval: cdk.Duration.seconds(5),
+          }),
+    // we must not exit a restate node because otel failed
+    essential: false,
+    enableRestartPolicy: true,
+    restartAttemptPeriod: cdk.Duration.seconds(60),
+    secrets: otelCollectorProps.secrets,
+    environment: {
+      AOT_CONFIG_CONTENT: otelConfig,
+      RESTATE_CLUSTER_NAME: clusterName,
+    },
+  };
+}
+
+function otelCollectorConfig(
+  otelCollectorProps: RestateBYOCOtelCollectorProps,
+): string {
+  if ("customConfig" in otelCollectorProps.configuration) {
+    return otelCollectorProps.configuration.customConfig;
+  }
+
+  if (
+    !otelCollectorProps.configuration.traceExporterIds?.length &&
+    !otelCollectorProps.configuration.metricExporterIds?.length
+  ) {
+    throw new Error(
+      "Otel collection configuration must include some traceExporterIds or metricExporterIds",
+    );
+  }
+
+  for (const id of otelCollectorProps.configuration.traceExporterIds ?? []) {
+    if (!(id in otelCollectorProps.configuration.exporters)) {
+      throw new Error(
+        `Otel collector is configured with a trace exporter ID ${id} which is not present in the 'exporters' object`,
+      );
+    }
+  }
+
+  for (const id of otelCollectorProps.configuration.metricExporterIds ?? []) {
+    if (!(id in otelCollectorProps.configuration.exporters)) {
+      throw new Error(
+        `Otel collector is configured with a metric exporter ID ${id} which is not present in the 'exporters' object`,
+      );
+    }
+  }
+
+  const tracesPipeline = otelCollectorProps.configuration.traceExporterIds
+    ?.length
+    ? {
+        traces: {
+          receivers: ["otlp"],
+          processors: ["batch/traces"],
+          exporters: otelCollectorProps.configuration.traceExporterIds,
+        },
+      }
+    : {};
+
+  const metricsPipelines = otelCollectorProps.configuration.metricExporterIds
+    ?.length
+    ? {
+        "metrics/restate": {
+          receivers: ["prometheus"],
+          processors: ["batch/metrics"],
+          exporters: otelCollectorProps.configuration.metricExporterIds,
+        },
+        "metrics/ecs": {
+          receivers: ["awsecscontainermetrics"],
+          processors: ["filter/ecs", "metricstransform/ecs", "resource/ecs"],
+          exporters: otelCollectorProps.configuration.metricExporterIds,
+        },
+      }
+    : {};
+
+  const config = {
+    receivers: {
+      otlp: {
+        protocols: {
+          grpc: {
+            endpoint: "localhost:4317",
+          },
+        },
+      },
+      prometheus: {
+        config: {
+          scrape_configs: [
+            {
+              job_name: "restate",
+              static_configs: [{ targets: ["localhost:5122"] }],
+              scrape_interval: otelCollectorProps.configuration
+                .restateScrapeInterval
+                ? `${otelCollectorProps.configuration.restateScrapeInterval.toSeconds()}s`
+                : "60s",
+            },
+          ],
+        },
+      },
+      awsecscontainermetrics: {
+        collection_interval: otelCollectorProps.configuration
+          .ecsCollectionInterval
+          ? `${otelCollectorProps.configuration.ecsCollectionInterval.toSeconds()}s`
+          : "60s",
+      },
+    },
+
+    processors: {
+      "batch/traces": {
+        timeout: "5s",
+        send_batch_size: 50,
+      },
+      "batch/metrics": {
+        timeout: "60s",
+      },
+      "filter/ecs": {
+        metrics: {
+          include: {
+            match_type: "strict",
+            metric_names: [
+              "ecs.task.memory.reserved",
+              "ecs.task.memory.utilized",
+              "ecs.task.cpu.utilized",
+              "ecs.task.cpu.reserved",
+              "ecs.task.network.io.usage.rx_bytes",
+              "ecs.task.network.io.usage.tx_bytes",
+              "ecs.task.storage.read_bytes",
+              "ecs.task.storage.write_bytes",
+            ],
+          },
+        },
+      },
+      "metricstransform/ecs": {
+        transforms: [
+          {
+            include: "ecs.task.memory.utilized",
+            action: "update",
+            new_name: "restate_ecs_memory_utilized",
+          },
+          {
+            include: "ecs.task.memory.reserved",
+            action: "update",
+            new_name: "restate_ecs_memory_reserved",
+          },
+          {
+            include: "ecs.task.cpu.utilized",
+            action: "update",
+            new_name: "restate_ecs_cpu_utilized",
+          },
+          {
+            include: "ecs.task.cpu.reserved",
+            action: "update",
+            new_name: "restate_ecs_cpu_reserved",
+          },
+          {
+            include: "ecs.task.network.io.usage.rx_bytes",
+            action: "update",
+            new_name: "restate_ecs_network_io_usage_rx_bytes",
+          },
+          {
+            include: "ecs.task.network.io.usage.tx_bytes",
+            action: "update",
+            new_name: "restate_ecs_network_io_usage_tx_bytes",
+          },
+          {
+            include: "ecs.task.storage.read_bytes",
+            action: "update",
+            new_name: "restate_ecs_storage_read_bytes",
+          },
+          {
+            include: "ecs.task.storage.write_bytes",
+            action: "update",
+            new_name: "restate_ecs_storage_write_bytes",
+          },
+        ],
+      },
+      "resource/ecs": {
+        attributes: [
+          {
+            key: "service.name",
+            value: "restate",
+            action: "upsert",
+          },
+          {
+            key: "cluster_name",
+            value: "${env:RESTATE_CLUSTER_NAME}",
+            action: "insert",
+          },
+          {
+            key: "node_name",
+            from_attribute: "aws.ecs.task.arn",
+            action: "insert",
+          },
+          {
+            key: "availability_zone",
+            from_attribute: "cloud.zone",
+            action: "insert",
+          },
+          {
+            pattern: "aws.*",
+            action: "delete",
+          },
+          {
+            pattern: "cloud.*",
+            action: "delete",
+          },
+        ],
+      },
+    },
+
+    exporters: otelCollectorProps.configuration.exporters,
+
+    service: {
+      pipelines: {
+        ...tracesPipeline,
+        ...metricsPipelines,
+      },
+      extensions: ["health_check", "zpages", "sigv4auth"],
+    },
+    extensions: {
+      health_check: {},
+      zpages: {},
+      sigv4auth: {},
+    },
+  };
+
+  return JSON.stringify(config);
 }
