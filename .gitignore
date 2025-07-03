@@ -9,6 +9,6 @@ cdk.out
 
 .cache
 dist
-bootstrap
+lib/lambda/restatectl/restatectl
 *.tgz
 controller.tar
