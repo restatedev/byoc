@@ -516,7 +516,7 @@ export class RestateBYOC
     this.controller = controller;
 
     const artifacts = !props._useLocalArtifacts
-      ? getArtifacts(this, PACKAGE_INFO.version)
+      ? getArtifacts(this, props._artifactsVersion ?? PACKAGE_INFO.version)
       : bundleArtifacts();
 
     this.restatectl = createRestatectl(

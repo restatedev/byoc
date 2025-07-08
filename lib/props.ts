@@ -117,6 +117,15 @@ export interface RestateBYOCProps {
    * Default: use the artifacts from the BYOC public bucket
    */
   _useLocalArtifacts?: boolean;
+
+  /**
+   * @internal
+   *
+   * Override the artifact version if different from the BYOC package version.
+   *
+   * Default: use the BYOC dependency's package version
+   */
+  _artifactsVersion?: string;
 }
 
 export type LoadBalancerSource =

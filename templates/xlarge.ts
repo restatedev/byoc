@@ -1,4 +1,4 @@
-#!/usr/bin/env -S npm run ts-node -- --prefer-ts-exts
+#!/usr/bin/env -S npx tsx
 
 import * as cdk from "aws-cdk-lib";
 import { RestateBYOCStack } from "./base";

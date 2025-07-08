@@ -1,0 +1,42 @@
+name: BYOC cluster deployment tests
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  byoc-e2e-tests:
+    # id tokens are not available on forks
+    if: github.event.repository.fork == false
+    runs-on: warp-ubuntu-latest-x64-4x
+    env:
+      BYOC_LICENSE_KEY: ${{ secrets.BYOC_LICENSE_KEY }}
+      STACK_NAME: restatedev-byoc-e2e-fargate-cluster
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "latest"
+      - uses: grafana/setup-k6-action@v1
+
+      - run: npm clean-install
+      - run: npm run build
+      - run: npm run download-restatectl
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::339713187748:role/github-restatedev-byoc-actions-role"
+          role-duration-seconds: 7200
+
+      - name: Run cluster e2e tests
+        run: npx tsx test/e2e/runner.ts
+        timeout-minutes: 60
+
+      - run: aws cloudformation delete-stack --stack-name ${STACK_NAME}
+        if: always()
