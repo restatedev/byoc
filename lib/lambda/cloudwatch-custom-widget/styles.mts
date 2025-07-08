@@ -46,6 +46,8 @@ export function css(
   --awsui-color-text: #0f141a;
   --awsui-color-text-secondary: #424650;
   --awsui-color-text-disabled: #656871;
+  --awsui-color-text-link: #006ce0;
+  --awsui-color-text-link-hover: #002b66;
   --awsui-color-background-container: #ffffff;
   --awsui-color-background-control: #ffffff;
   --awsui-color-background-header: #ffffff;
@@ -61,9 +63,11 @@ export function css(
     --awsui-color-text: #ffffff;
     --awsui-color-text-secondary: #d5d5d5;
     --awsui-color-text-disabled: #9d9d9d;
+    --awsui-color-text-link: #42b4ff;
+    --awsui-color-text-link-hover: #75cfff;
     --awsui-color-background-container: #1d2129;
     --awsui-color-background-control: #1d2129;
-    --awsui-color-background-header: #232f3e;
+    --awsui-color-background-header: #1d2129;
     --awsui-color-border: #414d5c;
     --awsui-color-border-table: #2e3440;
     --awsui-color-background-status-bar: #414d5c;
@@ -76,9 +80,11 @@ export function css(
   --awsui-color-text: #ffffff;
   --awsui-color-text-secondary: #d5d5d5;
   --awsui-color-text-disabled: #9d9d9d;
+  --awsui-color-text-link: #42b4ff;
+  --awsui-color-text-link-hover: #75cfff;
   --awsui-color-background-container: #1d2129;
   --awsui-color-background-control: #1d2129;
-  --awsui-color-background-header: #232f3e;
+  --awsui-color-background-header: #1d2129;
   --awsui-color-border: #414d5c;
   --awsui-color-border-table: #2e3440;
   --awsui-color-background-status-bar: #414d5c;
@@ -138,7 +144,7 @@ h3.awsui_heading {
 
 .awsui_link {
   font-weight: normal;
-  color: #006ce0;
+  color: var(--awsui-color-text-link);
   line-height: 20px;
 }
 
@@ -147,7 +153,7 @@ h3.awsui_heading {
 }
 
 .awsui_link:hover {
-  color: #002b66;
+  color: var(--awsui-color-text-link-hover);
 }
 
 .awsui_content-wrapper {
@@ -787,6 +793,7 @@ ${[...Array(maxTableColumns * 2).keys()]
 }
 
 .awsui_page-number {
+  color: var(--awsui-color-text-secondary);
   font-size: 14px;
   background: #0000;
   box-sizing: border-box;
@@ -814,6 +821,7 @@ ${[...Array(maxTableColumns * 2).keys()]
 }
 
 .awsui_page-number-active {
+  color: var(--awsui-color-text);
   font-weight: bold;
 }
 
