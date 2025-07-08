@@ -112,8 +112,9 @@ export interface RestateBYOCProps {
    * @internal
    *
    * Override the artifact distribution mode for development. Set this to `true` to use artifacts
-   * like `restatectl` and the CloudWatch widget directly from the codebase, rather than the
-   * reference the public bucket artifacts.
+   * like `restatectl` and the CloudWatch widget handler directly from within the codebase.
+   *
+   * Default: use the artifacts from the BYOC public bucket
    */
   _useLocalArtifacts?: boolean;
 }
@@ -245,7 +246,8 @@ export function assertSupportedRestateVersion(
 export interface RestateBYOCNodeProps {
   /**
    * The Restate image to use for the node
-   * Default: docker.restate.dev/restatedev/restate:1.3
+   *
+   * Default: docker.restate.dev/restatedev/restate:1.4
    */
   restateImage?: string;
 
