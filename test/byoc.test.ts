@@ -168,6 +168,34 @@ describe("BYOC", () => {
     // validate that reading it twice doesn't create resources twice
     const _ = byoc.targetGroups.admin.application;
   });
+
+  test("With otel collector", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateBYOC(stack, "with-otel-collector", {
+      vpc,
+      licenseID,
+      monitoring: {
+        otelCollector: {
+          enabled: true,
+          configuration: {
+            exporters: {
+              awsemf: {
+                namespace: "Restate/Metrics",
+                log_group_name: "/restate/metrics",
+              },
+            },
+            metricExporterIds: ["awsemf"],
+          },
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
 });
 
 function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {

@@ -24,7 +24,7 @@ import {
   RestateBYOCTaskProps,
   SupportedRestateVersion,
 } from "./props";
-import { createMonitoring } from "./monitoring";
+import { createMonitoring, otelCollectorContainerProps } from "./monitoring";
 import type { IRestateEnvironment } from "@restatedev/restate-cdk";
 import { bundleArtifacts, getArtifacts } from "./artifacts";
 import { createOutputs } from "./outputs";
@@ -334,6 +334,25 @@ export class RestateBYOC
       props.loadBalancer,
     );
 
+    const otelCollectorContainer = otelCollectorContainerProps(
+      this.clusterName,
+      restateTaskProps.logDriver,
+      props.monitoring?.otelCollector,
+    );
+
+    const otelEnv = props.monitoring?.otelCollector?.traceOptions?.sampler
+      ? {
+          OTEL_SAMPLER: props.monitoring?.otelCollector.traceOptions.sampler,
+          ...("samplerArg" in props.monitoring.otelCollector.traceOptions
+            ? {
+                OTEL_SAMPLER_ARG:
+                  props.monitoring.otelCollector.traceOptions.samplerArg,
+              }
+            : {}),
+          RESTATE_TRACING_SERVICES_ENDPOINT: "http://127.0.0.1:4317",
+        }
+      : {};
+
     const stateless = createStateless(
       this,
       this.clusterName,
@@ -343,7 +362,9 @@ export class RestateBYOC
       this.vpcSubnets,
       restateTaskProps,
       props.addresses?.ingress ?? this.listeners.ingress.address,
+      otelEnv,
       props.statelessNode,
+      otelCollectorContainer,
     );
     this.stateless = stateless;
 
@@ -369,7 +390,9 @@ export class RestateBYOC
       bucketPath,
       restateTaskProps,
       partitionsPerNode,
+      otelEnv,
       props.statefulNode,
+      otelCollectorContainer,
     );
     this.stateful = { taskDefinition: statefulDefinition };
 
@@ -608,22 +631,28 @@ function createStateless(
   vpcSubnets: cdk.aws_ec2.SubnetSelection,
   taskProps: RestateBYOCTaskProps,
   ingressAdvertisedAddress: string,
+  otelEnv: Record<string, string>,
   statelessProps?: RestateBYOCStatelessProps,
+  otelCollectorContainer?: cdk.aws_ecs.ContainerDefinitionOptions,
 ): {
   service: cdk.aws_ecs.FargateService;
   taskDefinition: cdk.aws_ecs.FargateTaskDefinition;
 } {
-  const cpu = statelessProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
-  const memoryLimitMiB =
+  const totalCpu = statelessProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
+  const totalMemoryLimitMiB =
     statelessProps?.resources?.memoryLimitMiB ??
     DEFAULT_RESTATE_MEMORY_LIMIT_MIB;
+
+  const restateCpu = totalCpu - (otelCollectorContainer?.cpu ?? 0);
+  const restateMemoryLimitMiB =
+    totalMemoryLimitMiB - (otelCollectorContainer?.memoryLimitMiB ?? 0);
 
   const taskDefinition = new cdk.aws_ecs.FargateTaskDefinition(
     scope,
     "stateless-definition",
     {
-      cpu,
-      memoryLimitMiB,
+      cpu: totalCpu,
+      memoryLimitMiB: totalMemoryLimitMiB,
       runtimePlatform: {
         cpuArchitecture: taskProps.cpuArchitecture,
         operatingSystemFamily: cdk.aws_ecs.OperatingSystemFamily.LINUX,
@@ -644,8 +673,8 @@ function createStateless(
   }
 
   taskDefinition.addContainer("restate", {
-    cpu,
-    memoryLimitMiB,
+    cpu: restateCpu,
+    memoryLimitMiB: restateMemoryLimitMiB,
     entryPoint: ["bash", "-c", statelessEntryPointScript],
     image:
       statelessProps?._restateImage ??
@@ -693,9 +722,14 @@ function createStateless(
       // why? this isn't a worker! because the admin uses the presence of this flag as a signal of how to trim
       RESTATE_WORKER__SNAPSHOTS__DESTINATION: `${bucketPath}/snapshots`,
 
+      ...otelEnv,
       ...statelessProps?.environment,
     },
   });
+
+  if (otelCollectorContainer) {
+    taskDefinition.addContainer("otel-collector", otelCollectorContainer);
+  }
 
   const service = new cdk.aws_ecs.FargateService(scope, "stateless-service", {
     cluster,
@@ -720,19 +754,25 @@ function createStatefulDefinition(
   bucketPath: `s3://${string}`,
   taskProps: RestateBYOCTaskProps,
   partitionsPerNode: string,
+  otelEnv: Record<string, string>,
   statefulProps?: RestateBYOCStatefulProps,
+  otelCollectorContainer?: cdk.aws_ecs.ContainerDefinitionOptions,
 ) {
-  const cpu = statefulProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
-  const memoryLimitMiB =
+  const totalCpu = statefulProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
+  const totalMemoryLimitMiB =
     statefulProps?.resources?.memoryLimitMiB ??
     DEFAULT_RESTATE_MEMORY_LIMIT_MIB;
+
+  const restateCpu = totalCpu - (otelCollectorContainer?.cpu ?? 0);
+  const restateMemoryLimitMiB =
+    totalMemoryLimitMiB - (otelCollectorContainer?.memoryLimitMiB ?? 0);
 
   const taskDefinition = new cdk.aws_ecs.FargateTaskDefinition(
     scope,
     "stateful-definition",
     {
-      cpu,
-      memoryLimitMiB,
+      cpu: totalCpu,
+      memoryLimitMiB: totalMemoryLimitMiB,
       runtimePlatform: {
         cpuArchitecture: taskProps.cpuArchitecture,
         operatingSystemFamily: cdk.aws_ecs.OperatingSystemFamily.LINUX,
@@ -751,8 +791,8 @@ function createStatefulDefinition(
   cdk.Tags.of(taskDefinition).add("Name", taskDefinition.node.path);
 
   const restateContainer = taskDefinition.addContainer("restate", {
-    cpu,
-    memoryLimitMiB,
+    cpu: restateCpu,
+    memoryLimitMiB: restateMemoryLimitMiB,
     image:
       statefulProps?._restateImage ??
       cdk.aws_ecs.ContainerImage.fromRegistry(
@@ -795,6 +835,7 @@ function createStatefulDefinition(
       RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE:
         "true",
 
+      ...otelEnv,
       ...(statefulProps?.environment ?? {}),
     },
   });
@@ -804,6 +845,10 @@ function createStatefulDefinition(
     containerPath: "/restate-data",
     readOnly: false,
   });
+
+  if (otelCollectorContainer) {
+    taskDefinition.addContainer("otel-collector", otelCollectorContainer);
+  }
 
   return taskDefinition;
 }
