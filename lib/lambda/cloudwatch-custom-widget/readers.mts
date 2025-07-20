@@ -433,15 +433,25 @@ export async function getControlPanel(
     nodeState,
     bifrostConfig,
     partitionTable,
+    partitionState,
     tasks,
     volumes,
   ]).then(
-    ([nodesConfig, nodeState, bifrostConfig, partitionTable, tasks, volumes]) =>
+    ([
+      nodesConfig,
+      nodeState,
+      bifrostConfig,
+      partitionTable,
+      partitionState,
+      tasks,
+      volumes,
+    ]) =>
       getNodes(
         nodesConfig,
         nodeState,
         bifrostConfig,
         partitionTable,
+        partitionState,
         tasks.statelessTasks,
         tasks.statefulTasks,
         volumes,
@@ -1224,7 +1234,7 @@ interface PartitionTable {
 }
 
 interface Partition {
-  placement?: number[];
+  log_id: number;
 }
 
 async function getPartitionTable(
@@ -1238,8 +1248,8 @@ async function getPartitionTable(
       "--key",
       "partition_table",
     ]);
-    const bifrostConfig: PartitionTable = JSON.parse(output);
-    return bifrostConfig;
+    const partitionTable: PartitionTable = JSON.parse(output);
+    return partitionTable;
   } catch (e) {
     console.log(`Failed to get partition_table: ${e}`);
     return { num_partitions: 0, partitions: [], replication: undefined };
@@ -1281,10 +1291,14 @@ function getNodes(
   nodeState: RestatectlSqlOutput,
   bifrostConfig: BifrostConfig,
   partitionTable: PartitionTable,
+  partitionState: RestatectlSqlOutput,
   statelessTasks: ecs.Task[],
   statefulTasks: ecs.Task[],
   volumes: Volume[],
-) {
+): {
+  statefulNodes: StatefulTaskProps[];
+  statelessNodes: StatelessTaskProps[];
+} {
   const nodes = nodesConfig.nodes
     .map((node) => (node[1] !== "Tombstone" ? node[1].Node : undefined))
     .filter((node) => node !== undefined);
@@ -1314,17 +1328,25 @@ function getNodes(
   const leadersByNode = new Map<number, number>();
   const followersByNode = new Map<number, number>();
 
-  partitionTable?.partitions?.forEach(([_partitionId, partition]) => {
-    if (!partition.placement?.length) return;
+  const plainNodeIdCol = partitionState.headers.get("PLAIN_NODE_ID");
+  const effectiveModeCol = partitionState.headers.get("EFFECTIVE_MODE");
+  if (plainNodeIdCol !== undefined && effectiveModeCol !== undefined) {
+    partitionState.rows.forEach((row) => {
+      const nodeIdStr = row[plainNodeIdCol];
+      const mode = row[effectiveModeCol];
 
-    const leader = partition.placement[0];
+      if (!nodeIdStr || !mode) return;
 
-    leadersByNode.set(leader, (leadersByNode.get(leader) ?? 0) + 1);
+      const nodeId = parseInt(nodeIdStr.replace(/^N/, ""));
+      if (isNaN(nodeId)) return;
 
-    partition.placement.slice(1).forEach((follower) => {
-      followersByNode.set(follower, (followersByNode.get(follower) ?? 0) + 1);
+      if (mode.toLowerCase() === "leader") {
+        leadersByNode.set(nodeId, (leadersByNode.get(nodeId) ?? 0) + 1);
+      } else if (mode.toLowerCase() === "follower") {
+        followersByNode.set(nodeId, (followersByNode.get(nodeId) ?? 0) + 1);
+      }
     });
-  });
+  }
 
   const nodesetsByNode = new Map<number, number>();
 
