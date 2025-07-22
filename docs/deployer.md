@@ -15,20 +15,20 @@ const service = new NodejsFunction(scope, "service", {
   entry: "handler", // use the path to your service handler
 });
 
-// create a byoc cluster
-const byoc = new RestateBYOC(this, "byoc", {
+// create a Restate cluster
+const cluster = new RestateEcsFargateCluster(this, "cluster", {
   vpc,
   ...,
 });
 // give the cluster permissions to invoke your lambda
-service.grantInvoke(byoc)
+service.grantInvoke(cluster)
 
-// create a service deployer that is in the byoc vpc
+// create a service deployer that is in the cluster vpc
 const deployer = new restate.ServiceDeployer(this, "deployer", {
-  vpc: byoc.vpc,
-  vpcSubnets: byoc.vpcSubnets,
-  securityGroups: byoc.securityGroups,
+  vpc: cluster.vpc,
+  vpcSubnets: cluster.vpcSubnets,
+  securityGroups: cluster.securityGroups,
 });
 // register the current version of the service with restate
-deployer.register(service.currentVersion, byoc);
+deployer.register(service.currentVersion, cluster);
 ```

@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env -S npm run tsx
 //
 // Local entrypoint for deploying the e2e test stack directly outside of test runner
 //

@@ -10,19 +10,19 @@ npm install @restatedev/byoc
 ```
 
 ```ts
-interface BYOCStackProps extends cdk.StackProps {
+interface RestateStackProps extends cdk.StackProps {
 }
 
-export class BYOCStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: BYOCStackProps) {
+export class RestateStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props?: RestateStackProps) {
     super(scope, id, props);
 
     const vpc = new cdk.aws_ec2.Vpc(this, "vpc", {
       maxAzs: 3,
     });
 
-    const byoc = new RestateBYOC(this, "restate-byoc", {
-      licenseID: "this-was-provided-to-you-by-restate",
+    const cluster = new RestateEcsFargateCluster(this, "restate-cluster", {
+      licenseKey: "this-was-provided-to-you-by-restate",
       vpc,
       statefulNode: {
         resources: {

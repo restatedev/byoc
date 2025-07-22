@@ -1,16 +1,16 @@
 import * as cdk from "aws-cdk-lib";
 
-export interface RestateBYOCProps {
+export interface ClusterProps {
   /**
    * The name of the Restate cluster
-   * Default: The path of the RestateBYOC construct is used
+   * Default: The path of the construct is used
    */
   clusterName?: string;
   /**
-   * The License ID for the BYOC product, provided to you by Restate. This ID will be used by
-   * your controller to occasionally load a new License Key from https://license.restate.cloud.
+   * The license key for the BYOC product, provided to you by Restate. The controller uses this to
+   * occasionally validate the product license by contacting <https://license.restate.cloud>.
    */
-  licenseID: string;
+  licenseKey: string;
   /**
    * The VPC in which to run the cluster
    */
@@ -41,9 +41,9 @@ export interface RestateBYOCProps {
   securityGroups?: cdk.aws_ec2.ISecurityGroup[];
   /**
    * Configuration for the load balancer which will route to the stateless nodes.
-   * Default: See the documentation for RestateBYOCLoadBalancerProps
+   * Default: See the documentation for {@link LoadBalancerProps}
    */
-  loadBalancer?: RestateBYOCLoadBalancerProps;
+  loadBalancer?: LoadBalancerProps;
   /**
    * Human-facing addresses for Restate ports
    * Default: The address of the shared load balancer on the relevant port
@@ -69,44 +69,44 @@ export interface RestateBYOCProps {
   ecsCluster?: cdk.aws_ecs.ICluster;
   /**
    * Options for the stateless nodes, which run the http-ingress and admin roles
-   * Default: See the documentation for RestateBYOCStatelessProps
+   * Default: See the documentation for {@link StatelessNodeProps}
    */
-  statelessNode?: RestateBYOCStatelessProps;
+  statelessNode?: StatelessNodeProps;
   /**
    * Options for the stateful nodes, which run the log-server and worker roles.
-   * Default: See the documentation for RestateBYOCStatefulProps
+   * Default: See the documentation for {@link StatefulNodeProps}
    */
-  statefulNode?: RestateBYOCStatefulProps;
+  statefulNode?: StatefulNodeProps;
   /**
-   * Fargate task configurables for the restate nodes
+   * Fargate task configurables for the Restate nodes
    * Defaults:
     - An execution and task role will be created by this construct
     - awsLogs log driver will be used with a `restate` stream prefix.
     - execute command is not allowed
     - ARM cpu architecture
    */
-  restateTasks?: Partial<RestateBYOCTaskProps>;
+  restateTasks?: Partial<TaskProps>;
   /**
    * Options for the controller
-   * Default: See the documentation for RestateBYOCControllerProps
+   * Default: See the documentation for {@link ControllerProps}
    */
-  controller?: RestateBYOCControllerProps;
+  controller?: ControllerProps;
   /**
    * Options for the restatectl lambda
-   * Default: See the documentation for RestateBYOCRestatectlProps
+   * Default: See the documentation for {@link RestatectlProps}
    */
-  restatectl?: RestateBYOCRestatectlProps;
+  restatectl?: RestatectlProps;
   /**
    * Options for the fargate task retirement watcher
-   * Default: See the documentation for RestateBYOCRetirementWatcherProps
+   * Default: See the documentation for {@link TaskRetirementWatcherProps}
    */
-  retirementWatcher?: RestateBYOCRetirementWatcherProps;
+  retirementWatcher?: TaskRetirementWatcherProps;
 
   /**
    * Options for monitoring
-   * Default: See the documentation for RestateBYOCMonitoringProps
+   * Default: See the documentation for {@link MonitoringProps}
    */
-  monitoring?: RestateBYOCMonitoringProps;
+  monitoring?: MonitoringProps;
 
   /**
    * @internal
@@ -142,7 +142,7 @@ export type LoadBalancerSource =
       nlb: cdk.aws_elasticloadbalancingv2.INetworkLoadBalancer;
     };
 
-export interface RestateBYOCLoadBalancerProps {
+export interface LoadBalancerProps {
   /**
    * Options for the shared load balancer which is used for internal ingress, admin, and node traffic on default ports.
    * The restatectl lambda needs access to the node port.
@@ -160,7 +160,7 @@ export interface RestateBYOCLoadBalancerProps {
 export const DEFAULT_STATELESS_DESIRED_COUNT = 3;
 export const DEFAULT_PARTITIONS = 128;
 
-export interface RestateBYOCStatelessProps extends RestateBYOCNodeProps {
+export interface StatelessNodeProps extends NodeProps {
   /**
    * Configures the default replication factor to be used by the replicated loglets and the partition processors.
    * Note that this value only impacts the cluster initial provisioning and will not be respected after the cluster has been provisioned.
@@ -186,7 +186,7 @@ export interface RestateBYOCStatelessProps extends RestateBYOCNodeProps {
 
 export const DEFAULT_STATEFUL_NODES_PER_AZ = 1;
 
-export interface RestateBYOCStatefulProps extends RestateBYOCNodeProps {
+export interface StatefulNodeProps extends NodeProps {
   /**
    * The number of stateful nodes to run per AWS availability zone.
    * Default: 1
@@ -197,10 +197,10 @@ export interface RestateBYOCStatefulProps extends RestateBYOCNodeProps {
    * Fargate ephemeral storage, which is backed by an EBS gp2 volume (600 baseline IOPS).
    * Default: No EBS volume
    */
-  ebsVolume?: RestateBYOCEBSVolumeProps;
+  ebsVolume?: EbsVolumeProps;
 }
 
-export interface RestateBYOCEBSVolumeProps {
+export interface EbsVolumeProps {
   /**
    * The type of the volume to create for each node
    * Default: The default of the CreateVolume API, currently `gp2`
@@ -246,7 +246,7 @@ export function assertSupportedRestateVersion(
   throw new Error(`Restate version ${version} is not supported by this stack`);
 }
 
-export interface RestateBYOCNodeProps {
+export interface NodeProps {
   /**
    * The Restate image to use for the node
    *
@@ -297,7 +297,7 @@ export const DEFAULT_CONTROLLER_SNAPSHOT_RETENTION = "24h";
 /**
  * Properties for configuring the controller
  */
-export interface RestateBYOCControllerProps {
+export interface ControllerProps {
   /**
    * The controller image to use
    * Default: docker.restate.dev/restatedev/restate-fargate-controller:0.1
@@ -324,7 +324,7 @@ export interface RestateBYOCControllerProps {
     - execute command is not allowed
     - ARM cpu architecture
    */
-  tasks?: Partial<RestateBYOCTaskProps>;
+  tasks?: Partial<TaskProps>;
 
   /**
    * Configuration for EBS snapshot retention
@@ -344,7 +344,7 @@ export interface RestateBYOCControllerProps {
   };
 }
 
-export interface RestateBYOCTaskProps {
+export interface TaskProps {
   /**
    * The task execution role for the task, assumable by `ecs-tasks.amazonaws.com`
    */
@@ -367,7 +367,7 @@ export interface RestateBYOCTaskProps {
   cpuArchitecture: cdk.aws_ecs.CpuArchitecture;
 }
 
-export interface RestateBYOCRestatectlProps {
+export interface RestatectlProps {
   /**
    * If true, do not create a restatectl lambda. Note this lambda is also required for CloudWatch custom widgets.
    * Default: false
@@ -381,7 +381,7 @@ export interface RestateBYOCRestatectlProps {
   executionRole?: cdk.aws_iam.IRole;
 }
 
-export interface RestateBYOCRetirementWatcherProps {
+export interface TaskRetirementWatcherProps {
   /**
    * If true, do not create a retirement watcher. This means that retirement notifications from AWS health must be handled in some other way.
    * Default: false
@@ -400,7 +400,7 @@ export const DEFAULT_OTEL_COLLECTOR_IMAGE =
 export const DEFAULT_OTEL_COLLECTOR_CPU = 256;
 export const DEFAULT_OTEL_COLLECTOR_MEMORY_LIMIT_MIB = 512;
 
-export interface RestateBYOCOtelCollectorProps {
+export interface OtelCollectorProps {
   /**
    * If true, create OTEL collector sidecars for telemetry collection.
    * Default: false
@@ -512,7 +512,7 @@ export interface RestateBYOCOtelCollectorProps {
       };
 }
 
-export interface RestateBYOCMonitoringProps {
+export interface MonitoringProps {
   dashboard?: {
     metrics?: {
       /**
@@ -563,5 +563,5 @@ export interface RestateBYOCMonitoringProps {
    * Options for OpenTelemetry collector sidecars
    * Default: OTEL collector sidecars are disabled
    */
-  otelCollector?: RestateBYOCOtelCollectorProps;
+  otelCollector?: OtelCollectorProps;
 }

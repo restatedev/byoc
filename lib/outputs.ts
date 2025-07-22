@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
-import { RestateBYOC } from "./byoc";
+import { RestateEcsFargateCluster } from "./byoc";
 
-export function createOutputs(byoc: RestateBYOC) {
+export function createOutputs(byoc: RestateEcsFargateCluster) {
   new cdk.CfnOutput(byoc, "SecurityGroups", {
     description: "The security group IDs of the cluster",
     value: cdk.Fn.join(

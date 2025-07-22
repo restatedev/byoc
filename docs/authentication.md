@@ -29,7 +29,7 @@ const vpc = new cdk.aws_ec2.Vpc(this, "vpc", {
   maxAzs: 3,
 });
 
-const byoc = new RestateBYOC(this, "restate-byoc", {
+const cluster = new RestateEcsFargateCluster(this, "restate-cluster", {
   vpc,
   ...,
 });
@@ -67,11 +67,11 @@ publicAlb.addListener("admin-listener", {
         "client-id-from-google-cloud-console",
       // create the client secret as a plaintext secret in secrets manager for use here
       clientSecret: cdk.SecretValue.secretsManager(
-        "byoc-google-sso-client-secret"
+        "restate-google-sso-client-secret"
       ),
       next: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
         // using the cfn template directly? set ...and reference the `AdminNetworkTargetGroup` output
-        byoc.getAdminApplicationTargetGroup(),
+        cluster.getAdminApplicationTargetGroup(),
       ]),
     }),
 });
@@ -101,7 +101,7 @@ const vpc = new cdk.aws_ec2.Vpc(this, "vpc", {
   maxAzs: 3,
 });
 
-const byoc = new RestateBYOC(this, "restate-byoc", {
+const cluster = new RestateEcsFargateCluster(this, "restate-cluster", {
   vpc,
   ...,
 });
@@ -143,7 +143,7 @@ const userPoolClient = new cdk.aws_cognito.UserPoolClient(
 );
 userPool.addDomain(`user-pool-domain`, {
   cognitoDomain: {
-    domainPrefix: "restate-byoc-auth",
+    domainPrefix: "restate-cluster-auth",
   },
 });
 const cognitoAuthorizer = new cdk.aws_apigatewayv2_authorizers.HttpJwtAuthorizer(
@@ -157,7 +157,7 @@ const ingressApi = new cdk.aws_apigatewayv2.HttpApi(this, "ingress-api");
 const ingressLink = ingressApi.addVpcLink({
   vpc,
   // using the cfn template directly? this is the `SecurityGroups` output
-  securityGroups: byoc.securityGroups,
+  securityGroups: cluster.securityGroups,
 });
 ingressApi.addRoutes({
   path: "/{proxy+}",
@@ -165,7 +165,7 @@ ingressApi.addRoutes({
   integration: new cdk.aws_apigatewayv2_integrations.HttpNlbIntegration(
     "ingress-nlb",
     // using the cfn template directly? this is the `IngressNetworkListener` output
-    byoc.listeners.ingress.listener,
+    cluster.listeners.ingress.listener,
     { vpcLink: ingressLink },
   ),
 });
@@ -193,7 +193,7 @@ const vpc = new cdk.aws_ec2.Vpc(this, "vpc", {
   maxAzs: 3,
 });
 
-const byoc = new RestateBYOC(this, "restate-byoc", {
+const cluster = new RestateEcsFargateCluster(this, "restate-cluster", {
   vpc,
   ...,
 });
@@ -228,14 +228,14 @@ ingressListener.addAction("default", {
 ingressListener.addAction("authorized", {
   action: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
     // using the cfn template directly? this is the `IngressNetworkTargetGroup` output
-    byoc.targetGroups.ingress.application,
+    cluster.targetGroups.ingress.application,
   ]),
   priority: 1,
   conditions: [
     cdk.aws_elasticloadbalancingv2.ListenerCondition.httpHeader(
       "Authorization",
       [
-        `Bearer ${cdk.SecretValue.secretsManager("byoc-ingress-alb-bearer-token").unsafeUnwrap()}`,
+        `Bearer ${cdk.SecretValue.secretsManager("restate-ingress-alb-bearer-token").unsafeUnwrap()}`,
       ],
     ),
   ],
