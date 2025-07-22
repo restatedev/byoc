@@ -8,7 +8,9 @@ rm $SCRIPT_DIR/*.zip
 zip -jr $SCRIPT_DIR/cloudwatch-custom-widget.zip $SCRIPT_DIR/../dist/lambda/cloudwatch-custom-widget/*.mjs
 zip -jr $SCRIPT_DIR/restatectl.zip  $SCRIPT_DIR/../lib/lambda/restatectl
 zip -jr $SCRIPT_DIR/retirement-watcher.zip  $SCRIPT_DIR/../dist/lambda/retirement-watcher/*.mjs
+zip -jr $SCRIPT_DIR/task-sweeper.zip  $SCRIPT_DIR/../dist/lambda/task-sweeper/*.mjs
 
 aws s3 mv $SCRIPT_DIR/cloudwatch-custom-widget.zip s3://restate-byoc-artifacts-public-eu-central-1/${VERSION}/assets/
 aws s3 mv $SCRIPT_DIR/restatectl.zip s3://restate-byoc-artifacts-public-eu-central-1/${VERSION}/assets/
 aws s3 mv $SCRIPT_DIR/retirement-watcher.zip s3://restate-byoc-artifacts-public-eu-central-1/${VERSION}/assets/
+aws s3 mv $SCRIPT_DIR/task-sweeper.zip s3://restate-byoc-artifacts-public-eu-central-1/${VERSION}/assets/

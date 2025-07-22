@@ -145,36 +145,6 @@ export class RestateClusterStack extends cdk.Stack {
     });
     new cdk.CfnOutput(this, "clusterName", { value: restate.clusterName });
 
-    // TODO: some of this cleanup assistance should probably move into the BYOC construct
-    //
-    // Make sure to clean up if the controller shuts down early, or we won't be able to delete the cluster
-    const taskCleanupLambda = new cdk.aws_lambda_nodejs.NodejsFunction(
-      this,
-      "TaskCleanupLambda",
-      {
-        runtime: cdk.aws_lambda.Runtime.NODEJS_22_X,
-        entry: path.join(__dirname, "lambda/task-cleanup.ts"),
-        architecture: cdk.aws_lambda.Architecture.ARM_64,
-        timeout: cdk.Duration.minutes(5),
-        initialPolicy: [
-          // TODO: tighten up policy
-          new cdk.aws_iam.PolicyStatement({
-            actions: ["ecs:ListTasks", "ecs:StopTask", "ecs:DescribeTasks"],
-            resources: ["*"],
-          }),
-        ],
-        bundling: {
-          externalModules: ["@aws-sdk"],
-        },
-      },
-    );
-    new cdk.CustomResource(this, "stateful-task-sweeper", {
-      serviceToken: taskCleanupLambda.functionArn,
-      properties: {
-        ClusterArn: restate.ecsCluster.clusterArn,
-        TaskDefinitionArn: restate.stateful.taskDefinition.taskDefinitionArn,
-      },
-    });
     // Retain bucket until the cluster is fully deleted
     restate.ecsCluster.node.addDependency(bucket);
   }

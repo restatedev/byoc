@@ -25,6 +25,10 @@ export function getArtifacts(
       artifactsBucket,
       `${version}/assets/cloudwatch-custom-widget.zip`,
     ),
+    "task-sweeper.zip": cdk.aws_lambda.Code.fromBucketV2(
+      artifactsBucket,
+      `${version}/assets/task-sweeper.zip`,
+    ),
   };
 }
 
@@ -38,6 +42,9 @@ export function bundleArtifacts(): Record<string, cdk.aws_lambda.Code> {
     ),
     "cloudwatch-custom-widget.zip": cdk.aws_lambda.Code.fromAsset(
       path.join(__dirname, "../dist/lambda/cloudwatch-custom-widget"),
+    ),
+    "task-sweeper.zip": cdk.aws_lambda.Code.fromAsset(
+      path.join(__dirname, "../dist/lambda/task-sweeper"),
     ),
   };
 }
