@@ -261,8 +261,16 @@ export interface RestateBYOCNodeProps {
   _restateImage?: cdk.aws_ecs.ContainerImage;
 
   /**
-   * The version of Restate that restateImage contains
-   * Default: This will be derived from the image suffix; it must be provided if derivation failed
+   * The version of Restate that the restateImage string contains, used for
+   * display and validation purposes only. Specifically, this is NOT used to
+   * determine the actual Restate version running in the node.
+   *
+   * If not provided, the version will be automatically derived from the image
+   * tag (the part after ':'). This should be explicitly set when using images
+   * without version tags (e.g., 'latest', SHA digests) or when the tag doesn't
+   * match the actual Restate version.
+   *
+   * Default: Derived from restateImage tag suffix
    */
   restateVersion?: SupportedRestateVersion;
 
