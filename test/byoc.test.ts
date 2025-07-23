@@ -15,6 +15,21 @@ describe("BYOC", () => {
     });
   });
 
+  test("With cluster name", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateEcsFargateCluster(stack, "with-cluster-name", {
+      vpc,
+      licenseKey,
+      clusterName: "restate-byoc-cluster",
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
   test("With volume", () => {
     const { stack, vpc } = createStack();
 

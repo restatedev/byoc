@@ -293,6 +293,7 @@ export class RestateEcsFargateCluster
     } else {
       const cluster = new cdk.aws_ecs.Cluster(this, "cluster", {
         vpc: this.vpc,
+        clusterName: props.clusterName,
         containerInsightsV2: cdk.aws_ecs.ContainerInsights.ENHANCED,
       });
       cdk.Tags.of(cluster).add("Name", cluster.node.path);
