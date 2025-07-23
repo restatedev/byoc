@@ -282,8 +282,8 @@ export class RestateEcsFargateCluster
     }
 
     let bucketPath: `s3://${string}`;
-    if (props.objectStorage?.subpath) {
-      bucketPath = `s3://${this.bucket.bucketName}/${props.objectStorage.subpath}`;
+    if (props.objectStorage?.prefix) {
+      bucketPath = `s3://${this.bucket.bucketName}/${props.objectStorage.prefix}`;
     } else {
       bucketPath = `s3://${this.bucket.bucketName}`;
     }

@@ -1,6 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import "jest-cdk-snapshot";
 import { RestateEcsFargateCluster } from "../lib/byoc";
+import { aws_s3 } from "aws-cdk-lib";
 
 describe("BYOC", () => {
   const licenseKey = "foo";
@@ -22,6 +23,24 @@ describe("BYOC", () => {
       vpc,
       licenseKey,
       clusterName: "restate-byoc-cluster",
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("With cluster name", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateEcsFargateCluster(stack, "with-cluster-name", {
+      vpc,
+      licenseKey,
+      objectStorage: {
+        bucket: aws_s3.Bucket.fromBucketName(stack, "bucket", "bucket-name"),
+        prefix: "restate/prefix",
+      },
     });
 
     expect(stack).toMatchCdkSnapshot({
