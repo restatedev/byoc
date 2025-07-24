@@ -409,7 +409,7 @@ export async function getControlPanel(
     lambdaClient,
     input.resources.restatectlLambdaArn,
     "select * from nodes",
-  );
+  ) as unknown as Promise<NodeState[]>;
   const bifrostConfig = getBifrostConfig(
     lambdaClient,
     input.resources.restatectlLambdaArn,
@@ -426,31 +426,21 @@ export async function getControlPanel(
     lambdaClient,
     input.resources.restatectlLambdaArn,
     "select * from partition_state order by PARTITION_ID asc, EFFECTIVE_MODE desc, PLAIN_NODE_ID asc",
-  );
+  ) as unknown as Promise<PartitionState[]>;
 
   const nodes = Promise.all([
     nodesConfig,
     nodeState,
     bifrostConfig,
-    partitionTable,
     partitionState,
     tasks,
     volumes,
   ]).then(
-    ([
-      nodesConfig,
-      nodeState,
-      bifrostConfig,
-      partitionTable,
-      partitionState,
-      tasks,
-      volumes,
-    ]) =>
+    ([nodesConfig, nodeState, bifrostConfig, partitionState, tasks, volumes]) =>
       getNodes(
         nodesConfig,
         nodeState,
         bifrostConfig,
-        partitionTable,
         partitionState,
         tasks.statelessTasks,
         tasks.statefulTasks,
@@ -1288,17 +1278,13 @@ async function getLicenseKeyOrg(
 
 function getNodes(
   nodesConfig: NodesConfig,
-  nodeState: RestatectlSqlOutput,
+  nodeState: NodeState[],
   bifrostConfig: BifrostConfig,
-  partitionTable: PartitionTable,
-  partitionState: RestatectlSqlOutput,
+  partitionState: PartitionState[],
   statelessTasks: ecs.Task[],
   statefulTasks: ecs.Task[],
   volumes: Volume[],
-): {
-  statefulNodes: StatefulTaskProps[];
-  statelessNodes: StatelessTaskProps[];
-} {
+) {
   const nodes = nodesConfig.nodes
     .map((node) => (node[1] !== "Tombstone" ? node[1].Node : undefined))
     .filter((node) => node !== undefined);
@@ -1307,17 +1293,13 @@ function getNodes(
     nodes.map((node) => [node.name, node]),
   );
 
-  let nodeStatusByID: { [k: string]: string | undefined } = {};
-  const nodeStateIDCol = nodeState.headers.get("PLAIN_NODE_ID");
-  const nodeStateStatusCol = nodeState.headers.get("STATE");
-  if (nodeStateIDCol !== undefined && nodeStateStatusCol !== undefined) {
-    nodeStatusByID = Object.fromEntries<string | undefined>(
-      nodeState.rows.map((row) => [
-        row[nodeStateIDCol],
-        row[nodeStateStatusCol],
-      ]),
-    );
-  }
+  const nodeStatusByID = Object.fromEntries<string | undefined>(
+    nodeState.map((node) => [node.plain_node_id, node.state]),
+  );
+
+  const nodeStateByID = Object.fromEntries<NodeState | undefined>(
+    nodeState.map((node) => [node.plain_node_id, node]),
+  );
 
   const volumesByTaskArn = Object.fromEntries<Volume | undefined>(
     volumes
@@ -1328,25 +1310,21 @@ function getNodes(
   const leadersByNode = new Map<number, number>();
   const followersByNode = new Map<number, number>();
 
-  const plainNodeIdCol = partitionState.headers.get("PLAIN_NODE_ID");
-  const effectiveModeCol = partitionState.headers.get("EFFECTIVE_MODE");
-  if (plainNodeIdCol !== undefined && effectiveModeCol !== undefined) {
-    partitionState.rows.forEach((row) => {
-      const nodeIdStr = row[plainNodeIdCol];
-      const mode = row[effectiveModeCol];
+  partitionState.forEach((partition) => {
+    const nodeIdStr = partition.plain_node_id;
+    const mode = partition.effective_mode;
 
-      if (!nodeIdStr || !mode) return;
+    if (!nodeIdStr || !mode) return;
 
-      const nodeId = parseInt(nodeIdStr.replace(/^N/, ""));
-      if (isNaN(nodeId)) return;
+    const nodeId = parseInt(nodeIdStr.replace(/^N/, ""));
+    if (isNaN(nodeId)) return;
 
-      if (mode.toLowerCase() === "leader") {
-        leadersByNode.set(nodeId, (leadersByNode.get(nodeId) ?? 0) + 1);
-      } else if (mode.toLowerCase() === "follower") {
-        followersByNode.set(nodeId, (followersByNode.get(nodeId) ?? 0) + 1);
-      }
-    });
-  }
+    if (mode.toLowerCase() === "leader") {
+      leadersByNode.set(nodeId, (leadersByNode.get(nodeId) ?? 0) + 1);
+    } else if (mode.toLowerCase() === "follower") {
+      followersByNode.set(nodeId, (followersByNode.get(nodeId) ?? 0) + 1);
+    }
+  });
 
   const nodesetsByNode = new Map<number, number>();
 
@@ -1468,8 +1446,8 @@ function getNodes(
         startedAt: "",
         nodeID: genNodeID,
         nodeStatus: nodeStatus ?? "",
-        storageState: node.log_server_config.storage_state,
-        workerState: node.worker_config.worker_state,
+        storageState: nodeStateByID[nodeID]?.storage_state ?? "",
+        workerState: nodeStateByID[nodeID]?.worker_state ?? "",
         leader: leadersByNode.get(node.current_generation[0]) ?? 0,
         follower: followersByNode.get(node.current_generation[0]) ?? 0,
         nodesetMember: nodesetsByNode.get(node.current_generation[0]) ?? 0,
@@ -1606,87 +1584,87 @@ function parseReplicationFactor(
   return factors;
 }
 
-interface RestatectlSqlOutput {
-  headers: Map<string, number>;
-  rows: string[][];
+interface PartitionState {
+  partition_id: number;
+  plain_node_id: string;
+  gen_node_id: string;
+  target_mode: string;
+  effective_mode: string;
+  updated_at: string;
+  leader_epoch: number;
+  leader: string;
+  applied_log_lsn: number;
+  last_record_applied_at: string;
+  replay_status: string;
+  durable_log_lsn: number;
+  archived_log_lsn?: number;
+  target_tail_lsn: number;
+}
+
+interface NodeState {
+  plain_node_id: string;
+  gen_node_id: string;
+  state: string;
+  name: string;
+  address: string;
+  location: string;
+  has_admin_role: boolean;
+  has_worker_role: boolean;
+  has_metadata_server_role: boolean;
+  has_log_server_role: boolean;
+  has_ingress_role: boolean;
+  storage_state: string;
+  worker_state: string;
+  nodes_configuration_version: number;
 }
 
 async function restatectlSql(
   lambdaClient: lambda.LambdaClient,
   restatectlLambdaArn: string,
   query: string,
-): Promise<RestatectlSqlOutput> {
+): Promise<Record<string, unknown>[]> {
   try {
-    const table = await restatectl(lambdaClient, restatectlLambdaArn, [
+    const output = await restatectl(lambdaClient, restatectlLambdaArn, [
       "sql",
+      "--json",
       query,
     ]);
-
-    const tableLines = table.split("\n");
-    const headers = tableLines[0];
-    const labels: { label: string; index: number }[] = [];
-    for (const word of headers.matchAll(/[^\s]+/g)) {
-      labels.push({ label: word[0], index: word.index });
-    }
-
-    return {
-      headers: new Map(labels.map((l, i) => [l.label, i])),
-      rows: tableLines.slice(1, tableLines.length - 2).map((line) => {
-        return labels.map((label, i) => {
-          const startIndex = label.index;
-          const endIndex = labels[i + 1] ? labels[i + 1].index : line.length;
-
-          return line.slice(startIndex, endIndex).trim();
-        });
-      }),
-    };
+    return JSON.parse(output) as Record<string, unknown>[];
   } catch (e) {
-    console.log(`Failed to get partition list: ${e}`);
-    return {
-      headers: new Map(),
-      rows: [],
-    };
+    console.log(`Failed to execute restatectl SQL query: ${e}`);
+    return [];
   }
 }
 
 function getPartitions(
   partitionTable: PartitionTable,
-  partitionState: RestatectlSqlOutput,
+  partitionState: PartitionState[],
 ): {
   count: number;
   replication?: { node?: number; zone?: number; region?: number };
   info: PartitionInfo[];
 } {
-  const getLabel = (label: string, row: string[]): string => {
-    const i = partitionState.headers.get(label);
-    if (i === undefined) return "";
-    return row[i] ?? "";
-  };
-
-  const info = partitionState.rows.map((row) => {
-    const appliedLSN = getLabel("APPLIED_LOG_LSN", row);
-    const targetTailLSN = getLabel("TARGET_TAIL_LSN", row);
-
-    const appliedLSNNumber = Number(targetTailLSN);
-    const targetTailLSNNumber = Number(appliedLSN);
-
+  const info = partitionState.map((row) => {
     let lsnLag = "";
-    if (!Number.isNaN(appliedLSNNumber) && !Number.isNaN(targetTailLSNNumber)) {
+    const applied = row.applied_log_lsn;
+    const target = row.target_tail_lsn;
+    if (!Number.isNaN(applied) && !Number.isNaN(target)) {
       // (tail - 1) - applied_lsn = tail - (applied_lsn + 1)
-      lsnLag = Math.max(targetTailLSNNumber - appliedLSNNumber, 0).toString();
+      lsnLag = Math.max(target - applied, 0).toString();
     }
+
     return {
-      partitionID: getLabel("PARTITION_ID", row),
-      nodeID: getLabel("GEN_NODE_ID", row),
-      mode: getLabel("EFFECTIVE_MODE", row),
-      status: getLabel("REPLAY_STATUS", row),
-      leader: getLabel("LEADER", row),
-      appliedLSN,
-      durableLSN: getLabel("DURABLE_LOG_LSN", row),
-      archivedLSN: getLabel("ARCHIVED_LOG_LSN", row),
-      targetTailLSN,
+      partitionID: `${row.partition_id}`,
+      nodeID: row.gen_node_id,
+      mode: row.effective_mode,
+      status: row.replay_status,
+      leader: row.leader,
+      appliedLSN: `${row.applied_log_lsn}`,
+      durableLSN: `${row.durable_log_lsn}`,
+      archivedLSN: `${row.archived_log_lsn ?? ""}`,
+      targetTailLSN: `${row.target_tail_lsn}`,
       lsnLag,
-      lastUpdate: getLabel("UPDATED_AT", row),
+      lastUpdate: row.updated_at,
     } satisfies PartitionInfo;
   });
 
