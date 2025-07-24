@@ -1847,7 +1847,7 @@ exports[`BYOC Default parameters 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/default","restateVersion":"1.4","stackVersion":"0.4.0-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/default","restateVersion":"1.4","stackVersion":"0.4.0-rc.1","metricsDashboardName":"
             - Ref: defaultmetrics63974EF8
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -3777,7 +3777,7 @@ exports[`BYOC With cluster name 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"restate-byoc-cluster","restateVersion":"1.4","stackVersion":"0.4.0-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"restate-byoc-cluster","restateVersion":"1.4","stackVersion":"0.4.0-rc.1","metricsDashboardName":"
             - Ref: withclusternamemetrics035F2329
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -5648,7 +5648,7 @@ exports[`BYOC With cluster name 2`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/with-cluster-name","restateVersion":"1.4","stackVersion":"0.4.0-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/with-cluster-name","restateVersion":"1.4","stackVersion":"0.4.0-rc.1","metricsDashboardName":"
             - Ref: withclusternamemetrics035F2329
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -7675,7 +7675,7 @@ exports[`BYOC With otel collector 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/with-otel-collector","restateVersion":"1.4","stackVersion":"0.4.0-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/with-otel-collector","restateVersion":"1.4","stackVersion":"0.4.0-rc.1","metricsDashboardName":"
             - Ref: withotelcollectormetrics493AA233
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
