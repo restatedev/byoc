@@ -742,6 +742,8 @@ function createStateless(
       statelessProps?.desiredCount ?? DEFAULT_STATELESS_DESIRED_COUNT,
     maxHealthyPercent: 200,
     minHealthyPercent: 100,
+    availabilityZoneRebalancing:
+      cdk.aws_ecs.AvailabilityZoneRebalancing.ENABLED,
     propagateTags: cdk.aws_ecs.PropagatedTagSource.SERVICE,
   });
   cdk.Tags.of(service).add("Name", service.node.path);
