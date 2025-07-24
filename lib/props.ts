@@ -27,10 +27,12 @@ export interface ClusterProps {
   objectStorage?: {
     bucket: cdk.aws_s3.IBucket;
     /**
-     * The subpath within a bucket to store under, eg if `my-folder` we will write `my-folder/{snapshots,metadata}`
+     * The prefix within a bucket under which to store data, e.g. if prefix is set to `my-path`,
+     * Restate will write to `my-path/{snapshots,metadata}`.
+     *
      * Default: the bucket root is used
      */
-    subpath?: string;
+    prefix?: string;
   };
   /**
    * Security groups to apply to the NLB, the restate nodes and the restatectl lambda.
