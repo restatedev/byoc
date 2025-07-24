@@ -291,7 +291,7 @@ export interface NodeProps {
 }
 
 export const DEFAULT_CONTROLLER_IMAGE =
-  "docker.restate.dev/restatedev/restate-fargate-controller:0.2";
+  "docker.restate.dev/restatedev/restate-fargate-controller:0.4.0-rc.1";
 export const DEFAULT_CONTROLLER_CPU = 1024;
 export const DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB = 2048;
 export const DEFAULT_CONTROLLER_SNAPSHOT_RETENTION = "24h";
@@ -301,8 +301,9 @@ export const DEFAULT_CONTROLLER_SNAPSHOT_RETENTION = "24h";
  */
 export interface ControllerProps {
   /**
-   * The controller image to use
-   * Default: docker.restate.dev/restatedev/restate-fargate-controller:0.1
+   * The controller image to use.
+   *
+   * Default: `docker.restate.dev/restatedev/restate-fargate-controller:${version}`
    */
   controllerImage?: string;
 
