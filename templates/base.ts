@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
-import { RestateBYOC } from "../lib/byoc";
+import { RestateEcsFargateCluster } from "../lib/byoc";
 import { Construct } from "constructs";
-import type { RestateBYOCEBSVolumeProps } from "../lib/props";
+import type { EbsVolumeProps } from "../lib/props";
 
 interface RestateBYOCStackProps extends cdk.StackProps {
   statelessNode: {
@@ -15,7 +15,7 @@ interface RestateBYOCStackProps extends cdk.StackProps {
       cpu: number;
       memoryLimitMiB: number;
     };
-    ebsVolume: Omit<RestateBYOCEBSVolumeProps, "sizeInGiB">;
+    ebsVolume: Omit<EbsVolumeProps, "sizeInGiB">;
   };
 }
 
@@ -54,8 +54,8 @@ export class RestateBYOCStack extends cdk.Stack {
       ],
     });
 
-    const licenseID = new cdk.CfnParameter(this, "LicenceId", {
-      description: "The License ID provided to you by Restate.",
+    const licenseKey = new cdk.CfnParameter(this, "LicenseKey", {
+      description: "The License key provided to you by Restate.",
       type: "String",
       noEcho: true,
     });
@@ -73,9 +73,9 @@ export class RestateBYOCStack extends cdk.Stack {
       type: "Number",
     });
 
-    new RestateBYOC(this, "RestateBYOC", {
+    new RestateEcsFargateCluster(this, "RestateBYOC", {
       vpc,
-      licenseID: licenseID.valueAsString,
+      licenseKey: licenseKey.valueAsString,
       statelessNode: {
         resources: props.statelessNode.resources,
         defaultReplication: { zone: 2 },

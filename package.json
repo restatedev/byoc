@@ -42,7 +42,10 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "ts-node": "ts-node"
+    "ts-node": "ts-node",
+    "tsx": "tsx",
+    "synth": "cdk --app ./templates/medium.ts synth --quiet && cdk --app ./templates/xlarge.ts synth --quiet",
+    "check": "npm run lint && npm run build && npm run attw && npm run test && npm run synth"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.17.4",

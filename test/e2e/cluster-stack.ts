@@ -1,4 +1,4 @@
-import { RestateBYOC } from "@restatedev/byoc";
+import { RestateEcsFargateCluster } from "@restatedev/byoc";
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import path from "path";
@@ -41,8 +41,8 @@ export class RestateClusterStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
-    const restate = new RestateBYOC(this, "restate-byoc", {
-      licenseID: props.licenseKey,
+    const restate = new RestateEcsFargateCluster(this, "restate-cluster", {
+      licenseKey: props.licenseKey,
       vpc,
       objectStorage: {
         bucket,

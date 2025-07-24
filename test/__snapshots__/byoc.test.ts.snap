@@ -910,7 +910,7 @@ exports[`BYOC Default parameters 1`] = `
                 'Fn::GetAtt':
                   - defaultcluster07071299
                   - Arn
-            - Name: CONTROLLER_LICENSE_ID
+            - Name: CONTROLLER_LICENSE_KEY
               Value: foo
             - Name:
                 'Fn::Join':
@@ -2933,7 +2933,7 @@ exports[`BYOC With otel collector 1`] = `
                 'Fn::GetAtt':
                   - withotelcollectorcluster09679981
                   - Arn
-            - Name: CONTROLLER_LICENSE_ID
+            - Name: CONTROLLER_LICENSE_KEY
               Value: foo
             - Name:
                 'Fn::Join':

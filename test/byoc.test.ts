@@ -1,13 +1,13 @@
 import * as cdk from "aws-cdk-lib";
 import "jest-cdk-snapshot";
-import { RestateBYOC } from "../lib/byoc";
+import { RestateEcsFargateCluster } from "../lib/byoc";
 
 describe("BYOC", () => {
-  const licenseID = "foo";
+  const licenseKey = "foo";
   test("Default parameters", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "default", { vpc, licenseID });
+    new RestateEcsFargateCluster(stack, "default", { vpc, licenseKey });
 
     expect(stack).toMatchCdkSnapshot({
       ignoreAssets: true,
@@ -18,9 +18,9 @@ describe("BYOC", () => {
   test("With volume", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "with-volume", {
+    new RestateEcsFargateCluster(stack, "with-volume", {
       vpc,
-      licenseID,
+      licenseKey,
       statefulNode: {
         ebsVolume: {
           sizeInGiB: 200,
@@ -35,9 +35,9 @@ describe("BYOC", () => {
 
     expect(
       () =>
-        new RestateBYOC(stack, "too-few-azs", {
+        new RestateEcsFargateCluster(stack, "too-few-azs", {
           vpc,
-          licenseID,
+          licenseKey,
           subnets: {
             availabilityZones: stack.availabilityZones.slice(0, 2),
           },
@@ -48,9 +48,9 @@ describe("BYOC", () => {
   test("With one az", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "one-az", {
+    new RestateEcsFargateCluster(stack, "one-az", {
       vpc,
-      licenseID,
+      licenseKey,
       statelessNode: {
         defaultReplication: { node: 2 },
       },
@@ -63,9 +63,9 @@ describe("BYOC", () => {
   test("Without metrics dashboard", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "without-metrics-dashboard", {
+    new RestateEcsFargateCluster(stack, "without-metrics-dashboard", {
       vpc,
-      licenseID,
+      licenseKey,
       monitoring: {
         dashboard: {
           metrics: {
@@ -79,9 +79,9 @@ describe("BYOC", () => {
   test("Without control panel", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "without-control-panel", {
+    new RestateEcsFargateCluster(stack, "without-control-panel", {
       vpc,
-      licenseID,
+      licenseKey,
       monitoring: {
         dashboard: {
           controlPanel: {
@@ -95,9 +95,9 @@ describe("BYOC", () => {
   test("Without custom widget lambda", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "without-custom-widget-lambda", {
+    new RestateEcsFargateCluster(stack, "without-custom-widget-lambda", {
       vpc,
-      licenseID,
+      licenseKey,
       monitoring: {
         dashboard: {
           customWidgets: { disabled: true },
@@ -109,9 +109,9 @@ describe("BYOC", () => {
   test("Without snapshot retention", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "without-snapshot-retention", {
+    new RestateEcsFargateCluster(stack, "without-snapshot-retention", {
       vpc,
-      licenseID,
+      licenseKey,
       controller: {
         snapshotRetention: {
           disabled: true,
@@ -123,9 +123,9 @@ describe("BYOC", () => {
   test("With admin ALB target group", () => {
     const { stack, vpc } = createStack();
 
-    const byoc = new RestateBYOC(stack, "with-alb-target-groups", {
+    const byoc = new RestateEcsFargateCluster(stack, "with-alb-target-groups", {
       vpc,
-      licenseID,
+      licenseKey,
     });
 
     const publicAlb =
@@ -172,9 +172,9 @@ describe("BYOC", () => {
   test("With otel collector", () => {
     const { stack, vpc } = createStack();
 
-    new RestateBYOC(stack, "with-otel-collector", {
+    new RestateEcsFargateCluster(stack, "with-otel-collector", {
       vpc,
-      licenseID,
+      licenseKey,
       monitoring: {
         otelCollector: {
           enabled: true,

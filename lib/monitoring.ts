@@ -7,9 +7,9 @@ import {
   DEFAULT_OTEL_COLLECTOR_MEMORY_LIMIT_MIB,
   DEFAULT_RESTATE_CPU,
   DEFAULT_RESTATE_MEMORY_LIMIT_MIB,
-  RestateBYOCMonitoringProps,
-  RestateBYOCOtelCollectorProps,
-  RestateBYOCProps,
+  MonitoringProps,
+  OtelCollectorProps,
+  ClusterProps,
   SupportedRestateVersion,
 } from "./props";
 import type { ControlPanelWidgetEvent } from "./lambda/cloudwatch-custom-widget/index.mjs";
@@ -45,7 +45,7 @@ export function createMonitoring(
   },
   customWidgetCode: cdk.aws_lambda.Code,
   restatectlLambda?: cdk.aws_lambda.IFunction,
-  props?: RestateBYOCProps,
+  props?: ClusterProps,
 ): {
   metricsDashboard?: cloudwatch.Dashboard;
   controlPanelDashboard?: cloudwatch.Dashboard;
@@ -151,7 +151,7 @@ export function createMetricsDashboard(
   statefulTaskDefinition: cdk.aws_ecs.FargateTaskDefinition,
   controllerTaskDefinition: cdk.aws_ecs.FargateTaskDefinition,
   customWidgetFn?: cdk.aws_lambda.IFunction,
-  props?: RestateBYOCProps,
+  props?: ClusterProps,
 ): cloudwatch.Dashboard | undefined {
   if (props?.monitoring?.dashboard?.metrics?.disabled) return;
 
@@ -509,7 +509,7 @@ function createCustomWidgetLambda(
   ecsCluster: cdk.aws_ecs.ICluster,
   code: cdk.aws_lambda.Code,
   restatectlLambda?: cdk.aws_lambda.IFunction,
-  props?: RestateBYOCMonitoringProps,
+  props?: MonitoringProps,
 ): cdk.aws_lambda.Function | undefined {
   if (!restatectlLambda || props?.dashboard?.customWidgets?.disabled) return;
 
@@ -645,7 +645,7 @@ function createCustomWidgetLambda(
 export function otelCollectorContainerProps(
   clusterName: string,
   logDriver?: cdk.aws_ecs.LogDriver,
-  otelCollectorProps?: RestateBYOCOtelCollectorProps,
+  otelCollectorProps?: OtelCollectorProps,
 ): cdk.aws_ecs.ContainerDefinitionOptions | undefined {
   if (!otelCollectorProps?.enabled) {
     return;
@@ -688,7 +688,7 @@ export function otelCollectorContainerProps(
 }
 
 function otelCollectorConfig(
-  otelCollectorProps: RestateBYOCOtelCollectorProps,
+  otelCollectorProps: OtelCollectorProps,
 ): string {
   if ("customConfig" in otelCollectorProps.configuration) {
     return otelCollectorProps.configuration.customConfig;

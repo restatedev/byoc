@@ -1,8 +1,13 @@
+import type { IRestateEnvironment } from "@restatedev/restate-cdk";
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { VOLUME_POLICY } from "./volume-policy";
+import { bundleArtifacts, getArtifacts } from "./artifacts";
+import { createMonitoring, otelCollectorContainerProps } from "./monitoring";
+import { createOutputs } from "./outputs";
 import {
   assertSupportedRestateVersion,
+  ClusterProps,
+  ControllerProps,
   DEFAULT_CONTROLLER_CPU,
   DEFAULT_CONTROLLER_IMAGE,
   DEFAULT_CONTROLLER_MEMORY_LIMIT_MIB,
@@ -13,26 +18,21 @@ import {
   DEFAULT_RESTATE_MEMORY_LIMIT_MIB,
   DEFAULT_STATEFUL_NODES_PER_AZ,
   DEFAULT_STATELESS_DESIRED_COUNT,
-  RestateBYOCControllerProps,
-  RestateBYOCLoadBalancerProps,
-  RestateBYOCNodeProps,
-  RestateBYOCProps,
-  RestateBYOCRestatectlProps,
-  RestateBYOCRetirementWatcherProps,
-  RestateBYOCStatefulProps,
-  RestateBYOCStatelessProps,
-  RestateBYOCTaskProps,
+  TaskProps,
+  LoadBalancerProps,
+  NodeProps,
+  RestatectlProps,
+  StatefulNodeProps,
+  StatelessNodeProps,
   SupportedRestateVersion,
+  TaskRetirementWatcherProps,
 } from "./props";
-import { createMonitoring, otelCollectorContainerProps } from "./monitoring";
-import type { IRestateEnvironment } from "@restatedev/restate-cdk";
-import { bundleArtifacts, getArtifacts } from "./artifacts";
-import { createOutputs } from "./outputs";
+import { VOLUME_POLICY } from "./volume-policy";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PACKAGE_INFO = require("../package.json");
 
-export class RestateBYOC
+export class RestateEcsFargateCluster
   extends Construct
   implements
     cdk.aws_ec2.IConnectable,
@@ -123,7 +123,7 @@ export class RestateBYOC
 
   /**
    * Properties of the target groups managed by this construct. Application Load Balancer support is optional and
-   * can be activated via {@link RestateBYOCProps}'s `loadBalancer` property when you create the cluster.
+   * can be activated via {@link ClusterProps}'s `loadBalancer` property when you create the cluster.
    */
   public readonly targetGroups: {
     /**
@@ -131,7 +131,7 @@ export class RestateBYOC
      */
     ingress: {
       /**
-       * To enable the ALB target group, set `loadBalancer.createAlbTargets` = `true` in {@link RestateBYOCProps}.
+       * To enable the ALB target group, set `loadBalancer.createAlbTargets` = `true` in {@link ClusterProps}.
        */
       application: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
       network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
@@ -141,7 +141,7 @@ export class RestateBYOC
      */
     admin: {
       /**
-       * To enable the ALB target group, set `loadBalancer.createAlbTargets` = `true` in {@link RestateBYOCProps}.
+       * To enable the ALB target group, set `loadBalancer.createAlbTargets` = `true` in {@link ClusterProps}.
        */
       application: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
       network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
@@ -216,11 +216,11 @@ export class RestateBYOC
    **/
   public readonly adminUrl: string;
 
-  constructor(scope: Construct, id: string, props: RestateBYOCProps) {
+  constructor(scope: Construct, id: string, props: ClusterProps) {
     super(scope, id);
 
-    if (!props.vpc) throw new Error("A vpc must be provided");
-    if (!props.licenseID) throw new Error("A license ID must be provided");
+    if (!props.vpc) throw new Error("A VPC must be provided");
+    if (!props.licenseKey) throw new Error("A license key must be provided");
 
     this.clusterName = props.clusterName ?? this.node.path;
 
@@ -312,7 +312,7 @@ export class RestateBYOC
         assumedBy: new cdk.aws_iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
       });
 
-    const restateTaskProps: RestateBYOCTaskProps = {
+    const restateTaskProps: TaskProps = {
       taskRole: this.restateTaskRole,
       executionRole: this.restateExecutionRole,
       logDriver:
@@ -525,7 +525,7 @@ export class RestateBYOC
 
     const controller = createController(
       this,
-      props.licenseID,
+      props.licenseKey,
       bucketPath,
       this.ecsCluster,
       ctPrefix,
@@ -629,10 +629,10 @@ function createStateless(
   cluster: cdk.aws_ecs.ICluster,
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   vpcSubnets: cdk.aws_ec2.SubnetSelection,
-  taskProps: RestateBYOCTaskProps,
+  taskProps: TaskProps,
   ingressAdvertisedAddress: string,
   otelEnv: Record<string, string>,
-  statelessProps?: RestateBYOCStatelessProps,
+  statelessProps?: StatelessNodeProps,
   otelCollectorContainer?: cdk.aws_ecs.ContainerDefinitionOptions,
 ): {
   service: cdk.aws_ecs.FargateService;
@@ -752,10 +752,10 @@ function createStatefulDefinition(
   scope: Construct,
   clusterName: string,
   bucketPath: `s3://${string}`,
-  taskProps: RestateBYOCTaskProps,
+  taskProps: TaskProps,
   partitionsPerNode: string,
   otelEnv: Record<string, string>,
-  statefulProps?: RestateBYOCStatefulProps,
+  statefulProps?: StatefulNodeProps,
   otelCollectorContainer?: cdk.aws_ecs.ContainerDefinitionOptions,
 ) {
   const totalCpu = statefulProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
@@ -902,7 +902,7 @@ function createSharedLb(
   vpc: cdk.aws_ec2.IVpc,
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   vpcSubnets: cdk.aws_ec2.SubnetSelection,
-  props?: RestateBYOCLoadBalancerProps,
+  props?: LoadBalancerProps,
 ): { ingress: Listener; admin: Listener; node: Listener } {
   let sharedLb: LoadBalancer;
   if (!props?.shared) {
@@ -934,7 +934,7 @@ function createSharedLb(
     const lb = props.shared.nlb;
     sharedLb = { type: "network", lb };
   } else {
-    throw new Error(`Invalid RestateBYOCLoadBalancerProps: ${props}`);
+    throw new Error(`Invalid LoadBalancerProps: ${props}`);
   }
 
   return {
@@ -988,7 +988,7 @@ function createListeners(
   vpc: cdk.aws_ec2.IVpc,
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   vpcSubnets: cdk.aws_ec2.SubnetSelection,
-  props?: RestateBYOCLoadBalancerProps,
+  props?: LoadBalancerProps,
 ): {
   ingress: Listener;
   admin: Listener;
@@ -1107,16 +1107,16 @@ function createTargetProps(
 
 function createController(
   scope: Construct,
-  licenseID: string,
+  licenseKey: string,
   bucketPath: `s3://${string}`,
   cluster: cdk.aws_ecs.ICluster,
   clusterTaskPrefix: string,
   vpcSubnets: cdk.aws_ec2.SelectedSubnets,
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   statefulDefinition: cdk.aws_ecs.IFargateTaskDefinition,
-  restateTaskProps: RestateBYOCTaskProps,
-  statefulProps?: RestateBYOCStatefulProps,
-  controllerProps?: RestateBYOCControllerProps,
+  restateTaskProps: TaskProps,
+  statefulProps?: StatefulNodeProps,
+  controllerProps?: ControllerProps,
 ): {
   service: cdk.aws_ecs.IFargateService;
   taskDefinition: cdk.aws_ecs.FargateTaskDefinition;
@@ -1246,7 +1246,7 @@ function createController(
     CONTROLLER_METADATA_PATH: `${bucketPath}/metadata`,
     CONTROLLER_RECONCILE_INTERVAL: "10s",
     CONTROLLER_CLUSTER__CLUSTER_ARN: cluster.clusterArn,
-    CONTROLLER_LICENSE_ID: licenseID,
+    CONTROLLER_LICENSE_KEY: licenseKey,
     [`CONTROLLER_ECS_CLUSTERS__${cdk.Aws.REGION}__REGION`]: cdk.Aws.REGION,
     [`CONTROLLER_ECS_CLUSTERS__${cdk.Aws.REGION}__CLUSTER_ARN`]:
       cluster.clusterArn,
@@ -1449,7 +1449,7 @@ function createRetirementWatcher(
   scope: Construct,
   clusterTaskPrefix: string,
   code: cdk.aws_lambda.Code,
-  retirementWatcherProps?: RestateBYOCRetirementWatcherProps,
+  retirementWatcherProps?: TaskRetirementWatcherProps,
 ):
   | {
       fn: cdk.aws_lambda.IFunction;
@@ -1555,7 +1555,7 @@ function createRestatectl(
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   address: string,
   code: cdk.aws_lambda.Code,
-  restatectlProps?: RestateBYOCRestatectlProps,
+  restatectlProps?: RestatectlProps,
 ): cdk.aws_lambda.Function | undefined {
   if (restatectlProps?.disabled) return;
 
@@ -1630,9 +1630,7 @@ export \
 exec restate-server
 `;
 
-function validateRestateVersion(
-  node?: RestateBYOCNodeProps,
-): SupportedRestateVersion {
+function validateRestateVersion(node?: NodeProps): SupportedRestateVersion {
   const restateVersion =
     node?.restateVersion ??
     (node?.restateImage ?? DEFAULT_RESTATE_IMAGE).split(":").pop();
