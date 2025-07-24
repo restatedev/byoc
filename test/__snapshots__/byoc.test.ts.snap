@@ -361,6 +361,7 @@ exports[`BYOC Default parameters 1`] = `
   defaultstatelessserviceService8A7FABFB:
     Type: 'AWS::ECS::Service'
     Properties:
+      AvailabilityZoneRebalancing: ENABLED
       Cluster:
         Ref: defaultcluster07071299
       DeploymentConfiguration:
@@ -2290,6 +2291,7 @@ exports[`BYOC With cluster name 1`] = `
   withclusternamestatelessserviceServiceA9323A0F:
     Type: 'AWS::ECS::Service'
     Properties:
+      AvailabilityZoneRebalancing: ENABLED
       Cluster:
         Ref: withclusternamecluster8A2E876D
       DeploymentConfiguration:
@@ -4174,6 +4176,7 @@ exports[`BYOC With cluster name 2`] = `
   withclusternamestatelessserviceServiceA9323A0F:
     Type: 'AWS::ECS::Service'
     Properties:
+      AvailabilityZoneRebalancing: ENABLED
       Cluster:
         Ref: withclusternamecluster8A2E876D
       DeploymentConfiguration:
@@ -6142,6 +6145,7 @@ exports[`BYOC With otel collector 1`] = `
   withotelcollectorstatelessserviceService8ABCCEA9:
     Type: 'AWS::ECS::Service'
     Properties:
+      AvailabilityZoneRebalancing: ENABLED
       Cluster:
         Ref: withotelcollectorcluster09679981
       DeploymentConfiguration:
