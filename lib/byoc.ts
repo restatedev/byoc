@@ -560,6 +560,14 @@ export class RestateEcsFargateCluster
       props.retirementWatcher,
     );
 
+    const _statefulTaskSweeper = createStatefulTaskSweeper(
+      this,
+      ctPrefix,
+      artifacts["task-sweeper.zip"],
+      this.ecsCluster.clusterArn,
+      statefulDefinition.taskDefinitionArn,
+    );
+
     const monitoring = createMonitoring(
       this,
       PACKAGE_INFO.version,
@@ -1529,6 +1537,67 @@ function createRetirementWatcher(
   cdk.Tags.of(rule).add("Name", rule.node.path);
 
   return { fn, queue, rule };
+}
+
+function createStatefulTaskSweeper(
+  scope: Construct,
+  clusterTaskPrefix: string,
+  code: cdk.aws_lambda.Code,
+  clusterArn: string,
+  statefulTaskDefinitionArn: string,
+): cdk.aws_lambda.IFunction {
+  const role = new cdk.aws_iam.Role(scope, "task-sweeper-role", {
+    assumedBy: new cdk.aws_iam.ServicePrincipal("lambda.amazonaws.com"),
+  });
+
+  role.addToPrincipalPolicy(
+    new cdk.aws_iam.PolicyStatement({
+      actions: [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+      ],
+      resources: ["*"],
+      effect: cdk.aws_iam.Effect.ALLOW,
+      sid: "AWSLambdaBasicExecutionPermissions",
+    }),
+  );
+  role.addToPrincipalPolicy(
+    new cdk.aws_iam.PolicyStatement({
+      actions: ["ecs:ListTasks", "ecs:DescribeTasks"],
+      resources: ["*"],
+      effect: cdk.aws_iam.Effect.ALLOW,
+      sid: "DiscoverTaskActions",
+    }),
+  );
+  role.addToPrincipalPolicy(
+    new cdk.aws_iam.PolicyStatement({
+      actions: ["ecs:StopTask"],
+      resources: [`${clusterTaskPrefix}*`],
+      effect: cdk.aws_iam.Effect.ALLOW,
+      sid: "StopTaskActions",
+    }),
+  );
+
+  const fn = new cdk.aws_lambda.Function(scope, "task-sweeper-lambda", {
+    role,
+    runtime: cdk.aws_lambda.Runtime.NODEJS_22_X,
+    architecture: cdk.aws_lambda.Architecture.ARM_64,
+    handler: "index.handler",
+    code,
+    timeout: cdk.Duration.seconds(300),
+  });
+  cdk.Tags.of(fn).add("Name", fn.node.path);
+
+  new cdk.CustomResource(scope, "task-sweeper-on-delete-event-handler", {
+    serviceToken: fn.functionArn,
+    properties: {
+      ClusterArn: clusterArn,
+      TaskDefinitionArn: statefulTaskDefinitionArn,
+    },
+  });
+
+  return fn;
 }
 
 function clusterTaskPrefix(clusterArn: string): string {

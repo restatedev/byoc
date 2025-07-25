@@ -1576,6 +1576,147 @@ exports[`BYOC Default parameters 1`] = `
               - defaultretirementwatcherqueue17CDF7F2
               - Arn
           Id: Target0
+  defaulttasksweeperrole60C302D7:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  defaulttasksweeperroleDefaultPolicy0D10737B:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaBasicExecutionPermissions
+          - Action:
+              - 'ecs:ListTasks'
+              - 'ecs:DescribeTasks'
+            Effect: Allow
+            Resource: '*'
+            Sid: DiscoverTaskActions
+          - Action: 'ecs:StopTask'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - defaultcluster07071299
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - defaultcluster07071299
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: StopTaskActions
+        Version: '2012-10-17'
+      PolicyName: defaulttasksweeperroleDefaultPolicy0D10737B
+      Roles:
+        - Ref: defaulttasksweeperrole60C302D7
+  defaulttasksweeperlambdaE1CECADA:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Handler: index.handler
+      Role:
+        'Fn::GetAtt':
+          - defaulttasksweeperrole60C302D7
+          - Arn
+      Runtime: nodejs22.x
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/default/task-sweeper-lambda
+      Timeout: 300
+    DependsOn:
+      - defaulttasksweeperroleDefaultPolicy0D10737B
+      - defaulttasksweeperrole60C302D7
+  defaulttasksweeperondeleteeventhandlerE209FA2B:
+    Type: 'AWS::CloudFormation::CustomResource'
+    Properties:
+      ServiceToken:
+        'Fn::GetAtt':
+          - defaulttasksweeperlambdaE1CECADA
+          - Arn
+      ClusterArn:
+        'Fn::GetAtt':
+          - defaultcluster07071299
+          - Arn
+      TaskDefinitionArn:
+        Ref: defaultstatefuldefinition4CD55F35
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
   defaultcloudwatchcustomwidgetexecutionrole4ED639C0:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -7402,6 +7543,147 @@ exports[`BYOC With otel collector 1`] = `
               - withotelcollectorretirementwatcherqueue9A16F3EA
               - Arn
           Id: Target0
+  withotelcollectortasksweeperroleB873C8D3:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  withotelcollectortasksweeperroleDefaultPolicy2444EC81:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaBasicExecutionPermissions
+          - Action:
+              - 'ecs:ListTasks'
+              - 'ecs:DescribeTasks'
+            Effect: Allow
+            Resource: '*'
+            Sid: DiscoverTaskActions
+          - Action: 'ecs:StopTask'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withotelcollectorcluster09679981
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - withotelcollectorcluster09679981
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: StopTaskActions
+        Version: '2012-10-17'
+      PolicyName: withotelcollectortasksweeperroleDefaultPolicy2444EC81
+      Roles:
+        - Ref: withotelcollectortasksweeperroleB873C8D3
+  withotelcollectortasksweeperlambdaF867C755:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Handler: index.handler
+      Role:
+        'Fn::GetAtt':
+          - withotelcollectortasksweeperroleB873C8D3
+          - Arn
+      Runtime: nodejs22.x
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/task-sweeper-lambda
+      Timeout: 300
+    DependsOn:
+      - withotelcollectortasksweeperroleDefaultPolicy2444EC81
+      - withotelcollectortasksweeperroleB873C8D3
+  withotelcollectortasksweeperondeleteeventhandlerA980DB76:
+    Type: 'AWS::CloudFormation::CustomResource'
+    Properties:
+      ServiceToken:
+        'Fn::GetAtt':
+          - withotelcollectortasksweeperlambdaF867C755
+          - Arn
+      ClusterArn:
+        'Fn::GetAtt':
+          - withotelcollectorcluster09679981
+          - Arn
+      TaskDefinitionArn:
+        Ref: withotelcollectorstatefuldefinitionFB434419
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
   withotelcollectorcloudwatchcustomwidgetexecutionrole56230195:
     Type: 'AWS::IAM::Role'
     Properties:
