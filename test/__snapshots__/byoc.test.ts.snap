@@ -1240,6 +1240,12 @@ exports[`BYOC Default parameters 1`] = `
     DependsOn:
       - defaultcontrollertaskroleDefaultPolicy328ED952
       - defaultcontrollertaskrole7B120178
+  defaultrestatectlloggroupFAE86DDB:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   defaultrestatectllambdaexecutionrole68199B2A:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -1256,18 +1262,45 @@ exports[`BYOC Default parameters 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: defaultrestatectlloggroupFAE86DDB
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
+          - Action:
               - 'ec2:CreateNetworkInterface'
               - 'ec2:DescribeNetworkInterfaces'
               - 'ec2:DescribeSubnets'
               - 'ec2:DeleteNetworkInterface'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCWildcardPermissions
+          - Action:
               - 'ec2:AssignPrivateIpAddresses'
               - 'ec2:UnassignPrivateIpAddresses'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaVPCAccessExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':network-interface/*'
+            Sid: AWSLambdaVPCNetworkInterfacePermissions
         Version: '2012-10-17'
       PolicyName: defaultrestatectllambdaexecutionroleDefaultPolicy52B70971
       Roles:
@@ -1289,6 +1322,9 @@ exports[`BYOC Default parameters 1`] = `
                     - DNSName
                 - ':5122'
       Handler: restatectl
+      LoggingConfig:
+        LogGroup:
+          Ref: defaultrestatectlloggroupFAE86DDB
       Role:
         'Fn::GetAtt':
           - defaultrestatectllambdaexecutionrole68199B2A
@@ -1310,6 +1346,12 @@ exports[`BYOC Default parameters 1`] = `
     DependsOn:
       - defaultrestatectllambdaexecutionroleDefaultPolicy52B70971
       - defaultrestatectllambdaexecutionrole68199B2A
+  defaultretirementwatcherloggroup3D95DB6F:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   defaultretirementwatcherlambdaexecutionroleF14BB722:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -1326,12 +1368,22 @@ exports[`BYOC Default parameters 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaBasicExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: defaultretirementwatcherloggroup3D95DB6F
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
           - Action: 'ecs:TagResource'
             Effect: Allow
             Resource:
@@ -1429,6 +1481,9 @@ exports[`BYOC Default parameters 1`] = `
         - arm64
       Code: Any<Object>
       Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: defaultretirementwatcherloggroup3D95DB6F
       Role:
         'Fn::GetAtt':
           - defaultretirementwatcherlambdaexecutionroleF14BB722
@@ -1576,6 +1631,12 @@ exports[`BYOC Default parameters 1`] = `
               - defaultretirementwatcherqueue17CDF7F2
               - Arn
           Id: Target0
+  defaultcloudwatchcustomwidgetloggroupD709CBDC:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   defaultcloudwatchcustomwidgetexecutionrole4ED639C0:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -1592,12 +1653,22 @@ exports[`BYOC Default parameters 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaBasicExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: defaultcloudwatchcustomwidgetloggroupD709CBDC
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
           - Action: 'lambda:InvokeFunction'
             Effect: Allow
             Resource:
@@ -1683,6 +1754,9 @@ exports[`BYOC Default parameters 1`] = `
         - arm64
       Code: Any<Object>
       Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: defaultcloudwatchcustomwidgetloggroupD709CBDC
       MemorySize: 1024
       Role:
         'Fn::GetAtt':
@@ -3170,6 +3244,12 @@ exports[`BYOC With cluster name 1`] = `
     DependsOn:
       - withclusternamecontrollertaskroleDefaultPolicy54BC385C
       - withclusternamecontrollertaskroleD965AFAA
+  withclusternamerestatectlloggroup03E0BF5F:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withclusternamerestatectllambdaexecutionrole0F7FCC2E:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -3186,18 +3266,45 @@ exports[`BYOC With cluster name 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withclusternamerestatectlloggroup03E0BF5F
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
+          - Action:
               - 'ec2:CreateNetworkInterface'
               - 'ec2:DescribeNetworkInterfaces'
               - 'ec2:DescribeSubnets'
               - 'ec2:DeleteNetworkInterface'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCWildcardPermissions
+          - Action:
               - 'ec2:AssignPrivateIpAddresses'
               - 'ec2:UnassignPrivateIpAddresses'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaVPCAccessExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':network-interface/*'
+            Sid: AWSLambdaVPCNetworkInterfacePermissions
         Version: '2012-10-17'
       PolicyName: withclusternamerestatectllambdaexecutionroleDefaultPolicy984C46E8
       Roles:
@@ -3219,6 +3326,9 @@ exports[`BYOC With cluster name 1`] = `
                     - DNSName
                 - ':5122'
       Handler: restatectl
+      LoggingConfig:
+        LogGroup:
+          Ref: withclusternamerestatectlloggroup03E0BF5F
       Role:
         'Fn::GetAtt':
           - withclusternamerestatectllambdaexecutionrole0F7FCC2E
@@ -3240,6 +3350,12 @@ exports[`BYOC With cluster name 1`] = `
     DependsOn:
       - withclusternamerestatectllambdaexecutionroleDefaultPolicy984C46E8
       - withclusternamerestatectllambdaexecutionrole0F7FCC2E
+  withclusternameretirementwatcherloggroup9E8494A5:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withclusternameretirementwatcherlambdaexecutionrole9364C1F9:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -3256,12 +3372,22 @@ exports[`BYOC With cluster name 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaBasicExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withclusternameretirementwatcherloggroup9E8494A5
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
           - Action: 'ecs:TagResource'
             Effect: Allow
             Resource:
@@ -3359,6 +3485,9 @@ exports[`BYOC With cluster name 1`] = `
         - arm64
       Code: Any<Object>
       Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: withclusternameretirementwatcherloggroup9E8494A5
       Role:
         'Fn::GetAtt':
           - withclusternameretirementwatcherlambdaexecutionrole9364C1F9
@@ -3506,6 +3635,12 @@ exports[`BYOC With cluster name 1`] = `
               - withclusternameretirementwatcherqueue2D776989
               - Arn
           Id: Target0
+  withclusternamecloudwatchcustomwidgetloggroup4AC45DBE:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withclusternamecloudwatchcustomwidgetexecutionrole11E14880:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -3522,12 +3657,22 @@ exports[`BYOC With cluster name 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaBasicExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withclusternamecloudwatchcustomwidgetloggroup4AC45DBE
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
           - Action: 'lambda:InvokeFunction'
             Effect: Allow
             Resource:
@@ -3613,6 +3758,9 @@ exports[`BYOC With cluster name 1`] = `
         - arm64
       Code: Any<Object>
       Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: withclusternamecloudwatchcustomwidgetloggroup4AC45DBE
       MemorySize: 1024
       Role:
         'Fn::GetAtt':
@@ -5041,6 +5189,12 @@ exports[`BYOC With cluster name 2`] = `
     DependsOn:
       - withclusternamecontrollertaskroleDefaultPolicy54BC385C
       - withclusternamecontrollertaskroleD965AFAA
+  withclusternamerestatectlloggroup03E0BF5F:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withclusternamerestatectllambdaexecutionrole0F7FCC2E:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -5057,18 +5211,45 @@ exports[`BYOC With cluster name 2`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withclusternamerestatectlloggroup03E0BF5F
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
+          - Action:
               - 'ec2:CreateNetworkInterface'
               - 'ec2:DescribeNetworkInterfaces'
               - 'ec2:DescribeSubnets'
               - 'ec2:DeleteNetworkInterface'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCWildcardPermissions
+          - Action:
               - 'ec2:AssignPrivateIpAddresses'
               - 'ec2:UnassignPrivateIpAddresses'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaVPCAccessExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':network-interface/*'
+            Sid: AWSLambdaVPCNetworkInterfacePermissions
         Version: '2012-10-17'
       PolicyName: withclusternamerestatectllambdaexecutionroleDefaultPolicy984C46E8
       Roles:
@@ -5090,6 +5271,9 @@ exports[`BYOC With cluster name 2`] = `
                     - DNSName
                 - ':5122'
       Handler: restatectl
+      LoggingConfig:
+        LogGroup:
+          Ref: withclusternamerestatectlloggroup03E0BF5F
       Role:
         'Fn::GetAtt':
           - withclusternamerestatectllambdaexecutionrole0F7FCC2E
@@ -5111,6 +5295,12 @@ exports[`BYOC With cluster name 2`] = `
     DependsOn:
       - withclusternamerestatectllambdaexecutionroleDefaultPolicy984C46E8
       - withclusternamerestatectllambdaexecutionrole0F7FCC2E
+  withclusternameretirementwatcherloggroup9E8494A5:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withclusternameretirementwatcherlambdaexecutionrole9364C1F9:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -5127,12 +5317,22 @@ exports[`BYOC With cluster name 2`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaBasicExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withclusternameretirementwatcherloggroup9E8494A5
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
           - Action: 'ecs:TagResource'
             Effect: Allow
             Resource:
@@ -5230,6 +5430,9 @@ exports[`BYOC With cluster name 2`] = `
         - arm64
       Code: Any<Object>
       Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: withclusternameretirementwatcherloggroup9E8494A5
       Role:
         'Fn::GetAtt':
           - withclusternameretirementwatcherlambdaexecutionrole9364C1F9
@@ -5377,6 +5580,12 @@ exports[`BYOC With cluster name 2`] = `
               - withclusternameretirementwatcherqueue2D776989
               - Arn
           Id: Target0
+  withclusternamecloudwatchcustomwidgetloggroup4AC45DBE:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withclusternamecloudwatchcustomwidgetexecutionrole11E14880:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -5393,12 +5602,22 @@ exports[`BYOC With cluster name 2`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaBasicExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withclusternamecloudwatchcustomwidgetloggroup4AC45DBE
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
           - Action: 'lambda:InvokeFunction'
             Effect: Allow
             Resource:
@@ -5484,6 +5703,9 @@ exports[`BYOC With cluster name 2`] = `
         - arm64
       Code: Any<Object>
       Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: withclusternamecloudwatchcustomwidgetloggroup4AC45DBE
       MemorySize: 1024
       Role:
         'Fn::GetAtt':
@@ -7064,6 +7286,12 @@ exports[`BYOC With otel collector 1`] = `
     DependsOn:
       - withotelcollectorcontrollertaskroleDefaultPolicyE9B648FA
       - withotelcollectorcontrollertaskrole025F5504
+  withotelcollectorrestatectlloggroup4D5886B6:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withotelcollectorrestatectllambdaexecutionroleA0831EA5:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -7080,18 +7308,45 @@ exports[`BYOC With otel collector 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withotelcollectorrestatectlloggroup4D5886B6
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
+          - Action:
               - 'ec2:CreateNetworkInterface'
               - 'ec2:DescribeNetworkInterfaces'
               - 'ec2:DescribeSubnets'
               - 'ec2:DeleteNetworkInterface'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCWildcardPermissions
+          - Action:
               - 'ec2:AssignPrivateIpAddresses'
               - 'ec2:UnassignPrivateIpAddresses'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaVPCAccessExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':network-interface/*'
+            Sid: AWSLambdaVPCNetworkInterfacePermissions
         Version: '2012-10-17'
       PolicyName: withotelcollectorrestatectllambdaexecutionroleDefaultPolicy07728179
       Roles:
@@ -7113,6 +7368,9 @@ exports[`BYOC With otel collector 1`] = `
                     - DNSName
                 - ':5122'
       Handler: restatectl
+      LoggingConfig:
+        LogGroup:
+          Ref: withotelcollectorrestatectlloggroup4D5886B6
       Role:
         'Fn::GetAtt':
           - withotelcollectorrestatectllambdaexecutionroleA0831EA5
@@ -7134,6 +7392,12 @@ exports[`BYOC With otel collector 1`] = `
     DependsOn:
       - withotelcollectorrestatectllambdaexecutionroleDefaultPolicy07728179
       - withotelcollectorrestatectllambdaexecutionroleA0831EA5
+  withotelcollectorretirementwatcherloggroupF6A70EF5:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withotelcollectorretirementwatcherlambdaexecutionroleC58542B9:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -7150,12 +7414,22 @@ exports[`BYOC With otel collector 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaBasicExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withotelcollectorretirementwatcherloggroupF6A70EF5
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
           - Action: 'ecs:TagResource'
             Effect: Allow
             Resource:
@@ -7254,6 +7528,9 @@ exports[`BYOC With otel collector 1`] = `
         - arm64
       Code: Any<Object>
       Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: withotelcollectorretirementwatcherloggroupF6A70EF5
       Role:
         'Fn::GetAtt':
           - withotelcollectorretirementwatcherlambdaexecutionroleC58542B9
@@ -7402,6 +7679,12 @@ exports[`BYOC With otel collector 1`] = `
               - withotelcollectorretirementwatcherqueue9A16F3EA
               - Arn
           Id: Target0
+  withotelcollectorcloudwatchcustomwidgetloggroup476A8511:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withotelcollectorcloudwatchcustomwidgetexecutionrole56230195:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -7418,12 +7701,22 @@ exports[`BYOC With otel collector 1`] = `
       PolicyDocument:
         Statement:
           - Action:
-              - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Effect: Allow
-            Resource: '*'
-            Sid: AWSLambdaBasicExecutionPermissions
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withotelcollectorcloudwatchcustomwidgetloggroup476A8511
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
           - Action: 'lambda:InvokeFunction'
             Effect: Allow
             Resource:
@@ -7510,6 +7803,9 @@ exports[`BYOC With otel collector 1`] = `
         - arm64
       Code: Any<Object>
       Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: withotelcollectorcloudwatchcustomwidgetloggroup476A8511
       MemorySize: 1024
       Role:
         'Fn::GetAtt':
