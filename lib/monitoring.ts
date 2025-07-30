@@ -513,6 +513,14 @@ function createCustomWidgetLambda(
 ): cdk.aws_lambda.Function | undefined {
   if (!restatectlLambda || props?.dashboard?.customWidgets?.disabled) return;
 
+  const logGroup = new cdk.aws_logs.LogGroup(
+    scope,
+    "cloudwatch-custom-widget-log-group",
+    {
+      retention: cdk.aws_logs.RetentionDays.ONE_MONTH,
+    },
+  );
+
   const role =
     props?.dashboard?.customWidgets?.executionRole ??
     new cdk.aws_iam.Role(scope, "cloudwatch-custom-widget-execution-role", {
@@ -521,14 +529,12 @@ function createCustomWidgetLambda(
 
   role.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
-      actions: [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
+      actions: ["logs:CreateLogStream", "logs:PutLogEvents"],
+      resources: [
+        `arn:${cdk.Aws.PARTITION}:logs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:log-group:${logGroup.logGroupName}:log-stream:*`,
       ],
-      resources: ["*"],
       effect: cdk.aws_iam.Effect.ALLOW,
-      sid: "AWSLambdaBasicExecutionPermissions",
+      sid: "AWSLambdaLogStreamPermissions",
     }),
   );
 
@@ -628,6 +634,7 @@ function createCustomWidgetLambda(
       memorySize: 1024,
       handler: "index.handler",
       code,
+      logGroup,
       timeout: cdk.Duration.seconds(60),
     },
   );
@@ -687,9 +694,7 @@ export function otelCollectorContainerProps(
   };
 }
 
-function otelCollectorConfig(
-  otelCollectorProps: OtelCollectorProps,
-): string {
+function otelCollectorConfig(otelCollectorProps: OtelCollectorProps): string {
   if ("customConfig" in otelCollectorProps.configuration) {
     return otelCollectorProps.configuration.customConfig;
   }

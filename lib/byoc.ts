@@ -1462,6 +1462,14 @@ function createRetirementWatcher(
   | undefined {
   if (retirementWatcherProps?.disabled) return;
 
+  const logGroup = new cdk.aws_logs.LogGroup(
+    scope,
+    "retirement-watcher-log-group",
+    {
+      retention: cdk.aws_logs.RetentionDays.ONE_MONTH,
+    },
+  );
+
   const role =
     retirementWatcherProps?.executionRole ??
     new cdk.aws_iam.Role(scope, "retirement-watcher-lambda-execution-role", {
@@ -1470,14 +1478,12 @@ function createRetirementWatcher(
 
   role.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
-      actions: [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
+      actions: ["logs:CreateLogStream", "logs:PutLogEvents"],
+      resources: [
+        `arn:${cdk.Aws.PARTITION}:logs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:log-group:${logGroup.logGroupName}:log-stream:*`,
       ],
-      resources: ["*"],
       effect: cdk.aws_iam.Effect.ALLOW,
-      sid: "AWSLambdaBasicExecutionPermissions",
+      sid: "AWSLambdaLogStreamPermissions",
     }),
   );
 
@@ -1496,6 +1502,7 @@ function createRetirementWatcher(
     architecture: cdk.aws_lambda.Architecture.ARM_64,
     handler: "index.handler",
     code,
+    logGroup,
     timeout: cdk.Duration.seconds(60),
   });
   cdk.Tags.of(fn).add("Name", fn.node.path);
@@ -1562,6 +1569,10 @@ function createRestatectl(
 ): cdk.aws_lambda.Function | undefined {
   if (restatectlProps?.disabled) return;
 
+  const logGroup = new cdk.aws_logs.LogGroup(scope, "restatectl-log-group", {
+    retention: cdk.aws_logs.RetentionDays.ONE_MONTH,
+  });
+
   const role =
     restatectlProps?.executionRole ??
     new cdk.aws_iam.Role(scope, "restatectl-lambda-execution-role", {
@@ -1570,20 +1581,40 @@ function createRestatectl(
 
   role.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
+      actions: ["logs:CreateLogStream", "logs:PutLogEvents"],
+      resources: [
+        `arn:${cdk.Aws.PARTITION}:logs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:log-group:${logGroup.logGroupName}:log-stream:*`,
+      ],
+      effect: cdk.aws_iam.Effect.ALLOW,
+      sid: "AWSLambdaLogStreamPermissions",
+    }),
+  );
+
+  role.addToPrincipalPolicy(
+    new cdk.aws_iam.PolicyStatement({
       actions: [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
         "ec2:CreateNetworkInterface",
         "ec2:DescribeNetworkInterfaces",
         "ec2:DescribeSubnets",
         "ec2:DeleteNetworkInterface",
-        "ec2:AssignPrivateIpAddresses",
-        "ec2:UnassignPrivateIpAddresses",
       ],
       resources: ["*"],
       effect: cdk.aws_iam.Effect.ALLOW,
-      sid: "AWSLambdaVPCAccessExecutionPermissions",
+      sid: "AWSLambdaVPCWildcardPermissions",
+    }),
+  );
+
+  role.addToPrincipalPolicy(
+    new cdk.aws_iam.PolicyStatement({
+      actions: [
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses",
+      ],
+      resources: [
+        `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:network-interface/*`,
+      ],
+      effect: cdk.aws_iam.Effect.ALLOW,
+      sid: "AWSLambdaVPCNetworkInterfacePermissions",
     }),
   );
 
@@ -1599,6 +1630,7 @@ function createRestatectl(
     vpc,
     vpcSubnets,
     securityGroups,
+    logGroup,
     timeout: cdk.Duration.seconds(10),
   });
   cdk.Tags.of(fn).add("Name", fn.node.path);
