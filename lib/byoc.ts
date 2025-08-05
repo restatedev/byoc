@@ -555,6 +555,7 @@ export class RestateEcsFargateCluster
 
     this.retirementWatcher = createRetirementWatcher(
       this,
+      this.vpc,
       ctPrefix,
       artifacts["retirement-watcher.zip"],
       props.retirementWatcher,
@@ -1450,6 +1451,7 @@ function createController(
 
 function createRetirementWatcher(
   scope: Construct,
+  vpc: cdk.aws_ec2.IVpc,
   clusterTaskPrefix: string,
   code: cdk.aws_lambda.Code,
   retirementWatcherProps?: TaskRetirementWatcherProps,
@@ -1487,6 +1489,36 @@ function createRetirementWatcher(
     }),
   );
 
+  if (retirementWatcherProps?.securityGroups?.length) {
+    role.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DescribeSubnets",
+          "ec2:DeleteNetworkInterface",
+        ],
+        resources: ["*"],
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "AWSLambdaVPCWildcardPermissions",
+      }),
+    );
+
+    role.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: [
+          "ec2:AssignPrivateIpAddresses",
+          "ec2:UnassignPrivateIpAddresses",
+        ],
+        resources: [
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:network-interface/*`,
+        ],
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "AWSLambdaVPCNetworkInterfacePermissions",
+      }),
+    );
+  }
+
   role.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
       actions: ["ecs:TagResource"],
@@ -1504,6 +1536,8 @@ function createRetirementWatcher(
     code,
     logGroup,
     timeout: cdk.Duration.seconds(60),
+    vpc: retirementWatcherProps?.securityGroups?.length ? vpc : undefined,
+    securityGroups: retirementWatcherProps?.securityGroups,
   });
   cdk.Tags.of(fn).add("Name", fn.node.path);
 

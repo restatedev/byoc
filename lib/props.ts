@@ -396,6 +396,12 @@ export interface TaskRetirementWatcherProps {
    * Default: A role will be created
    */
   executionRole?: cdk.aws_iam.IRole;
+
+  /**
+   * If provided and vpc is true, place the lambda inside a VPC and these security groups. This is not necessary but lambdas that aren't in a security group may be denied by your security policies.
+   * Default: false
+   */
+  securityGroups?: cdk.aws_ec2.ISecurityGroup[];
 }
 
 export const DEFAULT_OTEL_COLLECTOR_IMAGE =
@@ -559,6 +565,12 @@ export interface MonitoringProps {
        * Default: A role will be created
        */
       executionRole?: cdk.aws_iam.IRole;
+
+      /**
+       * If provided and vpc is true, place the lambda inside a VPC and these security groups. This is not necessary but lambdas that aren't in a security group may be denied by your security policies.
+       * Default: false
+       */
+      securityGroups?: cdk.aws_ec2.ISecurityGroup[];
     };
   };
 
