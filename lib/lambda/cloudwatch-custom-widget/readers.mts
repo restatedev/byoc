@@ -62,6 +62,8 @@ const controllerTaskCountPattern =
   /^CONTROLLER_ECS_CLUSTERS__[^_]+__ZONES__[^_]+__COUNT$/;
 const pendingStatuses = new Set(["PROVISIONING", "PENDING", "ACTIVATING"]);
 
+const ENABLE_EBS_VOLUMES = process.env.ENABLE_EBS_VOLUMES !== "false";
+
 export async function getControlPanel(
   input: ControlPanelInput,
 ): Promise<ControlPanelProps> {
@@ -236,7 +238,7 @@ export async function getControlPanel(
     });
 
     const ebsVolumesDescribe =
-      ebsVolumeIds.length > 0
+      ENABLE_EBS_VOLUMES && ebsVolumeIds.length > 0
         ? ec2Client
             .send(
               new ec2.DescribeVolumesCommand({
@@ -251,21 +253,23 @@ export async function getControlPanel(
             .then((describe) => describe.Volumes ?? [])
         : Promise.resolve([] as ec2.Volume[]);
 
-    const ebsVolumesStatus = ebsVolumesDescribe
-      .then((ebsVolumesDescribe) =>
-        ebsVolumesDescribe.map((volume) => volume.VolumeId!),
-      )
-      .then((volumeIDs) =>
-        volumeIDs.length > 0
-          ? ec2Client
-              .send(
-                new ec2.DescribeVolumeStatusCommand({
-                  VolumeIds: ebsVolumeIds,
-                }),
-              )
-              .then((status) => status.VolumeStatuses ?? [])
-          : Promise.resolve([] as ec2.VolumeStatusItem[]),
-      );
+    const ebsVolumesStatus = ENABLE_EBS_VOLUMES
+      ? ebsVolumesDescribe
+          .then((ebsVolumesDescribe) =>
+            ebsVolumesDescribe.map((volume) => volume.VolumeId!),
+          )
+          .then((volumeIDs) =>
+            volumeIDs.length > 0
+              ? ec2Client
+                  .send(
+                    new ec2.DescribeVolumeStatusCommand({
+                      VolumeIds: ebsVolumeIds,
+                    }),
+                  )
+                  .then((status) => status.VolumeStatuses ?? [])
+              : Promise.resolve([] as ec2.VolumeStatusItem[]),
+          )
+      : Promise.resolve([] as ec2.VolumeStatusItem[]);
 
     const ebsVolumes: Promise<Volume[]> = Promise.all([
       ebsVolumesDescribe,
@@ -291,33 +295,35 @@ export async function getControlPanel(
       });
     });
 
-    const ebsSnapshots = ec2Client
-      .send(
-        new ec2.DescribeSnapshotsCommand({
-          Filters: [
-            {
-              Name: "tag:restate:ecsClusterArn",
-              Values: [input.resources.ecsClusterArn],
-            },
-          ],
-        }),
-      )
-      .then((describe) => describe.Snapshots ?? [])
-      .then((snapshots) =>
-        snapshots.map(
-          (snapshot) =>
-            ({
-              snapshotID: snapshot.SnapshotId!,
-              startTime: snapshot.StartTime?.toISOString() ?? "Not Started",
-              volumeSizeInGiB: snapshot.VolumeSize!,
-              snapshotSize:
-                snapshot.FullSnapshotSizeInBytes !== undefined
-                  ? formatBytes(snapshot.FullSnapshotSizeInBytes)
-                  : "N/A",
-              state: snapshot.State!,
-            }) satisfies Snapshot,
-        ),
-      );
+    const ebsSnapshots = ENABLE_EBS_VOLUMES
+      ? ec2Client
+          .send(
+            new ec2.DescribeSnapshotsCommand({
+              Filters: [
+                {
+                  Name: "tag:restate:ecsClusterArn",
+                  Values: [input.resources.ecsClusterArn],
+                },
+              ],
+            }),
+          )
+          .then((describe) => describe.Snapshots ?? [])
+          .then((snapshots) =>
+            snapshots.map(
+              (snapshot) =>
+                ({
+                  snapshotID: snapshot.SnapshotId!,
+                  startTime: snapshot.StartTime?.toISOString() ?? "Not Started",
+                  volumeSizeInGiB: snapshot.VolumeSize!,
+                  snapshotSize:
+                    snapshot.FullSnapshotSizeInBytes !== undefined
+                      ? formatBytes(snapshot.FullSnapshotSizeInBytes)
+                      : "N/A",
+                  state: snapshot.State!,
+                }) satisfies Snapshot,
+            ),
+          )
+      : Promise.resolve([] as Snapshot[]);
 
     return {
       ebsVolumes,
@@ -780,46 +786,46 @@ async function getMinutelyMetrics(
     },
   ];
 
-  const ebsSizeMetrics: cloudwatch.MetricDataQuery[] = [
-    ...ebsTaskFamilies,
-  ].flatMap((ebsTaskFamily, i) => [
-    {
-      Id: `ebssize${i}`,
-      ReturnData: false,
-      MetricStat: {
-        Stat: "Sum",
-        Period: 60,
-        Metric: {
-          Namespace: "ECS/ContainerInsights",
-          MetricName: "EBSFilesystemSize",
-          Dimensions: [
-            { Name: "ClusterName", Value: ecsClusterName },
-            { Name: "TaskDefinitionFamily", Value: ebsTaskFamily },
-          ],
+  const ebsSizeMetrics: cloudwatch.MetricDataQuery[] = ENABLE_EBS_VOLUMES
+    ? [...ebsTaskFamilies].flatMap((ebsTaskFamily, i) => [
+        {
+          Id: `ebssize${i}`,
+          ReturnData: false,
+          MetricStat: {
+            Stat: "Sum",
+            Period: 60,
+            Metric: {
+              Namespace: "ECS/ContainerInsights",
+              MetricName: "EBSFilesystemSize",
+              Dimensions: [
+                { Name: "ClusterName", Value: ecsClusterName },
+                { Name: "TaskDefinitionFamily", Value: ebsTaskFamily },
+              ],
+            },
+          },
         },
-      },
-    },
-  ]);
-  const ebsUtilMetrics: cloudwatch.MetricDataQuery[] = [
-    ...ebsTaskFamilies,
-  ].flatMap((ebsTaskFamily, i) => [
-    {
-      Id: `ebsutil${i}`,
-      ReturnData: false,
-      MetricStat: {
-        Stat: "Sum",
-        Period: 60,
-        Metric: {
-          Namespace: "ECS/ContainerInsights",
-          MetricName: "EBSFilesystemUtilized",
-          Dimensions: [
-            { Name: "ClusterName", Value: ecsClusterName },
-            { Name: "TaskDefinitionFamily", Value: ebsTaskFamily },
-          ],
+      ])
+    : [];
+  const ebsUtilMetrics: cloudwatch.MetricDataQuery[] = ENABLE_EBS_VOLUMES
+    ? [...ebsTaskFamilies].flatMap((ebsTaskFamily, i) => [
+        {
+          Id: `ebsutil${i}`,
+          ReturnData: false,
+          MetricStat: {
+            Stat: "Sum",
+            Period: 60,
+            Metric: {
+              Namespace: "ECS/ContainerInsights",
+              MetricName: "EBSFilesystemUtilized",
+              Dimensions: [
+                { Name: "ClusterName", Value: ecsClusterName },
+                { Name: "TaskDefinitionFamily", Value: ebsTaskFamily },
+              ],
+            },
+          },
         },
-      },
-    },
-  ]);
+      ])
+    : [];
 
   const ephemeralSizeMetrics: cloudwatch.MetricDataQuery[] = [
     ...ephemeralTaskFamilies,

@@ -31,7 +31,7 @@ describe("BYOC", () => {
     });
   });
 
-  test("With cluster name", () => {
+  test("With existing bucket", () => {
     const { stack, vpc } = createStack();
 
     new RestateEcsFargateCluster(stack, "with-cluster-name", {

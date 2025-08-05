@@ -1676,13 +1676,6 @@ exports[`BYOC Default parameters 1`] = `
                 - defaultrestatectllambda05E7B262
                 - Arn
             Sid: InvokeRestatectl
-          - Action:
-              - 'ec2:DescribeVolumes'
-              - 'ec2:DescribeVolumeStatus'
-              - 'ec2:DescribeSnapshots'
-            Effect: Allow
-            Resource: '*'
-            Sid: EC2ReadActions
           - Action: 'ecs:DescribeTaskDefinition'
             Effect: Allow
             Resource: '*'
@@ -1753,6 +1746,9 @@ exports[`BYOC Default parameters 1`] = `
       Architectures:
         - arm64
       Code: Any<Object>
+      Environment:
+        Variables:
+          ENABLE_EBS_VOLUMES: 'false'
       Handler: index.handler
       LoggingConfig:
         LogGroup:
@@ -1921,7 +1917,7 @@ exports[`BYOC Default parameters 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/default","restateVersion":"1.4","stackVersion":"0.4.0","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/default","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: defaultmetrics63974EF8
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -3680,13 +3676,6 @@ exports[`BYOC With cluster name 1`] = `
                 - withclusternamerestatectllambdaBEFE7F28
                 - Arn
             Sid: InvokeRestatectl
-          - Action:
-              - 'ec2:DescribeVolumes'
-              - 'ec2:DescribeVolumeStatus'
-              - 'ec2:DescribeSnapshots'
-            Effect: Allow
-            Resource: '*'
-            Sid: EC2ReadActions
           - Action: 'ecs:DescribeTaskDefinition'
             Effect: Allow
             Resource: '*'
@@ -3757,6 +3746,9 @@ exports[`BYOC With cluster name 1`] = `
       Architectures:
         - arm64
       Code: Any<Object>
+      Environment:
+        Variables:
+          ENABLE_EBS_VOLUMES: 'false'
       Handler: index.handler
       LoggingConfig:
         LogGroup:
@@ -3925,7 +3917,7 @@ exports[`BYOC With cluster name 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"restate-byoc-cluster","restateVersion":"1.4","stackVersion":"0.4.0","metricsDashboardName":"
+              ","summary":{"clusterName":"restate-byoc-cluster","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: withclusternamemetrics035F2329
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -4007,7 +3999,7 @@ Outputs:
 "
 `;
 
-exports[`BYOC With cluster name 2`] = `
+exports[`BYOC With existing bucket 1`] = `
 "Resources:
   withclusternamesecuritygroup9A10CA11:
     Type: 'AWS::EC2::SecurityGroup'
@@ -5625,13 +5617,6 @@ exports[`BYOC With cluster name 2`] = `
                 - withclusternamerestatectllambdaBEFE7F28
                 - Arn
             Sid: InvokeRestatectl
-          - Action:
-              - 'ec2:DescribeVolumes'
-              - 'ec2:DescribeVolumeStatus'
-              - 'ec2:DescribeSnapshots'
-            Effect: Allow
-            Resource: '*'
-            Sid: EC2ReadActions
           - Action: 'ecs:DescribeTaskDefinition'
             Effect: Allow
             Resource: '*'
@@ -5702,6 +5687,9 @@ exports[`BYOC With cluster name 2`] = `
       Architectures:
         - arm64
       Code: Any<Object>
+      Environment:
+        Variables:
+          ENABLE_EBS_VOLUMES: 'false'
       Handler: index.handler
       LoggingConfig:
         LogGroup:
@@ -5870,7 +5858,7 @@ exports[`BYOC With cluster name 2`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/with-cluster-name","restateVersion":"1.4","stackVersion":"0.4.0","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/with-cluster-name","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: withclusternamemetrics035F2329
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -7724,13 +7712,6 @@ exports[`BYOC With otel collector 1`] = `
                 - withotelcollectorrestatectllambda4FF04021
                 - Arn
             Sid: InvokeRestatectl
-          - Action:
-              - 'ec2:DescribeVolumes'
-              - 'ec2:DescribeVolumeStatus'
-              - 'ec2:DescribeSnapshots'
-            Effect: Allow
-            Resource: '*'
-            Sid: EC2ReadActions
           - Action: 'ecs:DescribeTaskDefinition'
             Effect: Allow
             Resource: '*'
@@ -7802,6 +7783,9 @@ exports[`BYOC With otel collector 1`] = `
       Architectures:
         - arm64
       Code: Any<Object>
+      Environment:
+        Variables:
+          ENABLE_EBS_VOLUMES: 'false'
       Handler: index.handler
       LoggingConfig:
         LogGroup:
@@ -7971,7 +7955,7 @@ exports[`BYOC With otel collector 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/with-otel-collector","restateVersion":"1.4","stackVersion":"0.4.0","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/with-otel-collector","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: withotelcollectormetrics493AA233
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':

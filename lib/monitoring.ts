@@ -58,6 +58,7 @@ export function createMonitoring(
     customWidgetCode,
     restatectlLambda,
     props?.monitoring,
+    props,
   );
 
   const metricsDashboard = createMetricsDashboard(
@@ -511,9 +512,10 @@ function createCustomWidgetLambda(
   ecsCluster: cdk.aws_ecs.ICluster,
   code: cdk.aws_lambda.Code,
   restatectlLambda?: cdk.aws_lambda.IFunction,
-  props?: MonitoringProps,
+  monitoringProps?: MonitoringProps,
+  clusterProps?: ClusterProps,
 ): cdk.aws_lambda.Function | undefined {
-  if (!restatectlLambda || props?.dashboard?.customWidgets?.disabled) return;
+  if (!restatectlLambda || monitoringProps?.dashboard?.customWidgets?.disabled) return;
 
   const logGroup = new cdk.aws_logs.LogGroup(
     scope,
@@ -524,7 +526,7 @@ function createCustomWidgetLambda(
   );
 
   const role =
-    props?.dashboard?.customWidgets?.executionRole ??
+    monitoringProps?.dashboard?.customWidgets?.executionRole ??
     new cdk.aws_iam.Role(scope, "cloudwatch-custom-widget-execution-role", {
       assumedBy: new cdk.aws_iam.ServicePrincipal("lambda.amazonaws.com"),
     });
@@ -540,7 +542,7 @@ function createCustomWidgetLambda(
     }),
   );
 
-  if (props?.dashboard?.customWidgets?.securityGroups?.length) {
+  if (monitoringProps?.dashboard?.customWidgets?.securityGroups?.length) {
     role.addToPrincipalPolicy(
       new cdk.aws_iam.PolicyStatement({
         actions: [
@@ -579,18 +581,20 @@ function createCustomWidgetLambda(
     }),
   );
 
-  role.addToPrincipalPolicy(
-    new cdk.aws_iam.PolicyStatement({
-      actions: [
-        "ec2:DescribeVolumes",
-        "ec2:DescribeVolumeStatus",
-        "ec2:DescribeSnapshots",
-      ],
-      resources: ["*"],
-      effect: cdk.aws_iam.Effect.ALLOW,
-      sid: "EC2ReadActions",
-    }),
-  );
+  if (clusterProps?.statefulNode?.ebsVolume) {
+    role.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: [
+          "ec2:DescribeVolumes",
+          "ec2:DescribeVolumeStatus",
+          "ec2:DescribeSnapshots",
+        ],
+        resources: ["*"],
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "EC2ReadActions",
+      }),
+    );
+  }
 
   role.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
@@ -668,10 +672,13 @@ function createCustomWidgetLambda(
       code,
       logGroup,
       timeout: cdk.Duration.seconds(60),
-      vpc: props?.dashboard?.customWidgets?.securityGroups?.length
+      vpc: monitoringProps?.dashboard?.customWidgets?.securityGroups?.length
         ? vpc
         : undefined,
-      securityGroups: props?.dashboard?.customWidgets?.securityGroups,
+      securityGroups: monitoringProps?.dashboard?.customWidgets?.securityGroups,
+      environment: {
+        ENABLE_EBS_VOLUMES: clusterProps?.statefulNode?.ebsVolume ? 'true' : 'false',
+      },
     },
   );
   cdk.Tags.of(fn).add("Name", fn.node.path);
