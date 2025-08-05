@@ -53,6 +53,7 @@ export function createMonitoring(
 } {
   const customWidgetFn = createCustomWidgetLambda(
     scope,
+    vpc,
     ecsCluster,
     customWidgetCode,
     restatectlLambda,
@@ -506,6 +507,7 @@ export function createMetricsDashboard(
 
 function createCustomWidgetLambda(
   scope: Construct,
+  vpc: cdk.aws_ec2.IVpc,
   ecsCluster: cdk.aws_ecs.ICluster,
   code: cdk.aws_lambda.Code,
   restatectlLambda?: cdk.aws_lambda.IFunction,
@@ -537,6 +539,36 @@ function createCustomWidgetLambda(
       sid: "AWSLambdaLogStreamPermissions",
     }),
   );
+
+  if (props?.dashboard?.customWidgets?.securityGroups?.length) {
+    role.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DescribeSubnets",
+          "ec2:DeleteNetworkInterface",
+        ],
+        resources: ["*"],
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "AWSLambdaVPCWildcardPermissions",
+      }),
+    );
+
+    role.addToPrincipalPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: [
+          "ec2:AssignPrivateIpAddresses",
+          "ec2:UnassignPrivateIpAddresses",
+        ],
+        resources: [
+          `arn:${cdk.Aws.PARTITION}:ec2:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:network-interface/*`,
+        ],
+        effect: cdk.aws_iam.Effect.ALLOW,
+        sid: "AWSLambdaVPCNetworkInterfacePermissions",
+      }),
+    );
+  }
 
   role.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
@@ -636,6 +668,10 @@ function createCustomWidgetLambda(
       code,
       logGroup,
       timeout: cdk.Duration.seconds(60),
+      vpc: props?.dashboard?.customWidgets?.securityGroups?.length
+        ? vpc
+        : undefined,
+      securityGroups: props?.dashboard?.customWidgets?.securityGroups,
     },
   );
   cdk.Tags.of(fn).add("Name", fn.node.path);
