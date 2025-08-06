@@ -8036,3 +8036,1930 @@ Outputs:
       Ref: withotelcollectornodesharedtarget3F81F89C
 "
 `;
+
+exports[`BYOC With specific SG and subnets 1`] = `
+"Resources:
+  sg29196201:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: RestateBYOC/sg
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: '-1'
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  withvpcsubnetbucket1E081BFF:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withvpcsubnetbucketPolicyCC735A2D:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket:
+        Ref: withvpcsubnetbucket1E081BFF
+      PolicyDocument:
+        Statement:
+          - Action: 's3:*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Resource:
+              - 'Fn::GetAtt':
+                  - withvpcsubnetbucket1E081BFF
+                  - Arn
+              - 'Fn::Join':
+                  - ''
+                  - - 'Fn::GetAtt':
+                        - withvpcsubnetbucket1E081BFF
+                        - Arn
+                    - /*
+        Version: '2012-10-17'
+  withvpcsubnetcluster14F481BD:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/cluster
+  withvpcsubnetrestatetaskrole0DB71BBB:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  withvpcsubnetrestatetaskroleDefaultPolicy3F77BBD4:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::GetAtt':
+                      - withvpcsubnetbucket1E081BFF
+                      - Arn
+                  - /*
+            Sid: ReadWriteBucket
+          - Action: 's3:ListBucket'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withvpcsubnetbucket1E081BFF
+                - Arn
+            Sid: ListBucket
+        Version: '2012-10-17'
+      PolicyName: withvpcsubnetrestatetaskroleDefaultPolicy3F77BBD4
+      Roles:
+        - Ref: withvpcsubnetrestatetaskrole0DB71BBB
+  withvpcsubnetrestateexecutionrole09337314:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  withvpcsubnetrestateexecutionroleDefaultPolicy028A2DDF:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withvpcsubnetstatelessdefinitionrestateLogGroup3C28A574
+                - Arn
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withvpcsubnetstatefuldefinitionrestateLogGroupDA9395D3
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: withvpcsubnetrestateexecutionroleDefaultPolicy028A2DDF
+      Roles:
+        - Ref: withvpcsubnetrestateexecutionrole09337314
+  withvpcsubnetsharednlb5421469F:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      LoadBalancerAttributes:
+        - Key: deletion_protection.enabled
+          Value: 'false'
+        - Key: load_balancing.cross_zone.enabled
+          Value: 'false'
+        - Key: dns_record.client_routing_policy
+          Value: availability_zone_affinity
+      Scheme: internal
+      SecurityGroups:
+        - 'Fn::GetAtt':
+            - sg29196201
+            - GroupId
+      Subnets:
+        - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+        - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/shared-nlb
+      Type: network
+  withvpcsubnetingresssharedlistener4D3399EF:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: withvpcsubnetingresssharedtargetE6C22455
+          Type: forward
+      LoadBalancerArn:
+        Ref: withvpcsubnetsharednlb5421469F
+      Port: 8080
+      Protocol: TCP
+  withvpcsubnetadminsharedlistenerA099F537:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: withvpcsubnetadminsharedtarget8C328C16
+          Type: forward
+      LoadBalancerArn:
+        Ref: withvpcsubnetsharednlb5421469F
+      Port: 9070
+      Protocol: TCP
+  withvpcsubnetnodesharedlistener362A7851:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: withvpcsubnetnodesharedtarget7EB5F977
+          Type: forward
+      LoadBalancerArn:
+        Ref: withvpcsubnetsharednlb5421469F
+      Port: 5122
+      Protocol: TCP
+  withvpcsubnetstatelessdefinitionCF58C10F:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 16384
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o
+              container-metadata && \\
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+              exec restate-server
+          Environment:
+            - Name: RESTATE_LOG_FORMAT
+              Value: json
+            - Name: RESTATE_CLUSTER_NAME
+              Value: RestateBYOC/with-vpc-subnet
+            - Name: RESTATE_ROLES
+              Value: '["admin","http-ingress"]'
+            - Name: RESTATE_AUTO_PROVISION
+              Value: 'true'
+            - Name: RESTATE_SHUTDOWN_TIMEOUT
+              Value: 100s
+            - Name: RESTATE_DEFAULT_NUM_PARTITIONS
+              Value: '128'
+            - Name: RESTATE_DEFAULT_REPLICATION
+              Value: '{node: 2}'
+            - Name: RESTATE_METADATA_CLIENT__TYPE
+              Value: object-store
+            - Name: RESTATE_METADATA_CLIENT__PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: withvpcsubnetbucket1E081BFF
+                    - /metadata
+            - Name: RESTATE_BIFROST__DEFAULT_PROVIDER
+              Value: replicated
+            - Name: >-
+                RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE
+              Value: 'true'
+            - Name: RESTATE_INGRESS__ADVERTISED_INGRESS_ENDPOINT
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 'http://'
+                    - 'Fn::GetAtt':
+                        - withvpcsubnetsharednlb5421469F
+                        - DNSName
+                    - ':8080'
+            - Name: RESTATE_WORKER__SNAPSHOTS__DESTINATION
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: withvpcsubnetbucket1E081BFF
+                    - /snapshots
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:8080/restate/health'
+            Interval: 30
+            Retries: 3
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: withvpcsubnetstatelessdefinitionrestateLogGroup3C28A574
+              awslogs-stream-prefix: restate
+              awslogs-region: region
+          Memory: 32768
+          Name: restate
+          PortMappings:
+            - ContainerPort: 8080
+              Name: ingress
+              Protocol: tcp
+            - ContainerPort: 9070
+              Name: admin
+              Protocol: tcp
+            - ContainerPort: 5122
+              Name: node
+              Protocol: tcp
+          StopTimeout: 120
+      Cpu: '16384'
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - withvpcsubnetrestateexecutionrole09337314
+          - Arn
+      Family: RestateBYOCwithvpcsubnetstatelessdefinitionFB34AE10
+      Memory: '32768'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/stateless-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - withvpcsubnetrestatetaskrole0DB71BBB
+          - Arn
+  withvpcsubnetstatelessdefinitionrestateLogGroup3C28A574:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/stateless-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withvpcsubnetstatelessserviceService547C3679:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      AvailabilityZoneRebalancing: ENABLED
+      Cluster:
+        Ref: withvpcsubnetcluster14F481BD
+      DeploymentConfiguration:
+        Alarms:
+          AlarmNames: []
+          Enable: false
+          Rollback: false
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DesiredCount: 3
+      EnableECSManagedTags: false
+      EnableExecuteCommand: false
+      HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: restate
+          ContainerPort: 8080
+          TargetGroupArn:
+            Ref: withvpcsubnetingresssharedtargetE6C22455
+        - ContainerName: restate
+          ContainerPort: 9070
+          TargetGroupArn:
+            Ref: withvpcsubnetadminsharedtarget8C328C16
+        - ContainerName: restate
+          ContainerPort: 5122
+          TargetGroupArn:
+            Ref: withvpcsubnetnodesharedtarget7EB5F977
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - 'Fn::GetAtt':
+                - sg29196201
+                - GroupId
+          Subnets:
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+      PropagateTags: SERVICE
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/stateless-service
+      TaskDefinition:
+        Ref: withvpcsubnetstatelessdefinitionCF58C10F
+    DependsOn:
+      - withvpcsubnetadminsharedlistenerA099F537
+      - withvpcsubnetingresssharedlistener4D3399EF
+      - withvpcsubnetnodesharedlistener362A7851
+      - withvpcsubnetrestatetaskroleDefaultPolicy3F77BBD4
+      - withvpcsubnetrestatetaskrole0DB71BBB
+  withvpcsubnetstatefuldefinitionC0B189B6:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 16384
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o
+              container-metadata && \\
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
+                RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
+              exec restate-server
+          Environment:
+            - Name: RESTATE_LOG_FORMAT
+              Value: json
+            - Name: RESTATE_CLUSTER_NAME
+              Value: RestateBYOC/with-vpc-subnet
+            - Name: RESTATE_ROLES
+              Value: '["log-server", "worker"]'
+            - Name: RESTATE_AUTO_PROVISION
+              Value: 'false'
+            - Name: RESTATE_SHUTDOWN_TIMEOUT
+              Value: 100s
+            - Name: RESTATE_METADATA_CLIENT__TYPE
+              Value: object-store
+            - Name: RESTATE_METADATA_CLIENT__PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: withvpcsubnetbucket1E081BFF
+                    - /metadata
+            - Name: RESTATE_WORKER__SNAPSHOTS__DESTINATION
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: withvpcsubnetbucket1E081BFF
+                    - /snapshots
+            - Name: RESTATE_WORKER__SNAPSHOTS__SNAPSHOT_INTERVAL_NUM_RECORDS
+              Value: '1000000'
+            - Name: RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS
+              Value: 'true'
+            - Name: RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_WAL_FSYNC
+              Value: 'true'
+            - Name: RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET
+              Value: (128 * 2) / (2 * 1)
+            - Name: RESTATE_LOG_SERVER__ROCKSDB_DISABLE_WAL_FSYNC
+              Value: 'true'
+            - Name: RESTATE_LOG_SERVER__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS
+              Value: 'true'
+            - Name: >-
+                RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE
+              Value: 'true'
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:5122/health'
+            Interval: 30
+            Retries: 3
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: withvpcsubnetstatefuldefinitionrestateLogGroupDA9395D3
+              awslogs-stream-prefix: restate
+              awslogs-region: region
+          Memory: 32768
+          MountPoints:
+            - ContainerPath: /restate-data
+              ReadOnly: false
+              SourceVolume: restate-data
+          Name: restate
+          PortMappings:
+            - ContainerPort: 5122
+              Name: node
+              Protocol: tcp
+          RestartPolicy:
+            Enabled: true
+            RestartAttemptPeriod: 60
+          StopTimeout: 120
+      Cpu: '16384'
+      EphemeralStorage:
+        SizeInGiB: 200
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - withvpcsubnetrestateexecutionrole09337314
+          - Arn
+      Family: RestateBYOCwithvpcsubnetstatefuldefinition3D0F1E76
+      Memory: '32768'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/stateful-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - withvpcsubnetrestatetaskrole0DB71BBB
+          - Arn
+      Volumes:
+        - ConfiguredAtLaunch: false
+          Name: restate-data
+  withvpcsubnetstatefuldefinitionrestateLogGroupDA9395D3:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/stateful-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withvpcsubnetingresssharedtargetE6C22455:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /restate/health
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 8080
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/ingress-shared-target
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  withvpcsubnetadminsharedtarget8C328C16:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /health
+      HealthCheckPort: '9070'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 9070
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/admin-shared-target
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  withvpcsubnetnodesharedtarget7EB5F977:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /health
+      HealthCheckPort: '5122'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 5122
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/node-shared-target
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  withvpcsubnetcontrollertaskrole89CF9CC3:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  withvpcsubnetcontrollertaskroleDefaultPolicy33CDD013:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: 'ecs:ListTasks'
+            Condition:
+              ArnEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - withvpcsubnetcluster14F481BD
+                    - Arn
+            Effect: Allow
+            Resource: '*'
+            Sid: ECSListActions
+          - Action:
+              - 'ecs:TagResource'
+              - 'ecs:DescribeTasks'
+              - 'ecs:StopTask'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvpcsubnetcluster14F481BD
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvpcsubnetcluster14F481BD
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvpcsubnetcluster14F481BD
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvpcsubnetcluster14F481BD
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvpcsubnetcluster14F481BD
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - withvpcsubnetcluster14F481BD
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TaskActions
+          - Action: 'ecs:RunTask'
+            Condition:
+              ArnEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - withvpcsubnetcluster14F481BD
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - ':'
+                      - - 'Fn::Select':
+                            - 0
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvpcsubnetstatefuldefinitionC0B189B6
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvpcsubnetstatefuldefinitionC0B189B6
+                        - 'Fn::Select':
+                            - 2
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvpcsubnetstatefuldefinitionC0B189B6
+                        - 'Fn::Select':
+                            - 3
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvpcsubnetstatefuldefinitionC0B189B6
+                        - 'Fn::Select':
+                            - 4
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvpcsubnetstatefuldefinitionC0B189B6
+                        - 'Fn::Select':
+                            - 5
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: withvpcsubnetstatefuldefinitionC0B189B6
+                  - ':*'
+            Sid: RunTask
+          - Action: 'iam:PassRole'
+            Condition:
+              StringEquals:
+                'iam:PassedToService': ecs-tasks.amazonaws.com
+            Effect: Allow
+            Resource:
+              - 'Fn::GetAtt':
+                  - withvpcsubnetrestatetaskrole0DB71BBB
+                  - Arn
+              - 'Fn::GetAtt':
+                  - withvpcsubnetrestateexecutionrole09337314
+                  - Arn
+            Sid: RunTaskPassRole
+          - Action:
+              - 'ec2:DescribeVolumes'
+              - 'ec2:DescribeSnapshots'
+            Effect: Allow
+            Resource: '*'
+            Sid: EC2ListActions
+          - Action: 'ec2:CreateSnapshot'
+            Condition:
+              ArnEquals:
+                'aws:RequestTag/restate:ecsClusterArn':
+                  'Fn::GetAtt':
+                    - withvpcsubnetcluster14F481BD
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - '::snapshot/*'
+            Sid: CreateSnapshot
+          - Action: 'ec2:CreateSnapshot'
+            Condition:
+              ArnEquals:
+                'aws:ResourceTag/restate:ecsClusterArn':
+                  'Fn::GetAtt':
+                    - withvpcsubnetcluster14F481BD
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':volume/*'
+            Sid: SnapshotVolume
+          - Action: 'ec2:CreateTags'
+            Condition:
+              StringEquals:
+                'ec2:CreateAction': CreateSnapshot
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - '::snapshot/*'
+            Sid: TagSnapshots
+          - Action:
+              - 'ec2:DeleteVolume'
+              - 'ec2:DeleteSnapshot'
+            Condition:
+              ArnEquals:
+                'aws:ResourceTag/restate:ecsClusterArn':
+                  'Fn::GetAtt':
+                    - withvpcsubnetcluster14F481BD
+                    - Arn
+            Effect: Allow
+            Resource:
+              - 'Fn::Join':
+                  - ''
+                  - - 'arn:'
+                    - Ref: 'AWS::Partition'
+                    - ':ec2:'
+                    - Ref: 'AWS::Region'
+                    - ':'
+                    - Ref: 'AWS::AccountId'
+                    - ':volume/*'
+              - 'Fn::Join':
+                  - ''
+                  - - 'arn:'
+                    - Ref: 'AWS::Partition'
+                    - ':ec2:'
+                    - Ref: 'AWS::Region'
+                    - '::snapshot/*'
+            Sid: DeleteVolumeAndSnapshot
+          - Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::GetAtt':
+                      - withvpcsubnetbucket1E081BFF
+                      - Arn
+                  - /*
+            Sid: ReadWriteBucket
+          - Action: 's3:ListBucket'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withvpcsubnetbucket1E081BFF
+                - Arn
+            Sid: ListBucket
+        Version: '2012-10-17'
+      PolicyName: withvpcsubnetcontrollertaskroleDefaultPolicy33CDD013
+      Roles:
+        - Ref: withvpcsubnetcontrollertaskrole89CF9CC3
+  withvpcsubnetcontrollerexecutionrole4A321FEC:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  withvpcsubnetcontrollerexecutionroleDefaultPolicy84E61BC0:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withvpcsubnetcontrollerdefinitioncontrollerLogGroup5782775F
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: withvpcsubnetcontrollerexecutionroleDefaultPolicy84E61BC0
+      Roles:
+        - Ref: withvpcsubnetcontrollerexecutionrole4A321FEC
+  withvpcsubnetcontrollerdefinition30C81EC1:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 1024
+          Environment:
+            - Name: RUST_LOG
+              Value: 'info,restate_fargate_controller=debug'
+            - Name: CONTROLLER_LOG_FORMAT
+              Value: json
+            - Name: CONTROLLER_METADATA_PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: withvpcsubnetbucket1E081BFF
+                    - /metadata
+            - Name: CONTROLLER_RECONCILE_INTERVAL
+              Value: 10s
+            - Name: CONTROLLER_CLUSTER__CLUSTER_ARN
+              Value:
+                'Fn::GetAtt':
+                  - withvpcsubnetcluster14F481BD
+                  - Arn
+            - Name: CONTROLLER_LICENSE_KEY
+              Value: foo
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __REGION
+              Value:
+                Ref: 'AWS::Region'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __CLUSTER_ARN
+              Value:
+                'Fn::GetAtt':
+                  - withvpcsubnetcluster14F481BD
+                  - Arn
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __TASK_PREFIX
+              Value:
+                'Fn::Join':
+                  - /
+                  - - 'Fn::Join':
+                        - ':'
+                        - - 'Fn::Select':
+                              - 0
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - withvpcsubnetcluster14F481BD
+                                              - Arn
+                          - 'Fn::Select':
+                              - 1
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - withvpcsubnetcluster14F481BD
+                                              - Arn
+                          - 'Fn::Select':
+                              - 2
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - withvpcsubnetcluster14F481BD
+                                              - Arn
+                          - 'Fn::Select':
+                              - 3
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - withvpcsubnetcluster14F481BD
+                                              - Arn
+                          - 'Fn::Select':
+                              - 4
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - withvpcsubnetcluster14F481BD
+                                              - Arn
+                          - task
+                    - 'Fn::Select':
+                        - 1
+                        - 'Fn::Split':
+                            - /
+                            - 'Fn::GetAtt':
+                                - withvpcsubnetcluster14F481BD
+                                - Arn
+                    - ''
+            - Name: CONTROLLER_EBS_SNAPSHOT_RETENTION_PERIOD
+              Value: 24h
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__ENABLE_EXECUTE_COMMAND
+              Value: 'false'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__SECURITY_GROUPS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::GetAtt':
+                        - sg29196201
+                        - GroupId
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__SUBNETS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::ImportValue': >-
+                        VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__TASK_DEFINITION_ARN
+              Value:
+                Ref: withvpcsubnetstatefuldefinitionC0B189B6
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__COUNT
+              Value: '1'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__ENABLE_EXECUTE_COMMAND
+              Value: 'false'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__SECURITY_GROUPS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::GetAtt':
+                        - sg29196201
+                        - GroupId
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__SUBNETS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::ImportValue': >-
+                        VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__TASK_DEFINITION_ARN
+              Value:
+                Ref: withvpcsubnetstatefuldefinitionC0B189B6
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__COUNT
+              Value: '1'
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:8080/health'
+            Interval: 30
+            Retries: 10
+            StartPeriod: 300
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: withvpcsubnetcontrollerdefinitioncontrollerLogGroup5782775F
+              awslogs-stream-prefix: controller
+              awslogs-region: region
+          Memory: 2048
+          Name: controller
+          StopTimeout: 120
+      Cpu: '1024'
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - withvpcsubnetcontrollerexecutionrole4A321FEC
+          - Arn
+      Family: RestateBYOCwithvpcsubnetcontrollerdefinition90906246
+      Memory: '2048'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/controller-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - withvpcsubnetcontrollertaskrole89CF9CC3
+          - Arn
+  withvpcsubnetcontrollerdefinitioncontrollerLogGroup5782775F:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/controller-definition
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withvpcsubnetcontrollerserviceServiceEDFDC99A:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      Cluster:
+        Ref: withvpcsubnetcluster14F481BD
+      DeploymentConfiguration:
+        Alarms:
+          AlarmNames: []
+          Enable: false
+          Rollback: false
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      DesiredCount: 1
+      EnableECSManagedTags: false
+      EnableExecuteCommand: false
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - 'Fn::GetAtt':
+                - sg29196201
+                - GroupId
+          Subnets:
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/controller-service
+      TaskDefinition:
+        Ref: withvpcsubnetcontrollerdefinition30C81EC1
+    DependsOn:
+      - withvpcsubnetcontrollertaskroleDefaultPolicy33CDD013
+      - withvpcsubnetcontrollertaskrole89CF9CC3
+  withvpcsubnetrestatectlloggroupEB7B5F65:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withvpcsubnetrestatectllambdaexecutionrole94FEEEE2:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  withvpcsubnetrestatectllambdaexecutionroleDefaultPolicy793B68AB:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withvpcsubnetrestatectlloggroupEB7B5F65
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
+          - Action:
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:DescribeNetworkInterfaces'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DeleteNetworkInterface'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCWildcardPermissions
+          - Action:
+              - 'ec2:AssignPrivateIpAddresses'
+              - 'ec2:UnassignPrivateIpAddresses'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':network-interface/*'
+            Sid: AWSLambdaVPCNetworkInterfacePermissions
+        Version: '2012-10-17'
+      PolicyName: withvpcsubnetrestatectllambdaexecutionroleDefaultPolicy793B68AB
+      Roles:
+        - Ref: withvpcsubnetrestatectllambdaexecutionrole94FEEEE2
+  withvpcsubnetrestatectllambda63DC72AF:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Environment:
+        Variables:
+          RESTATECTL_ADDRESS:
+            'Fn::Join':
+              - ''
+              - - 'http://'
+                - 'Fn::GetAtt':
+                    - withvpcsubnetsharednlb5421469F
+                    - DNSName
+                - ':5122'
+      Handler: restatectl
+      LoggingConfig:
+        LogGroup:
+          Ref: withvpcsubnetrestatectlloggroupEB7B5F65
+      Role:
+        'Fn::GetAtt':
+          - withvpcsubnetrestatectllambdaexecutionrole94FEEEE2
+          - Arn
+      Runtime: provided.al2023
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/restatectl-lambda
+      Timeout: 10
+      VpcConfig:
+        SecurityGroupIds:
+          - 'Fn::GetAtt':
+              - sg29196201
+              - GroupId
+        SubnetIds:
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+    DependsOn:
+      - withvpcsubnetrestatectllambdaexecutionroleDefaultPolicy793B68AB
+      - withvpcsubnetrestatectllambdaexecutionrole94FEEEE2
+  withvpcsubnetretirementwatcherloggroupD98D033D:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withvpcsubnetretirementwatcherlambdaexecutionroleD1AD90F5:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  withvpcsubnetretirementwatcherlambdaexecutionroleDefaultPolicy80C15355:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withvpcsubnetretirementwatcherloggroupD98D033D
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
+          - Action: 'ecs:TagResource'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvpcsubnetcluster14F481BD
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvpcsubnetcluster14F481BD
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvpcsubnetcluster14F481BD
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvpcsubnetcluster14F481BD
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - withvpcsubnetcluster14F481BD
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - withvpcsubnetcluster14F481BD
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TagTasks
+          - Action:
+              - 'sqs:ReceiveMessage'
+              - 'sqs:ChangeMessageVisibility'
+              - 'sqs:GetQueueUrl'
+              - 'sqs:DeleteMessage'
+              - 'sqs:GetQueueAttributes'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withvpcsubnetretirementwatcherqueueA19D1494
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: withvpcsubnetretirementwatcherlambdaexecutionroleDefaultPolicy80C15355
+      Roles:
+        - Ref: withvpcsubnetretirementwatcherlambdaexecutionroleD1AD90F5
+  withvpcsubnetretirementwatcherlambdaE557A2A6:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: withvpcsubnetretirementwatcherloggroupD98D033D
+      Role:
+        'Fn::GetAtt':
+          - withvpcsubnetretirementwatcherlambdaexecutionroleD1AD90F5
+          - Arn
+      Runtime: nodejs22.x
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/retirement-watcher-lambda
+      Timeout: 60
+    DependsOn:
+      - withvpcsubnetretirementwatcherlambdaexecutionroleDefaultPolicy80C15355
+      - withvpcsubnetretirementwatcherlambdaexecutionroleD1AD90F5
+  withvpcsubnetretirementwatcherlambdaSqsEventSourceRestateBYOCwithvpcsubnetretirementwatcherqueue3508D31F1E74C4B3:
+    Type: 'AWS::Lambda::EventSourceMapping'
+    Properties:
+      BatchSize: 1
+      EventSourceArn:
+        'Fn::GetAtt':
+          - withvpcsubnetretirementwatcherqueueA19D1494
+          - Arn
+      FunctionName:
+        Ref: withvpcsubnetretirementwatcherlambdaE557A2A6
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/retirement-watcher-lambda
+  withvpcsubnetretirementwatcherqueueA19D1494:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/retirement-watcher-queue
+      VisibilityTimeout: 60
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  withvpcsubnetretirementwatcherqueuePolicy0DB82B43:
+    Type: 'AWS::SQS::QueuePolicy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'sqs:SendMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
+            Condition:
+              ArnEquals:
+                'aws:SourceArn':
+                  'Fn::GetAtt':
+                    - withvpcsubnetretirementwatcherrule11EB4431
+                    - Arn
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Resource:
+              'Fn::GetAtt':
+                - withvpcsubnetretirementwatcherqueueA19D1494
+                - Arn
+        Version: '2012-10-17'
+      Queues:
+        - Ref: withvpcsubnetretirementwatcherqueueA19D1494
+  withvpcsubnetretirementwatcherrule11EB4431:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        detail:
+          eventTypeCode:
+            - equals-ignore-case: AWS_ECS_TASK_PATCHING_RETIREMENT
+          service:
+            - equals-ignore-case: ecs
+        resources:
+          - prefix:
+              'Fn::Join':
+                - /
+                - - 'Fn::Join':
+                      - ':'
+                      - - 'Fn::Select':
+                            - 0
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - withvpcsubnetcluster14F481BD
+                                            - Arn
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - withvpcsubnetcluster14F481BD
+                                            - Arn
+                        - 'Fn::Select':
+                            - 2
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - withvpcsubnetcluster14F481BD
+                                            - Arn
+                        - 'Fn::Select':
+                            - 3
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - withvpcsubnetcluster14F481BD
+                                            - Arn
+                        - 'Fn::Select':
+                            - 4
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - withvpcsubnetcluster14F481BD
+                                            - Arn
+                        - task
+                  - 'Fn::Select':
+                      - 1
+                      - 'Fn::Split':
+                          - /
+                          - 'Fn::GetAtt':
+                              - withvpcsubnetcluster14F481BD
+                              - Arn
+                  - ''
+        detail-type:
+          - equals-ignore-case: AWS Health Event
+      State: ENABLED
+      Targets:
+        - Arn:
+            'Fn::GetAtt':
+              - withvpcsubnetretirementwatcherqueueA19D1494
+              - Arn
+          Id: Target0
+  withvpcsubnetcloudwatchcustomwidgetloggroupBB4CBE80:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withvpcsubnetcloudwatchcustomwidgetexecutionroleF8EB3E41:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  withvpcsubnetcloudwatchcustomwidgetexecutionroleDefaultPolicy9A153CB8:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: withvpcsubnetcloudwatchcustomwidgetloggroupBB4CBE80
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
+          - Action:
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:DescribeNetworkInterfaces'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DeleteNetworkInterface'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCWildcardPermissions
+          - Action:
+              - 'ec2:AssignPrivateIpAddresses'
+              - 'ec2:UnassignPrivateIpAddresses'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':network-interface/*'
+            Sid: AWSLambdaVPCNetworkInterfacePermissions
+          - Action: 'lambda:InvokeFunction'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - withvpcsubnetrestatectllambda63DC72AF
+                - Arn
+            Sid: InvokeRestatectl
+          - Action: 'ecs:DescribeTaskDefinition'
+            Effect: Allow
+            Resource: '*'
+            Sid: ECSReadActions
+          - Action: 'ecs:ListTasks'
+            Condition:
+              StringEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - withvpcsubnetcluster14F481BD
+                    - Arn
+            Effect: Allow
+            Resource: '*'
+            Sid: ECSListTasks
+          - Action: 'ecs:DescribeTasks'
+            Condition:
+              StringEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - withvpcsubnetcluster14F481BD
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ecs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':task/'
+                  - Ref: withvpcsubnetcluster14F481BD
+                  - /*
+            Sid: ECSDescribeTasks
+          - Action: 'ecs:DescribeServices'
+            Condition:
+              StringEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - withvpcsubnetcluster14F481BD
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ecs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':service/'
+                  - Ref: withvpcsubnetcluster14F481BD
+                  - /*
+            Sid: ECSDescribeServices
+          - Action: 'cloudwatch:GetMetricData'
+            Effect: Allow
+            Resource: '*'
+            Sid: CloudWatchReadActions
+        Version: '2012-10-17'
+      PolicyName: withvpcsubnetcloudwatchcustomwidgetexecutionroleDefaultPolicy9A153CB8
+      Roles:
+        - Ref: withvpcsubnetcloudwatchcustomwidgetexecutionroleF8EB3E41
+  withvpcsubnetcloudwatchcustomwidgetlambdaA362F8D7:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Environment:
+        Variables:
+          ENABLE_EBS_VOLUMES: 'false'
+      Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: withvpcsubnetcloudwatchcustomwidgetloggroupBB4CBE80
+      MemorySize: 1024
+      Role:
+        'Fn::GetAtt':
+          - withvpcsubnetcloudwatchcustomwidgetexecutionroleF8EB3E41
+          - Arn
+      Runtime: nodejs22.x
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/cloudwatch-custom-widget-lambda
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+          - 'Fn::GetAtt':
+              - sg29196201
+              - GroupId
+        SubnetIds:
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+    DependsOn:
+      - withvpcsubnetcloudwatchcustomwidgetexecutionroleDefaultPolicy9A153CB8
+      - withvpcsubnetcloudwatchcustomwidgetexecutionroleF8EB3E41
+  withvpcsubnetcloudwatchcustomwidgetlambdacloudwatchcustomwidgetlambdaallowdatasourceF745BA24:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - withvpcsubnetcloudwatchcustomwidgetlambdaA362F8D7
+          - Arn
+      Principal: lambda.datasource.cloudwatch.amazonaws.com
+  withvpcsubnetmetrics67F0AF3D:
+    Type: 'AWS::CloudWatch::Dashboard'
+    Properties:
+      DashboardBody:
+        'Fn::Join':
+          - ''
+          - - >-
+              {"widgets":[{"type":"metric","width":12,"height":6,"x":0,"y":0,"properties":{"view":"timeSeries","title":"Stateless
+              CPU","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"CPU","expression":"SELECT AVG(CpuUtilized)
+              FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatelessdefinitionFB34AE10' GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":16384,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"vCPUs","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":0,"properties":{"view":"timeSeries","title":"Stateless
+              Memory","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Memory","expression":"SELECT
+              AVG(MemoryUtilized) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatelessdefinitionFB34AE10' GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":32768,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"MiB","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":0,"y":6,"properties":{"view":"timeSeries","title":"Stateless
+              Network Tx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Tx","expression":"SELECT
+              AVG(NetworkTxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatelessdefinitionFB34AE10' GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":6,"properties":{"view":"timeSeries","title":"Stateless
+              Network Rx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Rx","expression":"SELECT
+              AVG(NetworkRxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatelessdefinitionFB34AE10' GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":12,"properties":{"view":"table","title":"Stateless
+              Logs","region":"region","query":"SOURCE '
+            - Ref: withvpcsubnetstatelessdefinitionrestateLogGroup3C28A574
+            - >-
+              ' | fields @logStream, @timestamp, level, fields.message,
+              target\\n          | sort @timestamp desc\\n          | limit
+              500"}},{"type":"metric","width":12,"height":6,"x":0,"y":18,"properties":{"view":"timeSeries","title":"Stateful
+              CPU","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"CPU","expression":"SELECT AVG(CpuUtilized)
+              FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatefuldefinition3D0F1E76' GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":16384,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"vCPUs","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":18,"properties":{"view":"timeSeries","title":"Stateful
+              Memory","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Memory","expression":"SELECT
+              AVG(MemoryUtilized) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatefuldefinition3D0F1E76' GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":32768,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"MiB","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":0,"y":24,"properties":{"view":"timeSeries","title":"Stateful
+              Network Tx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Tx","expression":"SELECT
+              AVG(NetworkTxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatefuldefinition3D0F1E76' GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":24,"properties":{"view":"timeSeries","title":"Stateful
+              Network Rx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Rx","expression":"SELECT
+              AVG(NetworkRxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatefuldefinition3D0F1E76' GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":30,"properties":{"view":"table","title":"Stateful
+              Logs","region":"region","query":"SOURCE '
+            - Ref: withvpcsubnetstatefuldefinitionrestateLogGroupDA9395D3
+            - >-
+              ' | fields @logStream, @timestamp, level, fields.message,
+              target\\n          | sort @timestamp desc\\n          | limit
+              500"}},{"type":"metric","width":8,"height":6,"x":0,"y":36,"properties":{"view":"timeSeries","title":"Ephemeral
+              Volume Usage (Total size 200GiB)","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Usage","expression":"SELECT
+              MAX(EphemeralStorageUtilized) FROM
+              SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily) WHERE TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatefuldefinition3D0F1E76'"}]],"annotations":{"horizontal":[{"value":200,"label":"Volume
+              size","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"GiB","showUnits":false}},"liveData":false}},{"type":"metric","width":8,"height":6,"x":8,"y":36,"properties":{"view":"timeSeries","title":"Volume
+              Write Throughput (Limited to 150 MiB/sec)","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Write","expression":"RATE(count) /
+              1048576"}],[{"expression":"SELECT MAX(StorageWriteBytes) FROM
+              SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatefuldefinition3D0F1E76' GROUP BY
+              TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"metric","width":8,"height":6,"x":16,"y":36,"properties":{"view":"timeSeries","title":"Volume
+              Read Throughput (Limited to 150 MiB/sec)","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Read","expression":"RATE(count) /
+              1048576"}],[{"expression":"SELECT MAX(StorageReadBytes) FROM
+              SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCwithvpcsubnetstatefuldefinition3D0F1E76' GROUP BY
+              TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":42,"properties":{"view":"table","title":"Controller
+              Logs","region":"region","query":"SOURCE '
+            - Ref: withvpcsubnetcontrollerdefinitioncontrollerLogGroup5782775F
+            - >-
+              ' | fields @logStream, @timestamp, level, fields.message,
+              target\\n          | sort @timestamp desc\\n          | limit
+              500"}}]}
+      DashboardName: RestateBYOC_with-vpc-subnet_metrics
+  withvpcsubnetcontrolpanel4EDF09C9:
+    Type: 'AWS::CloudWatch::Dashboard'
+    Properties:
+      DashboardBody:
+        'Fn::Join':
+          - ''
+          - - >-
+              {"widgets":[{"type":"custom","width":24,"height":26,"x":0,"y":0,"properties":{"endpoint":"
+            - 'Fn::GetAtt':
+                - withvpcsubnetcloudwatchcustomwidgetlambdaA362F8D7
+                - Arn
+            - '","params":{"command":"controlPanel","input":{"region":"'
+            - Ref: 'AWS::Region'
+            - >-
+              ","summary":{"clusterName":"RestateBYOC/with-vpc-subnet","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+            - Ref: withvpcsubnetmetrics67F0AF3D
+            - '"},"resources":{"ecsClusterArn":"'
+            - 'Fn::GetAtt':
+                - withvpcsubnetcluster14F481BD
+                - Arn
+            - '","statelessServiceArn":"'
+            - Ref: withvpcsubnetstatelessserviceService547C3679
+            - '","controllerServiceArn":"'
+            - Ref: withvpcsubnetcontrollerserviceServiceEDFDC99A
+            - '","restatectlLambdaArn":"'
+            - 'Fn::GetAtt':
+                - withvpcsubnetrestatectllambda63DC72AF
+                - Arn
+            - >-
+              "},"connectivityAndSecurity":{"connectivity":{"loadBalancerArns":{"ingress":["
+            - Ref: withvpcsubnetsharednlb5421469F
+            - '"],"admin":["'
+            - Ref: withvpcsubnetsharednlb5421469F
+            - '"]},"addresses":{"ingress":"http://'
+            - 'Fn::GetAtt':
+                - withvpcsubnetsharednlb5421469F
+                - DNSName
+            - ':8080","admin":"http://'
+            - 'Fn::GetAtt':
+                - withvpcsubnetsharednlb5421469F
+                - DNSName
+            - ':9070","webUI":"http://'
+            - 'Fn::GetAtt':
+                - withvpcsubnetsharednlb5421469F
+                - DNSName
+            - ':9070/ui"}},"networking":{"vpc":"'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+            - '","availabilityZones":["dummy1a","dummy1b"],"subnets":["'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+            - '","'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+            - '"]},"security":{"securityGroups":["'
+            - 'Fn::GetAtt':
+                - sg29196201
+                - GroupId
+            - '"]}},"storage":{"s3":{"bucket":"'
+            - Ref: withvpcsubnetbucket1E081BFF
+            - >-
+              "}}}},"title":"","updateOn":{"refresh":true,"resize":true,"timeRange":true}}}]}
+      DashboardName: RestateBYOC_with-vpc-subnet_control-panel
+Outputs:
+  withvpcsubnetSecurityGroups328ED5C7:
+    Description: The security group IDs of the cluster
+    Value:
+      'Fn::GetAtt':
+        - sg29196201
+        - GroupId
+  withvpcsubnetIngressNetworkListener9E7EFC33:
+    Description: The ARN of the network listener for the ingress port
+    Value:
+      Ref: withvpcsubnetingresssharedlistener4D3399EF
+  withvpcsubnetIngressNetworkTargetGroup9DF1D4DD:
+    Description: The ARN of the network target group for the ingress port
+    Value:
+      Ref: withvpcsubnetingresssharedtargetE6C22455
+  withvpcsubnetAdminNetworkListenerEE07DF44:
+    Description: The ARN of the network listener for the admin port
+    Value:
+      Ref: withvpcsubnetadminsharedlistenerA099F537
+  withvpcsubnetAdminNetworkTargetGroup46655F8D:
+    Description: The ARN of the network target group for the admin port
+    Value:
+      Ref: withvpcsubnetadminsharedtarget8C328C16
+  withvpcsubnetNodeNetworkListenerAD09642F:
+    Description: The ARN of the network listener for the node port
+    Value:
+      Ref: withvpcsubnetnodesharedlistener362A7851
+  withvpcsubnetNodeNetworkTargetGroupD02C76F4:
+    Description: The ARN of the network target group for the node port
+    Value:
+      Ref: withvpcsubnetnodesharedtarget7EB5F977
+"
+`;

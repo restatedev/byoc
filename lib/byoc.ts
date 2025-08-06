@@ -556,6 +556,7 @@ export class RestateEcsFargateCluster
     this.retirementWatcher = createRetirementWatcher(
       this,
       this.vpc,
+      this.vpcSubnets,
       ctPrefix,
       artifacts["retirement-watcher.zip"],
       props.retirementWatcher,
@@ -1452,6 +1453,7 @@ function createController(
 function createRetirementWatcher(
   scope: Construct,
   vpc: cdk.aws_ec2.IVpc,
+  vpcSubnets: cdk.aws_ec2.SelectedSubnets,
   clusterTaskPrefix: string,
   code: cdk.aws_lambda.Code,
   retirementWatcherProps?: TaskRetirementWatcherProps,
@@ -1537,6 +1539,7 @@ function createRetirementWatcher(
     logGroup,
     timeout: cdk.Duration.seconds(60),
     vpc: retirementWatcherProps?.securityGroups?.length ? vpc : undefined,
+    vpcSubnets: retirementWatcherProps?.securityGroups?.length ? vpcSubnets : undefined,
     securityGroups: retirementWatcherProps?.securityGroups,
   });
   cdk.Tags.of(fn).add("Name", fn.node.path);

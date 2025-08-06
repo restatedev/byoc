@@ -230,6 +230,39 @@ describe("BYOC", () => {
       yaml: true,
     });
   });
+
+  test("With specific SG and subnets", () => {
+    const { stack, vpc } = createStack();
+
+    const securityGroup = new cdk.aws_ec2.SecurityGroup(stack, "sg", {
+      vpc,
+    });
+
+    new RestateEcsFargateCluster(stack, "with-vpc-subnet", {
+      vpc,
+      licenseKey,
+      subnets: {
+        subnetType: cdk.aws_ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        availabilityZones: vpc.availabilityZones.slice(0, 2),
+      },
+      securityGroups: [securityGroup],
+      statelessNode: {
+        defaultReplication: { node: 2 },
+      },
+      monitoring: {
+        dashboard: {
+          customWidgets: {
+            securityGroups: [securityGroup],
+          },
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
 });
 
 function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {

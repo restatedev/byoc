@@ -54,6 +54,7 @@ export function createMonitoring(
   const customWidgetFn = createCustomWidgetLambda(
     scope,
     vpc,
+    subnets,
     ecsCluster,
     customWidgetCode,
     restatectlLambda,
@@ -509,13 +510,15 @@ export function createMetricsDashboard(
 function createCustomWidgetLambda(
   scope: Construct,
   vpc: cdk.aws_ec2.IVpc,
+  subnets: cdk.aws_ec2.SelectedSubnets,
   ecsCluster: cdk.aws_ecs.ICluster,
   code: cdk.aws_lambda.Code,
   restatectlLambda?: cdk.aws_lambda.IFunction,
   monitoringProps?: MonitoringProps,
   clusterProps?: ClusterProps,
 ): cdk.aws_lambda.Function | undefined {
-  if (!restatectlLambda || monitoringProps?.dashboard?.customWidgets?.disabled) return;
+  if (!restatectlLambda || monitoringProps?.dashboard?.customWidgets?.disabled)
+    return;
 
   const logGroup = new cdk.aws_logs.LogGroup(
     scope,
@@ -675,9 +678,15 @@ function createCustomWidgetLambda(
       vpc: monitoringProps?.dashboard?.customWidgets?.securityGroups?.length
         ? vpc
         : undefined,
+      vpcSubnets: monitoringProps?.dashboard?.customWidgets?.securityGroups
+        ?.length
+        ? subnets
+        : undefined,
       securityGroups: monitoringProps?.dashboard?.customWidgets?.securityGroups,
       environment: {
-        ENABLE_EBS_VOLUMES: clusterProps?.statefulNode?.ebsVolume ? 'true' : 'false',
+        ENABLE_EBS_VOLUMES: clusterProps?.statefulNode?.ebsVolume
+          ? "true"
+          : "false",
       },
     },
   );
