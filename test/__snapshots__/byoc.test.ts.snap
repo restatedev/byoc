@@ -1720,17 +1720,8 @@ exports[`BYOC Default parameters 1`] = `
                     - Arn
             Effect: Allow
             Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - ':ecs:'
-                  - Ref: 'AWS::Region'
-                  - ':'
-                  - Ref: 'AWS::AccountId'
-                  - ':service/'
-                  - Ref: defaultcluster07071299
-                  - /*
+              - Ref: defaultcontrollerserviceService18139D09
+              - Ref: defaultstatelessserviceService8A7FABFB
             Sid: ECSDescribeServices
           - Action: 'cloudwatch:GetMetricData'
             Effect: Allow
@@ -3720,17 +3711,8 @@ exports[`BYOC With cluster name 1`] = `
                     - Arn
             Effect: Allow
             Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - ':ecs:'
-                  - Ref: 'AWS::Region'
-                  - ':'
-                  - Ref: 'AWS::AccountId'
-                  - ':service/'
-                  - Ref: withclusternamecluster8A2E876D
-                  - /*
+              - Ref: withclusternamecontrollerserviceService7DEFCD49
+              - Ref: withclusternamestatelessserviceServiceA9323A0F
             Sid: ECSDescribeServices
           - Action: 'cloudwatch:GetMetricData'
             Effect: Allow
@@ -5661,17 +5643,8 @@ exports[`BYOC With existing bucket 1`] = `
                     - Arn
             Effect: Allow
             Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - ':ecs:'
-                  - Ref: 'AWS::Region'
-                  - ':'
-                  - Ref: 'AWS::AccountId'
-                  - ':service/'
-                  - Ref: withclusternamecluster8A2E876D
-                  - /*
+              - Ref: withclusternamecontrollerserviceService7DEFCD49
+              - Ref: withclusternamestatelessserviceServiceA9323A0F
             Sid: ECSDescribeServices
           - Action: 'cloudwatch:GetMetricData'
             Effect: Allow
@@ -7756,17 +7729,8 @@ exports[`BYOC With otel collector 1`] = `
                     - Arn
             Effect: Allow
             Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - ':ecs:'
-                  - Ref: 'AWS::Region'
-                  - ':'
-                  - Ref: 'AWS::AccountId'
-                  - ':service/'
-                  - Ref: withotelcollectorcluster09679981
-                  - /*
+              - Ref: withotelcollectorcontrollerserviceService83299A78
+              - Ref: withotelcollectorstatelessserviceService8ABCCEA9
             Sid: ECSDescribeServices
           - Action: 'cloudwatch:GetMetricData'
             Effect: Allow
@@ -9679,17 +9643,8 @@ exports[`BYOC With specific SG and subnets 1`] = `
                     - Arn
             Effect: Allow
             Resource:
-              'Fn::Join':
-                - ''
-                - - 'arn:'
-                  - Ref: 'AWS::Partition'
-                  - ':ecs:'
-                  - Ref: 'AWS::Region'
-                  - ':'
-                  - Ref: 'AWS::AccountId'
-                  - ':service/'
-                  - Ref: withvpcsubnetcluster14F481BD
-                  - /*
+              - Ref: withvpcsubnetcontrollerserviceServiceEDFDC99A
+              - Ref: withvpcsubnetstatelessserviceService547C3679
             Sid: ECSDescribeServices
           - Action: 'cloudwatch:GetMetricData'
             Effect: Allow
