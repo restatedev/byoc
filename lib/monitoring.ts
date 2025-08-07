@@ -56,6 +56,7 @@ export function createMonitoring(
     vpc,
     subnets,
     ecsCluster,
+    [controllerService, statelessService],
     customWidgetCode,
     restatectlLambda,
     props?.monitoring,
@@ -512,6 +513,7 @@ function createCustomWidgetLambda(
   vpc: cdk.aws_ec2.IVpc,
   subnets: cdk.aws_ec2.SelectedSubnets,
   ecsCluster: cdk.aws_ecs.ICluster,
+  ecsServices: cdk.aws_ecs.IService[],
   code: cdk.aws_lambda.Code,
   restatectlLambda?: cdk.aws_lambda.IFunction,
   monitoringProps?: MonitoringProps,
@@ -641,9 +643,7 @@ function createCustomWidgetLambda(
   role.addToPrincipalPolicy(
     new cdk.aws_iam.PolicyStatement({
       actions: ["ecs:DescribeServices"],
-      resources: [
-        `arn:${cdk.Aws.PARTITION}:ecs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:service/${ecsCluster.clusterName}/*`,
-      ],
+      resources: ecsServices.map((service) => service.serviceArn),
       effect: cdk.aws_iam.Effect.ALLOW,
       conditions: {
         StringEquals: {
