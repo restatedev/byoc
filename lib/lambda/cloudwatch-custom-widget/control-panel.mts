@@ -4,6 +4,8 @@ import { RESTATE_LOGO_SVG } from "./static.mjs";
 import { ControlPanelWidgetEvent, WidgetContext } from "./index.mjs";
 import { getControlPanel } from "./readers.mjs";
 
+const ENABLE_EBS_VOLUMES = process.env.ENABLE_EBS_VOLUMES !== "false";
+
 export interface ControlPanelProps {
   summary: {
     clusterName: string;
@@ -724,19 +726,26 @@ export async function controlPanel(
     },
   );
 
-  const snapshots = styles.paginatedTable(
-    context,
-    widgetContext,
-    "snapshots",
-    "EBS Snapshots",
-    snapshotHeaders,
-    snapshotRows,
-    props.storage.snapshots.retention
-      ? `No EBS snapshots; snapshots are retained for ${props.storage.snapshots.retention}`
-      : `No EBS snapshots; snapshot retention is disabled`,
-  );
+  const snapshots = ENABLE_EBS_VOLUMES
+    ? styles.paginatedTable(
+        context,
+        widgetContext,
+        "snapshots",
+        "EBS Snapshots",
+        snapshotHeaders,
+        snapshotRows,
+        props.storage.snapshots.retention
+          ? `No EBS snapshots; snapshots are retained for ${props.storage.snapshots.retention}`
+          : `No EBS snapshots; snapshot retention is disabled`,
+      )
+    : null;
 
-  const storage = styles.vertical("l", s3Bucket, volumes, snapshots);
+  const storage = styles.vertical(
+    "l",
+    s3Bucket,
+    volumes,
+    ...(snapshots ? [snapshots] : []),
+  );
 
   const replicationFactor = (replication?: {
     node?: number;

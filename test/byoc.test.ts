@@ -31,7 +31,7 @@ describe("BYOC", () => {
     });
   });
 
-  test("With cluster name", () => {
+  test("With existing bucket", () => {
     const { stack, vpc } = createStack();
 
     new RestateEcsFargateCluster(stack, "with-cluster-name", {
@@ -220,6 +220,39 @@ describe("BYOC", () => {
               },
             },
             metricExporterIds: ["awsemf"],
+          },
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("With specific SG and subnets", () => {
+    const { stack, vpc } = createStack();
+
+    const securityGroup = new cdk.aws_ec2.SecurityGroup(stack, "sg", {
+      vpc,
+    });
+
+    new RestateEcsFargateCluster(stack, "with-vpc-subnet", {
+      vpc,
+      licenseKey,
+      subnets: {
+        subnetType: cdk.aws_ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        availabilityZones: vpc.availabilityZones.slice(0, 2),
+      },
+      securityGroups: [securityGroup],
+      statelessNode: {
+        defaultReplication: { node: 2 },
+      },
+      monitoring: {
+        dashboard: {
+          customWidgets: {
+            securityGroups: [securityGroup],
           },
         },
       },

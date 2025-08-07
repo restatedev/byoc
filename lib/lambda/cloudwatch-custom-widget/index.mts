@@ -5,6 +5,8 @@ import * as cloudwatch from "@aws-sdk/client-cloudwatch";
 import { controlPanel, controlPanelRefresh } from "./control-panel.mjs";
 import { ControlPanelInput } from "./readers.mjs";
 
+const ENABLE_EBS_VOLUMES = process.env.ENABLE_EBS_VOLUMES !== "false";
+
 const ec2Client = new ec2.EC2Client({});
 const cloudwatchClient = new cloudwatch.CloudWatchClient({});
 
@@ -172,6 +174,15 @@ export const customDataSourceHandler = async (
         Value: "Unexpected GetMetricDataRequest.Arguments[0]",
       },
     };
+
+  if (!ENABLE_EBS_VOLUMES) {
+    return {
+      Error: {
+        Code: "FeatureDisabled",
+        Value: "EBS volumes support is disabled",
+      },
+    };
+  }
 
   const clusterName = event.GetMetricDataRequest.Arguments[1];
   const typ = event.GetMetricDataRequest.Arguments[2];
