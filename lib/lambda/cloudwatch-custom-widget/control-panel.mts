@@ -785,15 +785,7 @@ export async function controlPanel(
     { name: "Leader" },
     { name: "Applied LSN", compare: numericCompare },
     { name: "Durable LSN", compare: numericCompare },
-    {
-      name: "Archived LSN",
-      compare: (a: string, b: string) => {
-        if (a == "-" && b == "-") return 0;
-        if (a == "-" && b != "-") return -1;
-        if (a != "-" && b == "-") return 1;
-        return numericCompare(a, b);
-      },
-    },
+    { name: "Archived LSN", compare: numericCompare },
     { name: "LSN Lag", compare: numericCompare },
     { name: "Last update" },
   ];

@@ -1245,7 +1245,8 @@ export function paginatedTable(
   );
 
   const columnIndices: number[][] = tableHeaders.flatMap((header, col) => {
-    const compare = header.compare ?? ((a, b) => a.localeCompare(b));
+    const compare =
+      header.compare ?? ((a, b) => (a ?? "").localeCompare(b ?? ""));
 
     // an array where the first index is the first row index by this sort order, etc
     const sortedAsc = [...Array(rows.length).keys()].sort(
