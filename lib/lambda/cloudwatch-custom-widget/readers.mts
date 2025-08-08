@@ -1086,14 +1086,9 @@ async function getBifrostConfig(
 
 interface PartitionTable {
   num_partitions?: number;
-  partitions?: [number, Partition][];
   replication?: {
     limit?: string | number;
   };
-}
-
-interface Partition {
-  log_id: number;
 }
 
 async function getPartitionTable(
@@ -1111,7 +1106,7 @@ async function getPartitionTable(
     return partitionTable;
   } catch (e) {
     console.log(`Failed to get partition_table: ${e}`);
-    return { num_partitions: 0, partitions: [], replication: undefined };
+    return { num_partitions: 0, replication: undefined };
   }
 }
 
@@ -1672,34 +1667,21 @@ interface PartitionState {
   partition_id: number;
   plain_node_id: string;
   gen_node_id: string;
-  target_mode: string;
   effective_mode: string;
   updated_at: string;
-  leader_epoch: number;
-  leader: string;
-  applied_log_lsn: number;
-  last_record_applied_at: string;
+  leader?: string;
+  applied_log_lsn?: number;
   replay_status: string;
-  durable_log_lsn: number;
+  durable_log_lsn?: number;
   archived_log_lsn?: number;
-  target_tail_lsn: number;
+  target_tail_lsn?: number;
 }
 
 interface NodeState {
   plain_node_id: string;
-  gen_node_id: string;
   state: string;
-  name: string;
-  address: string;
-  location: string;
-  has_admin_role: boolean;
-  has_worker_role: boolean;
-  has_metadata_server_role: boolean;
-  has_log_server_role: boolean;
-  has_ingress_role: boolean;
-  storage_state: string;
-  worker_state: string;
-  nodes_configuration_version: number;
+  storage_state?: string;
+  worker_state?: string;
 }
 
 async function restatectlSql(
@@ -1732,7 +1714,12 @@ function getPartitions(
     let lsnLag = "";
     const applied = row.applied_log_lsn;
     const target = row.target_tail_lsn;
-    if (!Number.isNaN(applied) && !Number.isNaN(target)) {
+    if (
+      applied !== undefined &&
+      target !== undefined &&
+      !Number.isNaN(applied) &&
+      !Number.isNaN(target)
+    ) {
       // (tail - 1) - applied_lsn = tail - (applied_lsn + 1)
       lsnLag = Math.max(target - applied, 0).toString();
     }
@@ -1742,11 +1729,11 @@ function getPartitions(
       nodeID: row.gen_node_id,
       mode: row.effective_mode,
       status: row.replay_status,
-      leader: row.leader,
-      appliedLSN: `${row.applied_log_lsn}`,
-      durableLSN: `${row.durable_log_lsn}`,
+      leader: row.leader ?? "",
+      appliedLSN: `${row.applied_log_lsn ?? ""}`,
+      durableLSN: `${row.durable_log_lsn ?? ""}`,
       archivedLSN: `${row.archived_log_lsn ?? ""}`,
-      targetTailLSN: `${row.target_tail_lsn}`,
+      targetTailLSN: `${row.target_tail_lsn ?? ""}`,
       lsnLag,
       lastUpdate: row.updated_at,
     } satisfies PartitionInfo;
