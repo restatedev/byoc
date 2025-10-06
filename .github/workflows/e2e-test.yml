@@ -1,7 +1,7 @@
 name: BYOC cluster deployment tests
 on:
-  schedule:
-    - cron: "0 0 * * *"
+  # schedule:
+  #   - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,7 +31,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::339713187748:role/github-restatedev-byoc-actions-role"
+          role-to-assume: "arn:aws:iam::307946634685:role/github-restatedev-byoc-actions-role"
           role-duration-seconds: 7200
 
       - name: Run cluster e2e tests
