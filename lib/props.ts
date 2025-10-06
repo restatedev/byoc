@@ -111,6 +111,12 @@ export interface ClusterProps {
   monitoring?: MonitoringProps;
 
   /**
+   * Configuration for CloudWatch log group retention settings
+   * Default: See the documentation for {@link LogRetentionProps}
+   */
+  logRetention?: LogRetentionProps;
+
+  /**
    * @internal
    *
    * Override the artifact distribution mode for development. Set this to `true` to use artifacts
@@ -579,4 +585,35 @@ export interface MonitoringProps {
    * Default: OTEL collector sidecars are disabled
    */
   otelCollector?: OtelCollectorProps;
+}
+
+/**
+ * Configuration for CloudWatch log group retention settings
+ */
+export interface LogRetentionProps {
+  /**
+   * Retention period for ECS task log groups (stateless, stateful, and controller tasks)
+   * Default: 30 days
+   */
+  ecsTasks?: cdk.aws_logs.RetentionDays;
+
+  /**
+   * Retention period for Lambda function log groups (restatectl, custom widgets, retirement watcher)
+   * Default: 14 days
+   */
+  lambdaFunctions?: cdk.aws_logs.RetentionDays;
+
+  /**
+   * Retention period for Container Insights log groups
+   * These are automatically created by ECS when containerInsights is enabled
+   * Default: 7 days
+   */
+  containerInsights?: cdk.aws_logs.RetentionDays;
+
+  /**
+   * Default retention period to apply to any log groups not explicitly configured above
+   * This serves as a fallback for any log groups that might be created by other AWS services
+   * Default: 30 days
+   */
+  default?: cdk.aws_logs.RetentionDays;
 }
