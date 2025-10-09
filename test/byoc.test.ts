@@ -333,6 +333,67 @@ describe("BYOC", () => {
       yaml: true,
     });
   });
+
+  test("Set up custom ALB for authenticated access", () => {
+    const { stack, vpc } = createStack();
+
+    const cluster = new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+    });
+
+    const accessLogsBucket = new aws_s3.Bucket(stack, "alb-access-logs", {
+      blockPublicAccess: aws_s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: aws_s3.BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      lifecycleRules: [
+        {
+          expiration: cdk.Duration.days(365 * 5),
+        },
+      ],
+    });
+
+    const adminAlb = new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
+      stack,
+      "admin-alb",
+      {
+        vpc,
+        internetFacing: true,
+      },
+    );
+    adminAlb.logAccessLogs(accessLogsBucket, "admin-alb");
+    adminAlb.addListener("admin-listener", {
+      port: 443,
+      protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
+      certificates: [
+        cdk.aws_certificatemanager.Certificate.fromCertificateArn(
+          stack,
+          "admin-cert",
+          "arn:aws:acm:region:account-id:certificate/admin-cert-id",
+        ),
+      ],
+      defaultAction:
+        cdk.aws_elasticloadbalancingv2.ListenerAction.authenticateOidc({
+          issuer: "https://accounts.google.com",
+          authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+          tokenEndpoint: "https://oauth2.googleapis.com/token",
+          userInfoEndpoint: "https://openidconnect.googleapis.com/v1/userinfo",
+          clientId: "client-id-from-google-cloud-console",
+          clientSecret: cdk.SecretValue.secretsManager(
+            "restate-google-sso-client-secret",
+          ),
+          next: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
+            // An ingress ALB can target `cluster.targetGroups.ingress.application` instead
+            cluster.targetGroups.admin.application,
+          ]),
+        }),
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
 });
 
 function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {
