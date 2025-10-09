@@ -822,6 +822,9 @@ function createStateless(
     availabilityZoneRebalancing:
       cdk.aws_ecs.AvailabilityZoneRebalancing.ENABLED,
     propagateTags: cdk.aws_ecs.PropagatedTagSource.SERVICE,
+    deploymentController: {
+      type: cdk.aws_ecs.DeploymentControllerType.ECS,
+    },
   });
   cdk.Tags.of(service).add("Name", service.node.path);
 
@@ -1522,6 +1525,9 @@ function createController(
     maxHealthyPercent: 100,
     minHealthyPercent: 0,
     vpcSubnets,
+    deploymentController: {
+      type: cdk.aws_ecs.DeploymentControllerType.ECS,
+    },
   });
   cdk.Tags.of(service).add("Name", service.node.path);
 

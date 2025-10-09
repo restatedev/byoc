@@ -368,6 +368,8 @@ exports[`BYOC Dashboards can be completely disabled 1`] = `
           Rollback: false
         MaximumPercent: 200
         MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
       DesiredCount: 3
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -1200,6 +1202,8 @@ exports[`BYOC Dashboards can be completely disabled 1`] = `
           Rollback: false
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      DeploymentController:
+        Type: ECS
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -2151,6 +2155,8 @@ exports[`BYOC Default parameters 1`] = `
           Rollback: false
         MaximumPercent: 200
         MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
       DesiredCount: 3
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -2983,6 +2989,8 @@ exports[`BYOC Default parameters 1`] = `
           Rollback: false
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      DeploymentController:
+        Type: ECS
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -4134,6 +4142,8 @@ exports[`BYOC Log groups can be customized after creation 1`] = `
           Rollback: false
         MaximumPercent: 200
         MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
       DesiredCount: 3
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -4966,6 +4976,8 @@ exports[`BYOC Log groups can be customized after creation 1`] = `
           Rollback: false
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      DeploymentController:
+        Type: ECS
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -6145,6 +6157,8 @@ exports[`BYOC Retirement watcher queue can be customized 1`] = `
           Rollback: false
         MaximumPercent: 200
         MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
       DesiredCount: 3
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -6977,6 +6991,8 @@ exports[`BYOC Retirement watcher queue can be customized 1`] = `
           Rollback: false
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      DeploymentController:
+        Type: ECS
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -8145,6 +8161,8 @@ exports[`BYOC Set up custom ALB for authenticated access 1`] = `
           Rollback: false
         MaximumPercent: 200
         MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
       DesiredCount: 3
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -8982,6 +9000,8 @@ exports[`BYOC Set up custom ALB for authenticated access 1`] = `
           Rollback: false
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      DeploymentController:
+        Type: ECS
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -10318,6 +10338,8 @@ exports[`BYOC Task log driver mode can be customized 1`] = `
           Rollback: false
         MaximumPercent: 200
         MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
       DesiredCount: 3
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -11152,6 +11174,8 @@ exports[`BYOC Task log driver mode can be customized 1`] = `
           Rollback: false
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      DeploymentController:
+        Type: ECS
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -12294,6 +12318,8 @@ exports[`BYOC With cluster name 1`] = `
           Rollback: false
         MaximumPercent: 200
         MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
       DesiredCount: 3
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -13126,6 +13152,8 @@ exports[`BYOC With cluster name 1`] = `
           Rollback: false
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      DeploymentController:
+        Type: ECS
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -14223,6 +14251,8 @@ exports[`BYOC With existing bucket 1`] = `
           Rollback: false
         MaximumPercent: 200
         MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
       DesiredCount: 3
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -15041,6 +15071,8 @@ exports[`BYOC With existing bucket 1`] = `
           Rollback: false
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      DeploymentController:
+        Type: ECS
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -16210,6 +16242,8 @@ exports[`BYOC With otel collector 1`] = `
           Rollback: false
         MaximumPercent: 200
         MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
       DesiredCount: 3
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -17072,6 +17106,8 @@ exports[`BYOC With otel collector 1`] = `
           Rollback: false
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      DeploymentController:
+        Type: ECS
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -18168,6 +18204,8 @@ exports[`BYOC With specific SG and subnets 1`] = `
           Rollback: false
         MaximumPercent: 200
         MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
       DesiredCount: 3
       EnableECSManagedTags: false
       EnableExecuteCommand: false
@@ -18950,6 +18988,8 @@ exports[`BYOC With specific SG and subnets 1`] = `
           Rollback: false
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      DeploymentController:
+        Type: ECS
       DesiredCount: 1
       EnableECSManagedTags: false
       EnableExecuteCommand: false
