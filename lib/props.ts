@@ -585,6 +585,17 @@ export interface MonitoringProps {
    * Default: OTEL collector sidecars are disabled
    */
   otelCollector?: OtelCollectorProps;
+
+  /**
+   * CloudWatch Container Insights setting for the ECS cluster
+   *
+   * - ContainerInsights.ENABLED: Standard Container Insights monitoring
+   * - ContainerInsights.ENHANCED: Enhanced observability (recommended, available since December 2024)
+   * - ContainerInsights.DISABLED: Turn off Container Insights
+   *
+   * Default: ContainerInsights.ENHANCED
+   */
+  containerInsights?: cdk.aws_ecs.ContainerInsights;
 }
 
 /**

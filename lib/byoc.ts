@@ -317,10 +317,14 @@ export class RestateEcsFargateCluster
     if (props.ecsCluster) {
       this.ecsCluster = props.ecsCluster;
     } else {
+      const containerInsights =
+        props.monitoring?.containerInsights ??
+        cdk.aws_ecs.ContainerInsights.ENHANCED;
+
       const cluster = new cdk.aws_ecs.Cluster(this, "cluster", {
         vpc: this.vpc,
         clusterName: props.clusterName,
-        containerInsightsV2: cdk.aws_ecs.ContainerInsights.ENHANCED,
+        containerInsightsV2: containerInsights,
       });
       cdk.Tags.of(cluster).add("Name", cluster.node.path);
       this.ecsCluster = cluster;

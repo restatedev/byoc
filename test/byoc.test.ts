@@ -473,6 +473,54 @@ describe("BYOC", () => {
       yaml: true,
     });
   });
+
+  test("Container Insights defaults to enhanced", () => {
+    const { stack, vpc } = createStack();
+
+    // Test default Container Insights (should be 'enhanced')
+    new RestateEcsFargateCluster(stack, "default-insights", {
+      vpc,
+      licenseKey,
+    });
+
+    const template = cdk.assertions.Template.fromStack(stack);
+    template.hasResourceProperties("AWS::ECS::Cluster", {
+      ClusterSettings: [
+        {
+          Name: "containerInsights",
+          Value: "enhanced",
+        },
+      ],
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("Container Insights can be overridden to enabled", () => {
+    const { stack, vpc } = createStack();
+
+    // Test overriding to standard Container Insights
+    new RestateEcsFargateCluster(stack, "with-enabled-insights", {
+      vpc,
+      licenseKey,
+      monitoring: {
+        containerInsights: cdk.aws_ecs.ContainerInsights.ENABLED,
+      },
+    });
+
+    const template = cdk.assertions.Template.fromStack(stack);
+    template.hasResourceProperties("AWS::ECS::Cluster", {
+      ClusterSettings: [
+        {
+          Name: "containerInsights",
+          Value: "enabled",
+        },
+      ],
+    });
+  });
 });
 
 function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {
