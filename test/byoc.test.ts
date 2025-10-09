@@ -301,6 +301,38 @@ describe("BYOC", () => {
       yaml: true,
     });
   });
+
+  test("Retirement watcher queue can be customized", () => {
+    const { stack, vpc } = createStack();
+
+    const cluster = new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+      _useLocalArtifacts: true,
+    });
+
+    expect(cluster.retirementWatcher).toBeDefined();
+    expect(cluster.retirementWatcher!.queue).toBeDefined();
+
+    cluster.retirementWatcher!.queue.addToResourcePolicy(
+      new cdk.aws_iam.PolicyStatement({
+        effect: cdk.aws_iam.Effect.ALLOW,
+        principals: [new cdk.aws_iam.ServicePrincipal("events.amazonaws.com")],
+        actions: ["sqs:SendMessage"],
+        resources: [cluster.retirementWatcher!.queue.queueArn],
+        conditions: {
+          StringEquals: {
+            "aws:SourceAccount": cdk.Aws.ACCOUNT_ID,
+          },
+        },
+      }),
+    );
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
 });
 
 function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {
