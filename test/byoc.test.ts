@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import "jest-cdk-snapshot";
 import { RestateEcsFargateCluster } from "../lib/byoc";
-import { aws_s3 } from "aws-cdk-lib";
+import { aws_logs, aws_s3 } from "aws-cdk-lib";
 
 describe("BYOC", () => {
   const licenseKey = "foo";
@@ -261,6 +261,264 @@ describe("BYOC", () => {
     expect(stack).toMatchCdkSnapshot({
       ignoreAssets: true,
       yaml: true,
+    });
+  });
+
+  test("Log groups can be customized after creation", () => {
+    const { stack, vpc } = createStack();
+
+    const cluster = new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+      logRetention: {
+        ecsTasks: aws_logs.RetentionDays.ONE_YEAR,
+        default: aws_logs.RetentionDays.SIX_MONTHS,
+      },
+    });
+
+    const testRole = new cdk.aws_iam.Role(stack, "test-role", {
+      assumedBy: new cdk.aws_iam.ServicePrincipal("lambda.amazonaws.com"),
+    });
+
+    expect(cluster.logGroups.restate).toBeDefined();
+    expect(cluster.logGroups.controller).toBeDefined();
+    expect(cluster.logGroups.restatectl).toBeDefined();
+    expect(cluster.logGroups.retirementWatcher).toBeDefined();
+    expect(cluster.logGroups.customWidget).toBeDefined();
+
+    cluster.logGroups.restate.grantRead(testRole);
+    cluster.logGroups.controller.grantWrite(testRole);
+
+    cluster.logGroups.controller.addMetricFilter("error-metric", {
+      filterPattern: cdk.aws_logs.FilterPattern.literal("[level=ERROR]"),
+      metricNamespace: "Restate/Controller",
+      metricName: "Errors",
+      metricValue: "1",
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("Retirement watcher queue can be customized", () => {
+    const { stack, vpc } = createStack();
+
+    const cluster = new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+      _useLocalArtifacts: true,
+    });
+
+    expect(cluster.retirementWatcher).toBeDefined();
+    expect(cluster.retirementWatcher!.queue).toBeDefined();
+
+    cluster.retirementWatcher!.queue.addToResourcePolicy(
+      new cdk.aws_iam.PolicyStatement({
+        effect: cdk.aws_iam.Effect.ALLOW,
+        principals: [new cdk.aws_iam.ServicePrincipal("events.amazonaws.com")],
+        actions: ["sqs:SendMessage"],
+        resources: [cluster.retirementWatcher!.queue.queueArn],
+        conditions: {
+          StringEquals: {
+            "aws:SourceAccount": cdk.Aws.ACCOUNT_ID,
+          },
+        },
+      }),
+    );
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("Set up custom ALB for authenticated access", () => {
+    const { stack, vpc } = createStack();
+
+    const cluster = new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+    });
+
+    const accessLogsBucket = new aws_s3.Bucket(stack, "alb-access-logs", {
+      blockPublicAccess: aws_s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: aws_s3.BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      lifecycleRules: [
+        {
+          expiration: cdk.Duration.days(365 * 5),
+        },
+      ],
+    });
+
+    const adminAlb = new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
+      stack,
+      "admin-alb",
+      {
+        vpc,
+        internetFacing: true,
+      },
+    );
+    adminAlb.logAccessLogs(accessLogsBucket, "admin-alb");
+    adminAlb.addListener("admin-listener", {
+      port: 443,
+      protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
+      certificates: [
+        cdk.aws_certificatemanager.Certificate.fromCertificateArn(
+          stack,
+          "admin-cert",
+          "arn:aws:acm:region:account-id:certificate/admin-cert-id",
+        ),
+      ],
+      defaultAction:
+        cdk.aws_elasticloadbalancingv2.ListenerAction.authenticateOidc({
+          issuer: "https://accounts.google.com",
+          authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+          tokenEndpoint: "https://oauth2.googleapis.com/token",
+          userInfoEndpoint: "https://openidconnect.googleapis.com/v1/userinfo",
+          clientId: "client-id-from-google-cloud-console",
+          clientSecret: cdk.SecretValue.secretsManager(
+            "restate-google-sso-client-secret",
+          ),
+          next: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
+            // An ingress ALB can target `cluster.targetGroups.ingress.application` instead
+            cluster.targetGroups.admin.application,
+          ]),
+        }),
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("Dashboards can be completely disabled", () => {
+    const { stack, vpc } = createStack();
+
+    const cluster = new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+      monitoring: {
+        dashboard: {
+          metrics: {
+            disabled: true,
+          },
+          controlPanel: {
+            disabled: true,
+          },
+        },
+      },
+    });
+
+    expect(cluster.monitoring.metricsDashboard).toBeUndefined();
+    expect(cluster.monitoring.controlPanelDashboard).toBeUndefined();
+
+    const template = cdk.assertions.Template.fromStack(stack);
+    template.resourceCountIs("AWS::CloudWatch::Dashboard", 0);
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("Task log driver mode can be customized", () => {
+    const { stack, vpc } = createStack();
+
+    // Create custom log groups
+    const restateLogGroup = new aws_logs.LogGroup(
+      stack,
+      "custom-restate-logs",
+      {
+        retention: aws_logs.RetentionDays.ONE_WEEK,
+      },
+    );
+
+    const controllerLogGroup = new aws_logs.LogGroup(
+      stack,
+      "custom-controller-logs",
+      {
+        retention: aws_logs.RetentionDays.ONE_WEEK,
+      },
+    );
+
+    new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+      restateTasks: {
+        logDriver: cdk.aws_ecs.LogDriver.awsLogs({
+          streamPrefix: "restate",
+          logGroup: restateLogGroup,
+          mode: cdk.aws_ecs.AwsLogDriverMode.NON_BLOCKING,
+          maxBufferSize: cdk.Size.mebibytes(5),
+        }),
+      },
+      controller: {
+        tasks: {
+          logDriver: cdk.aws_ecs.LogDriver.awsLogs({
+            streamPrefix: "controller",
+            logGroup: controllerLogGroup,
+            mode: cdk.aws_ecs.AwsLogDriverMode.BLOCKING,
+            datetimeFormat: "custom-format",
+          }),
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("Container Insights defaults to enhanced", () => {
+    const { stack, vpc } = createStack();
+
+    // Test default Container Insights (should be 'enhanced')
+    new RestateEcsFargateCluster(stack, "default-insights", {
+      vpc,
+      licenseKey,
+    });
+
+    const template = cdk.assertions.Template.fromStack(stack);
+    template.hasResourceProperties("AWS::ECS::Cluster", {
+      ClusterSettings: [
+        {
+          Name: "containerInsights",
+          Value: "enhanced",
+        },
+      ],
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("Container Insights can be overridden to enabled", () => {
+    const { stack, vpc } = createStack();
+
+    // Test overriding to standard Container Insights
+    new RestateEcsFargateCluster(stack, "with-enabled-insights", {
+      vpc,
+      licenseKey,
+      monitoring: {
+        containerInsights: cdk.aws_ecs.ContainerInsights.ENABLED,
+      },
+    });
+
+    const template = cdk.assertions.Template.fromStack(stack);
+    template.hasResourceProperties("AWS::ECS::Cluster", {
+      ClusterSettings: [
+        {
+          Name: "containerInsights",
+          Value: "enabled",
+        },
+      ],
     });
   });
 });

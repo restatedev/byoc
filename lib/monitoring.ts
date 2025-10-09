@@ -44,24 +44,30 @@ export function createMonitoring(
     };
   },
   customWidgetCode: cdk.aws_lambda.Code,
+  lambdaRetention: cdk.aws_logs.RetentionDays,
   restatectlLambda?: cdk.aws_lambda.IFunction,
   props?: ClusterProps,
 ): {
   metricsDashboard?: cloudwatch.Dashboard;
   controlPanelDashboard?: cloudwatch.Dashboard;
   customWidgetFn?: cdk.aws_lambda.IFunction;
+  customWidgetLogGroup?: cdk.aws_logs.ILogGroup;
 } {
-  const customWidgetFn = createCustomWidgetLambda(
+  const customWidget = createCustomWidgetLambda(
     scope,
     vpc,
     subnets,
     ecsCluster,
     [controllerService, statelessService],
     customWidgetCode,
+    lambdaRetention,
     restatectlLambda,
     props?.monitoring,
     props,
   );
+
+  const customWidgetFn = customWidget?.fn;
+  const customWidgetLogGroup = customWidget?.logGroup;
 
   const metricsDashboard = createMetricsDashboard(
     scope,
@@ -145,7 +151,12 @@ export function createMonitoring(
     }
   }
 
-  return { metricsDashboard, controlPanelDashboard, customWidgetFn };
+  return {
+    metricsDashboard,
+    controlPanelDashboard,
+    customWidgetFn,
+    customWidgetLogGroup,
+  };
 }
 
 export function createMetricsDashboard(
@@ -515,10 +526,16 @@ function createCustomWidgetLambda(
   ecsCluster: cdk.aws_ecs.ICluster,
   ecsServices: cdk.aws_ecs.IService[],
   code: cdk.aws_lambda.Code,
+  retention: cdk.aws_logs.RetentionDays,
   restatectlLambda?: cdk.aws_lambda.IFunction,
   monitoringProps?: MonitoringProps,
   clusterProps?: ClusterProps,
-): cdk.aws_lambda.Function | undefined {
+):
+  | {
+      fn: cdk.aws_lambda.Function;
+      logGroup: cdk.aws_logs.ILogGroup;
+    }
+  | undefined {
   if (!restatectlLambda || monitoringProps?.dashboard?.customWidgets?.disabled)
     return;
 
@@ -526,7 +543,7 @@ function createCustomWidgetLambda(
     scope,
     "cloudwatch-custom-widget-log-group",
     {
-      retention: cdk.aws_logs.RetentionDays.ONE_MONTH,
+      retention: retention ?? cdk.aws_logs.RetentionDays.TWO_WEEKS,
     },
   );
 
@@ -698,7 +715,7 @@ function createCustomWidgetLambda(
     ),
   });
 
-  return fn;
+  return { fn, logGroup };
 }
 
 export function otelCollectorContainerProps(
