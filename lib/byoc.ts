@@ -212,6 +212,32 @@ export class RestateEcsFargateCluster
   };
 
   /**
+   * CloudWatch log groups
+   */
+  public readonly logGroups: {
+    /**
+     * Log group for restate tasks (stateless and stateful nodes)
+     */
+    restate: cdk.aws_logs.ILogGroup;
+    /**
+     * Log group for controller task
+     */
+    controller: cdk.aws_logs.ILogGroup;
+    /**
+     * Log group for restatectl lambda
+     */
+    restatectl?: cdk.aws_logs.ILogGroup;
+    /**
+     * Log group for retirement watcher lambda
+     */
+    retirementWatcher?: cdk.aws_logs.ILogGroup;
+    /**
+     * Log group for custom widget lambda
+     */
+    customWidget?: cdk.aws_logs.ILogGroup;
+  };
+
+  /**
    * Implements IRestateEnvironment
    **/
   public readonly adminUrl: string;
@@ -313,6 +339,27 @@ export class RestateEcsFargateCluster
         assumedBy: new cdk.aws_iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
       });
 
+    const ecsTaskRetention =
+      props.logRetention?.ecsTasks ??
+      props.logRetention?.default ??
+      cdk.aws_logs.RetentionDays.ONE_MONTH;
+
+    const restateLogGroup = new cdk.aws_logs.LogGroup(
+      this,
+      "restate-log-group",
+      {
+        retention: ecsTaskRetention,
+      },
+    );
+
+    const controllerLogGroup = new cdk.aws_logs.LogGroup(
+      this,
+      "controller-log-group",
+      {
+        retention: ecsTaskRetention,
+      },
+    );
+
     const restateTaskProps: TaskProps = {
       taskRole: this.restateTaskRole,
       executionRole: this.restateExecutionRole,
@@ -320,6 +367,7 @@ export class RestateEcsFargateCluster
         props.restateTasks?.logDriver ??
         cdk.aws_ecs.LogDriver.awsLogs({
           streamPrefix: "restate",
+          logGroup: restateLogGroup,
         }),
       enableExecuteCommand: props.restateTasks?.enableExecuteCommand ?? false,
       cpuArchitecture:
@@ -534,6 +582,7 @@ export class RestateEcsFargateCluster
       this.securityGroups,
       this.stateful.taskDefinition,
       restateTaskProps,
+      controllerLogGroup,
       props.statefulNode,
       props.controller,
     );
@@ -543,24 +592,39 @@ export class RestateEcsFargateCluster
       ? getArtifacts(this, props._artifactsVersion ?? PACKAGE_INFO.version)
       : bundleArtifacts();
 
-    this.restatectl = createRestatectl(
+    const lambdaRetention =
+      props.logRetention?.lambdaFunctions ??
+      props.logRetention?.default ??
+      cdk.aws_logs.RetentionDays.TWO_WEEKS;
+
+    const restatectlResult = createRestatectl(
       this,
       this.vpc,
       this.vpcSubnets,
       this.securityGroups,
       this.listeners.node.address,
       artifacts["restatectl.zip"],
+      lambdaRetention,
       props.restatectl,
     );
+    this.restatectl = restatectlResult?.fn;
 
-    this.retirementWatcher = createRetirementWatcher(
+    const retirementWatcherResult = createRetirementWatcher(
       this,
       this.vpc,
       this.vpcSubnets,
       ctPrefix,
       artifacts["retirement-watcher.zip"],
+      lambdaRetention,
       props.retirementWatcher,
     );
+    this.retirementWatcher = retirementWatcherResult
+      ? {
+          fn: retirementWatcherResult.fn,
+          queue: retirementWatcherResult.queue,
+          rule: retirementWatcherResult.rule,
+        }
+      : undefined;
 
     const monitoring = createMonitoring(
       this,
@@ -593,6 +657,7 @@ export class RestateEcsFargateCluster
         },
       },
       artifacts["cloudwatch-custom-widget.zip"],
+      lambdaRetention,
       this.restatectl,
       props,
     );
@@ -620,6 +685,15 @@ export class RestateEcsFargateCluster
         }),
       );
     }
+
+    // Expose log groups as public properties
+    this.logGroups = {
+      restate: restateLogGroup,
+      controller: controllerLogGroup,
+      restatectl: restatectlResult?.logGroup,
+      retirementWatcher: retirementWatcherResult?.logGroup,
+      customWidget: monitoring?.customWidgetLogGroup,
+    };
 
     createOutputs(this);
   }
@@ -1120,6 +1194,7 @@ function createController(
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   statefulDefinition: cdk.aws_ecs.IFargateTaskDefinition,
   restateTaskProps: TaskProps,
+  logGroup: cdk.aws_logs.ILogGroup,
   statefulProps?: StatefulNodeProps,
   controllerProps?: ControllerProps,
 ): {
@@ -1146,6 +1221,7 @@ function createController(
       controllerProps?.tasks?.logDriver ??
       cdk.aws_ecs.LogDriver.awsLogs({
         streamPrefix: "controller",
+        logGroup,
       }),
     enableExecuteCommand: controllerProps?.tasks?.enableExecuteCommand ?? false,
     cpuArchitecture:
@@ -1456,12 +1532,14 @@ function createRetirementWatcher(
   vpcSubnets: cdk.aws_ec2.SelectedSubnets,
   clusterTaskPrefix: string,
   code: cdk.aws_lambda.Code,
+  retention: cdk.aws_logs.RetentionDays,
   retirementWatcherProps?: TaskRetirementWatcherProps,
 ):
   | {
       fn: cdk.aws_lambda.IFunction;
       queue: cdk.aws_sqs.IQueue;
       rule: cdk.aws_events.IRule;
+      logGroup: cdk.aws_logs.ILogGroup;
     }
   | undefined {
   if (retirementWatcherProps?.disabled) return;
@@ -1470,7 +1548,7 @@ function createRetirementWatcher(
     scope,
     "retirement-watcher-log-group",
     {
-      retention: cdk.aws_logs.RetentionDays.ONE_MONTH,
+      retention,
     },
   );
 
@@ -1539,7 +1617,9 @@ function createRetirementWatcher(
     logGroup,
     timeout: cdk.Duration.seconds(60),
     vpc: retirementWatcherProps?.securityGroups?.length ? vpc : undefined,
-    vpcSubnets: retirementWatcherProps?.securityGroups?.length ? vpcSubnets : undefined,
+    vpcSubnets: retirementWatcherProps?.securityGroups?.length
+      ? vpcSubnets
+      : undefined,
     securityGroups: retirementWatcherProps?.securityGroups,
   });
   cdk.Tags.of(fn).add("Name", fn.node.path);
@@ -1572,7 +1652,7 @@ function createRetirementWatcher(
   });
   cdk.Tags.of(rule).add("Name", rule.node.path);
 
-  return { fn, queue, rule };
+  return { fn, queue, rule, logGroup };
 }
 
 function clusterTaskPrefix(clusterArn: string): string {
@@ -1602,12 +1682,18 @@ function createRestatectl(
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   address: string,
   code: cdk.aws_lambda.Code,
+  retention: cdk.aws_logs.RetentionDays,
   restatectlProps?: RestatectlProps,
-): cdk.aws_lambda.Function | undefined {
+):
+  | {
+      fn: cdk.aws_lambda.Function;
+      logGroup: cdk.aws_logs.ILogGroup;
+    }
+  | undefined {
   if (restatectlProps?.disabled) return;
 
   const logGroup = new cdk.aws_logs.LogGroup(scope, "restatectl-log-group", {
-    retention: cdk.aws_logs.RetentionDays.ONE_MONTH,
+    retention,
   });
 
   const role =
@@ -1672,7 +1758,7 @@ function createRestatectl(
   });
   cdk.Tags.of(fn).add("Name", fn.node.path);
 
-  return fn;
+  return { fn, logGroup };
 }
 
 // RESTATE_NODE_NAME: task ARN

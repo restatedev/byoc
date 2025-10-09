@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import "jest-cdk-snapshot";
 import { RestateEcsFargateCluster } from "../lib/byoc";
-import { aws_s3 } from "aws-cdk-lib";
+import { aws_logs, aws_s3 } from "aws-cdk-lib";
 
 describe("BYOC", () => {
   const licenseKey = "foo";
@@ -256,6 +256,44 @@ describe("BYOC", () => {
           },
         },
       },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
+  test("Log groups can be customized after creation", () => {
+    const { stack, vpc } = createStack();
+
+    const cluster = new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+      logRetention: {
+        ecsTasks: aws_logs.RetentionDays.ONE_YEAR,
+        default: aws_logs.RetentionDays.SIX_MONTHS,
+      },
+    });
+
+    const testRole = new cdk.aws_iam.Role(stack, "test-role", {
+      assumedBy: new cdk.aws_iam.ServicePrincipal("lambda.amazonaws.com"),
+    });
+
+    expect(cluster.logGroups.restate).toBeDefined();
+    expect(cluster.logGroups.controller).toBeDefined();
+    expect(cluster.logGroups.restatectl).toBeDefined();
+    expect(cluster.logGroups.retirementWatcher).toBeDefined();
+    expect(cluster.logGroups.customWidget).toBeDefined();
+
+    cluster.logGroups.restate.grantRead(testRole);
+    cluster.logGroups.controller.grantWrite(testRole);
+
+    cluster.logGroups.controller.addMetricFilter("error-metric", {
+      filterPattern: cdk.aws_logs.FilterPattern.literal("[level=ERROR]"),
+      metricNamespace: "Restate/Controller",
+      metricName: "Errors",
+      metricValue: "1",
     });
 
     expect(stack).toMatchCdkSnapshot({

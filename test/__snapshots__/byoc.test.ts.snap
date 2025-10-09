@@ -163,20 +163,24 @@ exports[`BYOC Default parameters 1`] = `
             Effect: Allow
             Resource:
               'Fn::GetAtt':
-                - defaultstatelessdefinitionrestateLogGroup49FB832E
-                - Arn
-          - Action:
-              - 'logs:CreateLogStream'
-              - 'logs:PutLogEvents'
-            Effect: Allow
-            Resource:
-              'Fn::GetAtt':
-                - defaultstatefuldefinitionrestateLogGroup3CA44D5E
+                - defaultrestateloggroup8EFD0887
                 - Arn
         Version: '2012-10-17'
       PolicyName: defaultrestateexecutionroleDefaultPolicy3E1E0421
       Roles:
         - Ref: defaultrestateexecutionrole4009B294
+  defaultrestateloggroup8EFD0887:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  defaultcontrollerloggroupD80898BE:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   defaultsharednlb5E13F2A0:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
@@ -314,7 +318,7 @@ exports[`BYOC Default parameters 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: defaultstatelessdefinitionrestateLogGroup49FB832E
+                Ref: defaultrestateloggroup8EFD0887
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 32768
@@ -350,14 +354,6 @@ exports[`BYOC Default parameters 1`] = `
         'Fn::GetAtt':
           - defaultrestatetaskrole1A7BDFBB
           - Arn
-  defaultstatelessdefinitionrestateLogGroup49FB832E:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/default/stateless-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   defaultstatelessserviceService8A7FABFB:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -492,7 +488,7 @@ exports[`BYOC Default parameters 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: defaultstatefuldefinitionrestateLogGroup3CA44D5E
+                Ref: defaultrestateloggroup8EFD0887
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 32768
@@ -534,14 +530,6 @@ exports[`BYOC Default parameters 1`] = `
       Volumes:
         - ConfiguredAtLaunch: false
           Name: restate-data
-  defaultstatefuldefinitionrestateLogGroup3CA44D5E:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/default/stateful-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   defaultingresssharedtarget501739FD:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties:
@@ -881,7 +869,7 @@ exports[`BYOC Default parameters 1`] = `
             Effect: Allow
             Resource:
               'Fn::GetAtt':
-                - defaultcontrollerdefinitioncontrollerLogGroup60752F65
+                - defaultcontrollerloggroupD80898BE
                 - Arn
         Version: '2012-10-17'
       PolicyName: defaultcontrollerexecutionroleDefaultPolicy53CE4FA0
@@ -1171,7 +1159,7 @@ exports[`BYOC Default parameters 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: defaultcontrollerdefinitioncontrollerLogGroup60752F65
+                Ref: defaultcontrollerloggroupD80898BE
               awslogs-stream-prefix: controller
               awslogs-region: region
           Memory: 2048
@@ -1197,14 +1185,6 @@ exports[`BYOC Default parameters 1`] = `
         'Fn::GetAtt':
           - defaultcontrollertaskrole7B120178
           - Arn
-  defaultcontrollerdefinitioncontrollerLogGroup60752F65:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/default/controller-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   defaultcontrollerserviceService18139D09:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -1243,7 +1223,7 @@ exports[`BYOC Default parameters 1`] = `
   defaultrestatectlloggroupFAE86DDB:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   defaultrestatectllambdaexecutionrole68199B2A:
@@ -1349,7 +1329,7 @@ exports[`BYOC Default parameters 1`] = `
   defaultretirementwatcherloggroup3D95DB6F:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   defaultretirementwatcherlambdaexecutionroleF14BB722:
@@ -1634,7 +1614,7 @@ exports[`BYOC Default parameters 1`] = `
   defaultcloudwatchcustomwidgetloggroupD709CBDC:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   defaultcloudwatchcustomwidgetexecutionrole4ED639C0:
@@ -1811,7 +1791,7 @@ exports[`BYOC Default parameters 1`] = `
               'RestateBYOCdefaultstatelessdefinitionFF58C79A' GROUP BY
               TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":12,"properties":{"view":"table","title":"Stateless
               Logs","region":"region","query":"SOURCE '
-            - Ref: defaultstatelessdefinitionrestateLogGroup49FB832E
+            - Ref: defaultrestateloggroup8EFD0887
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -1853,7 +1833,7 @@ exports[`BYOC Default parameters 1`] = `
               'RestateBYOCdefaultstatefuldefinition4D62F21B' GROUP BY
               TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":30,"properties":{"view":"table","title":"Stateful
               Logs","region":"region","query":"SOURCE '
-            - Ref: defaultstatefuldefinitionrestateLogGroup3CA44D5E
+            - Ref: defaultrestateloggroup8EFD0887
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -1888,7 +1868,7 @@ exports[`BYOC Default parameters 1`] = `
               'RestateBYOCdefaultstatefuldefinition4D62F21B' GROUP BY
               TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":42,"properties":{"view":"table","title":"Controller
               Logs","region":"region","query":"SOURCE '
-            - Ref: defaultcontrollerdefinitioncontrollerLogGroup60752F65
+            - Ref: defaultcontrollerloggroupD80898BE
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -1987,6 +1967,2024 @@ Outputs:
     Description: The ARN of the network target group for the node port
     Value:
       Ref: defaultnodesharedtarget1C48E466
+"
+`;
+
+exports[`BYOC Log groups can be customized after creation 1`] = `
+"Resources:
+  testsecuritygroupB015C031:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: RestateBYOC/test/security-group
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: '-1'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/security-group
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  testsecuritygroupfromRestateBYOCtestsecuritygroupDC099EC280804D6652A7:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: 'from RestateBYOCtestsecuritygroupDC099EC2:8080'
+      FromPort: 8080
+      GroupId:
+        'Fn::GetAtt':
+          - testsecuritygroupB015C031
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - testsecuritygroupB015C031
+          - GroupId
+      ToPort: 8080
+  testsecuritygroupfromRestateBYOCtestsecuritygroupDC099EC2907024D2BE0B:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: 'from RestateBYOCtestsecuritygroupDC099EC2:9070'
+      FromPort: 9070
+      GroupId:
+        'Fn::GetAtt':
+          - testsecuritygroupB015C031
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - testsecuritygroupB015C031
+          - GroupId
+      ToPort: 9070
+  testsecuritygroupfromRestateBYOCtestsecuritygroupDC099EC25122D07222D4:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: 'from RestateBYOCtestsecuritygroupDC099EC2:5122'
+      FromPort: 5122
+      GroupId:
+        'Fn::GetAtt':
+          - testsecuritygroupB015C031
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - testsecuritygroupB015C031
+          - GroupId
+      ToPort: 5122
+  testbucket731B7DE2:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  testbucketPolicyB4FDDA54:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket:
+        Ref: testbucket731B7DE2
+      PolicyDocument:
+        Statement:
+          - Action: 's3:*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Resource:
+              - 'Fn::GetAtt':
+                  - testbucket731B7DE2
+                  - Arn
+              - 'Fn::Join':
+                  - ''
+                  - - 'Fn::GetAtt':
+                        - testbucket731B7DE2
+                        - Arn
+                    - /*
+        Version: '2012-10-17'
+  testclusterDBD4D436:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/cluster
+  testrestatetaskrole4CC243A3:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  testrestatetaskroleDefaultPolicy51A222FD:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::GetAtt':
+                      - testbucket731B7DE2
+                      - Arn
+                  - /*
+            Sid: ReadWriteBucket
+          - Action: 's3:ListBucket'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - testbucket731B7DE2
+                - Arn
+            Sid: ListBucket
+        Version: '2012-10-17'
+      PolicyName: testrestatetaskroleDefaultPolicy51A222FD
+      Roles:
+        - Ref: testrestatetaskrole4CC243A3
+  testrestateexecutionrole4CD7F161:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  testrestateexecutionroleDefaultPolicy04DC59EF:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - testrestateloggroup6C0DD0DD
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: testrestateexecutionroleDefaultPolicy04DC59EF
+      Roles:
+        - Ref: testrestateexecutionrole4CD7F161
+  testrestateloggroup6C0DD0DD:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 365
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  testcontrollerloggroupB61E47AC:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 365
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  testcontrollerloggrouperrormetric823876C8:
+    Type: 'AWS::Logs::MetricFilter'
+    Properties:
+      FilterPattern: '[level=ERROR]'
+      LogGroupName:
+        Ref: testcontrollerloggroupB61E47AC
+      MetricTransformations:
+        - MetricName: Errors
+          MetricNamespace: Restate/Controller
+          MetricValue: '1'
+  testsharednlb6BC10CBB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      LoadBalancerAttributes:
+        - Key: deletion_protection.enabled
+          Value: 'false'
+        - Key: load_balancing.cross_zone.enabled
+          Value: 'false'
+        - Key: dns_record.client_routing_policy
+          Value: availability_zone_affinity
+      Scheme: internal
+      SecurityGroups:
+        - 'Fn::GetAtt':
+            - testsecuritygroupB015C031
+            - GroupId
+      Subnets:
+        - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+        - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+        - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/shared-nlb
+      Type: network
+  testingresssharedlistenerF18D3E56:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: testingresssharedtarget779E3570
+          Type: forward
+      LoadBalancerArn:
+        Ref: testsharednlb6BC10CBB
+      Port: 8080
+      Protocol: TCP
+  testadminsharedlistener6D147D79:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: testadminsharedtarget0C095FA8
+          Type: forward
+      LoadBalancerArn:
+        Ref: testsharednlb6BC10CBB
+      Port: 9070
+      Protocol: TCP
+  testnodesharedlistener98A38BFD:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn:
+            Ref: testnodesharedtarget6337BC22
+          Type: forward
+      LoadBalancerArn:
+        Ref: testsharednlb6BC10CBB
+      Port: 5122
+      Protocol: TCP
+  teststatelessdefinition64DABAD1:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 16384
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o
+              container-metadata && \\
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+              exec restate-server
+          Environment:
+            - Name: RESTATE_LOG_FORMAT
+              Value: json
+            - Name: RESTATE_CLUSTER_NAME
+              Value: RestateBYOC/test
+            - Name: RESTATE_ROLES
+              Value: '["admin","http-ingress"]'
+            - Name: RESTATE_AUTO_PROVISION
+              Value: 'true'
+            - Name: RESTATE_SHUTDOWN_TIMEOUT
+              Value: 100s
+            - Name: RESTATE_DEFAULT_NUM_PARTITIONS
+              Value: '128'
+            - Name: RESTATE_DEFAULT_REPLICATION
+              Value: '{zone: 2}'
+            - Name: RESTATE_METADATA_CLIENT__TYPE
+              Value: object-store
+            - Name: RESTATE_METADATA_CLIENT__PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: testbucket731B7DE2
+                    - /metadata
+            - Name: RESTATE_BIFROST__DEFAULT_PROVIDER
+              Value: replicated
+            - Name: >-
+                RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE
+              Value: 'true'
+            - Name: RESTATE_INGRESS__ADVERTISED_INGRESS_ENDPOINT
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 'http://'
+                    - 'Fn::GetAtt':
+                        - testsharednlb6BC10CBB
+                        - DNSName
+                    - ':8080'
+            - Name: RESTATE_WORKER__SNAPSHOTS__DESTINATION
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: testbucket731B7DE2
+                    - /snapshots
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:8080/restate/health'
+            Interval: 30
+            Retries: 3
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: testrestateloggroup6C0DD0DD
+              awslogs-stream-prefix: restate
+              awslogs-region: region
+          Memory: 32768
+          Name: restate
+          PortMappings:
+            - ContainerPort: 8080
+              Name: ingress
+              Protocol: tcp
+            - ContainerPort: 9070
+              Name: admin
+              Protocol: tcp
+            - ContainerPort: 5122
+              Name: node
+              Protocol: tcp
+          StopTimeout: 120
+      Cpu: '16384'
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - testrestateexecutionrole4CD7F161
+          - Arn
+      Family: RestateBYOCteststatelessdefinitionA59C4856
+      Memory: '32768'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/stateless-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - testrestatetaskrole4CC243A3
+          - Arn
+  teststatelessserviceService5CDEA5F0:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      AvailabilityZoneRebalancing: ENABLED
+      Cluster:
+        Ref: testclusterDBD4D436
+      DeploymentConfiguration:
+        Alarms:
+          AlarmNames: []
+          Enable: false
+          Rollback: false
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DesiredCount: 3
+      EnableECSManagedTags: false
+      EnableExecuteCommand: false
+      HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: restate
+          ContainerPort: 8080
+          TargetGroupArn:
+            Ref: testingresssharedtarget779E3570
+        - ContainerName: restate
+          ContainerPort: 9070
+          TargetGroupArn:
+            Ref: testadminsharedtarget0C095FA8
+        - ContainerName: restate
+          ContainerPort: 5122
+          TargetGroupArn:
+            Ref: testnodesharedtarget6337BC22
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - 'Fn::GetAtt':
+                - testsecuritygroupB015C031
+                - GroupId
+          Subnets:
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/stateless-service
+      TaskDefinition:
+        Ref: teststatelessdefinition64DABAD1
+    DependsOn:
+      - testadminsharedlistener6D147D79
+      - testingresssharedlistenerF18D3E56
+      - testnodesharedlistener98A38BFD
+      - testrestatetaskroleDefaultPolicy51A222FD
+      - testrestatetaskrole4CC243A3
+  teststatefuldefinitionB92BAA14:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 16384
+          EntryPoint:
+            - bash
+            - '-c'
+            - >
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o
+              container-metadata && \\
+
+              curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o
+              task-metadata && \\
+
+              export \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
+                RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
+                RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
+              exec restate-server
+          Environment:
+            - Name: RESTATE_LOG_FORMAT
+              Value: json
+            - Name: RESTATE_CLUSTER_NAME
+              Value: RestateBYOC/test
+            - Name: RESTATE_ROLES
+              Value: '["log-server", "worker"]'
+            - Name: RESTATE_AUTO_PROVISION
+              Value: 'false'
+            - Name: RESTATE_SHUTDOWN_TIMEOUT
+              Value: 100s
+            - Name: RESTATE_METADATA_CLIENT__TYPE
+              Value: object-store
+            - Name: RESTATE_METADATA_CLIENT__PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: testbucket731B7DE2
+                    - /metadata
+            - Name: RESTATE_WORKER__SNAPSHOTS__DESTINATION
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: testbucket731B7DE2
+                    - /snapshots
+            - Name: RESTATE_WORKER__SNAPSHOTS__SNAPSHOT_INTERVAL_NUM_RECORDS
+              Value: '1000000'
+            - Name: RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS
+              Value: 'true'
+            - Name: RESTATE_WORKER__STORAGE__ROCKSDB_DISABLE_WAL_FSYNC
+              Value: 'true'
+            - Name: RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET
+              Value: (128 * 2) / (3 * 1)
+            - Name: RESTATE_LOG_SERVER__ROCKSDB_DISABLE_WAL_FSYNC
+              Value: 'true'
+            - Name: RESTATE_LOG_SERVER__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS
+              Value: 'true'
+            - Name: >-
+                RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE
+              Value: 'true'
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:5122/health'
+            Interval: 30
+            Retries: 3
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: testrestateloggroup6C0DD0DD
+              awslogs-stream-prefix: restate
+              awslogs-region: region
+          Memory: 32768
+          MountPoints:
+            - ContainerPath: /restate-data
+              ReadOnly: false
+              SourceVolume: restate-data
+          Name: restate
+          PortMappings:
+            - ContainerPort: 5122
+              Name: node
+              Protocol: tcp
+          RestartPolicy:
+            Enabled: true
+            RestartAttemptPeriod: 60
+          StopTimeout: 120
+      Cpu: '16384'
+      EphemeralStorage:
+        SizeInGiB: 200
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - testrestateexecutionrole4CD7F161
+          - Arn
+      Family: RestateBYOCteststatefuldefinition9B15D9BA
+      Memory: '32768'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/stateful-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - testrestatetaskrole4CC243A3
+          - Arn
+      Volumes:
+        - ConfiguredAtLaunch: false
+          Name: restate-data
+  testingresssharedtarget779E3570:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /restate/health
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 8080
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/ingress-shared-target
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  testadminsharedtarget0C095FA8:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /health
+      HealthCheckPort: '9070'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 9070
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/admin-shared-target
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  testnodesharedtarget6337BC22:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /health
+      HealthCheckPort: '5122'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      Port: 5122
+      Protocol: TCP
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/node-shared-target
+      TargetType: ip
+      VpcId:
+        'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+  testcontrollertaskrole42417C6E:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  testcontrollertaskroleDefaultPolicy030D6236:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: 'ecs:ListTasks'
+            Condition:
+              ArnEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - testclusterDBD4D436
+                    - Arn
+            Effect: Allow
+            Resource: '*'
+            Sid: ECSListActions
+          - Action:
+              - 'ecs:TagResource'
+              - 'ecs:DescribeTasks'
+              - 'ecs:StopTask'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - testclusterDBD4D436
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - testclusterDBD4D436
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - testclusterDBD4D436
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - testclusterDBD4D436
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - testclusterDBD4D436
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - testclusterDBD4D436
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TaskActions
+          - Action: 'ecs:RunTask'
+            Condition:
+              ArnEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - testclusterDBD4D436
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - ':'
+                      - - 'Fn::Select':
+                            - 0
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: teststatefuldefinitionB92BAA14
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: teststatefuldefinitionB92BAA14
+                        - 'Fn::Select':
+                            - 2
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: teststatefuldefinitionB92BAA14
+                        - 'Fn::Select':
+                            - 3
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: teststatefuldefinitionB92BAA14
+                        - 'Fn::Select':
+                            - 4
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: teststatefuldefinitionB92BAA14
+                        - 'Fn::Select':
+                            - 5
+                            - 'Fn::Split':
+                                - ':'
+                                - Ref: teststatefuldefinitionB92BAA14
+                  - ':*'
+            Sid: RunTask
+          - Action: 'iam:PassRole'
+            Condition:
+              StringEquals:
+                'iam:PassedToService': ecs-tasks.amazonaws.com
+            Effect: Allow
+            Resource:
+              - 'Fn::GetAtt':
+                  - testrestatetaskrole4CC243A3
+                  - Arn
+              - 'Fn::GetAtt':
+                  - testrestateexecutionrole4CD7F161
+                  - Arn
+            Sid: RunTaskPassRole
+          - Action:
+              - 'ec2:DescribeVolumes'
+              - 'ec2:DescribeSnapshots'
+            Effect: Allow
+            Resource: '*'
+            Sid: EC2ListActions
+          - Action: 'ec2:CreateSnapshot'
+            Condition:
+              ArnEquals:
+                'aws:RequestTag/restate:ecsClusterArn':
+                  'Fn::GetAtt':
+                    - testclusterDBD4D436
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - '::snapshot/*'
+            Sid: CreateSnapshot
+          - Action: 'ec2:CreateSnapshot'
+            Condition:
+              ArnEquals:
+                'aws:ResourceTag/restate:ecsClusterArn':
+                  'Fn::GetAtt':
+                    - testclusterDBD4D436
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':volume/*'
+            Sid: SnapshotVolume
+          - Action: 'ec2:CreateTags'
+            Condition:
+              StringEquals:
+                'ec2:CreateAction': CreateSnapshot
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - '::snapshot/*'
+            Sid: TagSnapshots
+          - Action:
+              - 'ec2:DeleteVolume'
+              - 'ec2:DeleteSnapshot'
+            Condition:
+              ArnEquals:
+                'aws:ResourceTag/restate:ecsClusterArn':
+                  'Fn::GetAtt':
+                    - testclusterDBD4D436
+                    - Arn
+            Effect: Allow
+            Resource:
+              - 'Fn::Join':
+                  - ''
+                  - - 'arn:'
+                    - Ref: 'AWS::Partition'
+                    - ':ec2:'
+                    - Ref: 'AWS::Region'
+                    - ':'
+                    - Ref: 'AWS::AccountId'
+                    - ':volume/*'
+              - 'Fn::Join':
+                  - ''
+                  - - 'arn:'
+                    - Ref: 'AWS::Partition'
+                    - ':ec2:'
+                    - Ref: 'AWS::Region'
+                    - '::snapshot/*'
+            Sid: DeleteVolumeAndSnapshot
+          - Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::GetAtt':
+                      - testbucket731B7DE2
+                      - Arn
+                  - /*
+            Sid: ReadWriteBucket
+          - Action: 's3:ListBucket'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - testbucket731B7DE2
+                - Arn
+            Sid: ListBucket
+        Version: '2012-10-17'
+      PolicyName: testcontrollertaskroleDefaultPolicy030D6236
+      Roles:
+        - Ref: testcontrollertaskrole42417C6E
+  testcontrollerexecutionrole3BE0C8C4:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+  testcontrollerexecutionroleDefaultPolicy443CB52A:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - testcontrollerloggroupB61E47AC
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: testcontrollerexecutionroleDefaultPolicy443CB52A
+      Roles:
+        - Ref: testcontrollerexecutionrole3BE0C8C4
+  testcontrollerdefinition0C4BC223:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 1024
+          Environment:
+            - Name: RUST_LOG
+              Value: 'info,restate_fargate_controller=debug'
+            - Name: CONTROLLER_LOG_FORMAT
+              Value: json
+            - Name: CONTROLLER_METADATA_PATH
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - 's3://'
+                    - Ref: testbucket731B7DE2
+                    - /metadata
+            - Name: CONTROLLER_RECONCILE_INTERVAL
+              Value: 10s
+            - Name: CONTROLLER_CLUSTER__CLUSTER_ARN
+              Value:
+                'Fn::GetAtt':
+                  - testclusterDBD4D436
+                  - Arn
+            - Name: CONTROLLER_LICENSE_KEY
+              Value: foo
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __REGION
+              Value:
+                Ref: 'AWS::Region'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __CLUSTER_ARN
+              Value:
+                'Fn::GetAtt':
+                  - testclusterDBD4D436
+                  - Arn
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __TASK_PREFIX
+              Value:
+                'Fn::Join':
+                  - /
+                  - - 'Fn::Join':
+                        - ':'
+                        - - 'Fn::Select':
+                              - 0
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - testclusterDBD4D436
+                                              - Arn
+                          - 'Fn::Select':
+                              - 1
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - testclusterDBD4D436
+                                              - Arn
+                          - 'Fn::Select':
+                              - 2
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - testclusterDBD4D436
+                                              - Arn
+                          - 'Fn::Select':
+                              - 3
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - testclusterDBD4D436
+                                              - Arn
+                          - 'Fn::Select':
+                              - 4
+                              - 'Fn::Split':
+                                  - ':'
+                                  - 'Fn::Select':
+                                      - 0
+                                      - 'Fn::Split':
+                                          - /
+                                          - 'Fn::GetAtt':
+                                              - testclusterDBD4D436
+                                              - Arn
+                          - task
+                    - 'Fn::Select':
+                        - 1
+                        - 'Fn::Split':
+                            - /
+                            - 'Fn::GetAtt':
+                                - testclusterDBD4D436
+                                - Arn
+                    - ''
+            - Name: CONTROLLER_EBS_SNAPSHOT_RETENTION_PERIOD
+              Value: 24h
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__ENABLE_EXECUTE_COMMAND
+              Value: 'false'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__SECURITY_GROUPS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::GetAtt':
+                        - testsecuritygroupB015C031
+                        - GroupId
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__SUBNETS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::ImportValue': >-
+                        VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__TASK_DEFINITION_ARN
+              Value:
+                Ref: teststatefuldefinitionB92BAA14
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1a__COUNT
+              Value: '1'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__ENABLE_EXECUTE_COMMAND
+              Value: 'false'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__SECURITY_GROUPS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::GetAtt':
+                        - testsecuritygroupB015C031
+                        - GroupId
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__SUBNETS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::ImportValue': >-
+                        VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__TASK_DEFINITION_ARN
+              Value:
+                Ref: teststatefuldefinitionB92BAA14
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1b__COUNT
+              Value: '1'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__ENABLE_EXECUTE_COMMAND
+              Value: 'false'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__SECURITY_GROUPS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::GetAtt':
+                        - testsecuritygroupB015C031
+                        - GroupId
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__SUBNETS
+              Value:
+                'Fn::Join':
+                  - ''
+                  - - '["'
+                    - 'Fn::ImportValue': >-
+                        VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491
+                    - '"]'
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__TASK_DEFINITION_ARN
+              Value:
+                Ref: teststatefuldefinitionB92BAA14
+            - Name:
+                'Fn::Join':
+                  - ''
+                  - - CONTROLLER_ECS_CLUSTERS__
+                    - Ref: 'AWS::Region'
+                    - __ZONES__dummy1c__COUNT
+              Value: '1'
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - curl
+              - '--fail'
+              - 'http://127.0.0.1:8080/health'
+            Interval: 30
+            Retries: 10
+            StartPeriod: 300
+            Timeout: 5
+          Image: Any<Object>
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: testcontrollerloggroupB61E47AC
+              awslogs-stream-prefix: controller
+              awslogs-region: region
+          Memory: 2048
+          Name: controller
+          StopTimeout: 120
+      Cpu: '1024'
+      ExecutionRoleArn:
+        'Fn::GetAtt':
+          - testcontrollerexecutionrole3BE0C8C4
+          - Arn
+      Family: RestateBYOCtestcontrollerdefinitionA329F74F
+      Memory: '2048'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/controller-definition
+      TaskRoleArn:
+        'Fn::GetAtt':
+          - testcontrollertaskrole42417C6E
+          - Arn
+  testcontrollerserviceService356186D6:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      Cluster:
+        Ref: testclusterDBD4D436
+      DeploymentConfiguration:
+        Alarms:
+          AlarmNames: []
+          Enable: false
+          Rollback: false
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      DesiredCount: 1
+      EnableECSManagedTags: false
+      EnableExecuteCommand: false
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - 'Fn::GetAtt':
+                - testsecuritygroupB015C031
+                - GroupId
+          Subnets:
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/controller-service
+      TaskDefinition:
+        Ref: testcontrollerdefinition0C4BC223
+    DependsOn:
+      - testcontrollertaskroleDefaultPolicy030D6236
+      - testcontrollertaskrole42417C6E
+  testrestatectlloggroupC2AAB6C7:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 180
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  testrestatectllambdaexecutionrole9C923F83:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  testrestatectllambdaexecutionroleDefaultPolicy93BA3725:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: testrestatectlloggroupC2AAB6C7
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
+          - Action:
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:DescribeNetworkInterfaces'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DeleteNetworkInterface'
+            Effect: Allow
+            Resource: '*'
+            Sid: AWSLambdaVPCWildcardPermissions
+          - Action:
+              - 'ec2:AssignPrivateIpAddresses'
+              - 'ec2:UnassignPrivateIpAddresses'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ec2:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':network-interface/*'
+            Sid: AWSLambdaVPCNetworkInterfacePermissions
+        Version: '2012-10-17'
+      PolicyName: testrestatectllambdaexecutionroleDefaultPolicy93BA3725
+      Roles:
+        - Ref: testrestatectllambdaexecutionrole9C923F83
+  testrestatectllambda6F1900FA:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Environment:
+        Variables:
+          RESTATECTL_ADDRESS:
+            'Fn::Join':
+              - ''
+              - - 'http://'
+                - 'Fn::GetAtt':
+                    - testsharednlb6BC10CBB
+                    - DNSName
+                - ':5122'
+      Handler: restatectl
+      LoggingConfig:
+        LogGroup:
+          Ref: testrestatectlloggroupC2AAB6C7
+      Role:
+        'Fn::GetAtt':
+          - testrestatectllambdaexecutionrole9C923F83
+          - Arn
+      Runtime: provided.al2023
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/restatectl-lambda
+      Timeout: 10
+      VpcConfig:
+        SecurityGroupIds:
+          - 'Fn::GetAtt':
+              - testsecuritygroupB015C031
+              - GroupId
+        SubnetIds:
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+          - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+    DependsOn:
+      - testrestatectllambdaexecutionroleDefaultPolicy93BA3725
+      - testrestatectllambdaexecutionrole9C923F83
+  testretirementwatcherloggroupBCD89B2E:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 180
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  testretirementwatcherlambdaexecutionrole0BCEB9D0:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  testretirementwatcherlambdaexecutionroleDefaultPolicy6E9FBD0D:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: testretirementwatcherloggroupBCD89B2E
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
+          - Action: 'ecs:TagResource'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'Fn::Join':
+                      - /
+                      - - 'Fn::Join':
+                            - ':'
+                            - - 'Fn::Select':
+                                  - 0
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - testclusterDBD4D436
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 1
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - testclusterDBD4D436
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 2
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - testclusterDBD4D436
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 3
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - testclusterDBD4D436
+                                                  - Arn
+                              - 'Fn::Select':
+                                  - 4
+                                  - 'Fn::Split':
+                                      - ':'
+                                      - 'Fn::Select':
+                                          - 0
+                                          - 'Fn::Split':
+                                              - /
+                                              - 'Fn::GetAtt':
+                                                  - testclusterDBD4D436
+                                                  - Arn
+                              - task
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - /
+                                - 'Fn::GetAtt':
+                                    - testclusterDBD4D436
+                                    - Arn
+                        - ''
+                  - '*'
+            Sid: TagTasks
+          - Action:
+              - 'sqs:ReceiveMessage'
+              - 'sqs:ChangeMessageVisibility'
+              - 'sqs:GetQueueUrl'
+              - 'sqs:DeleteMessage'
+              - 'sqs:GetQueueAttributes'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - testretirementwatcherqueue71FDBFE9
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: testretirementwatcherlambdaexecutionroleDefaultPolicy6E9FBD0D
+      Roles:
+        - Ref: testretirementwatcherlambdaexecutionrole0BCEB9D0
+  testretirementwatcherlambdaF666308D:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: testretirementwatcherloggroupBCD89B2E
+      Role:
+        'Fn::GetAtt':
+          - testretirementwatcherlambdaexecutionrole0BCEB9D0
+          - Arn
+      Runtime: nodejs22.x
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/retirement-watcher-lambda
+      Timeout: 60
+    DependsOn:
+      - testretirementwatcherlambdaexecutionroleDefaultPolicy6E9FBD0D
+      - testretirementwatcherlambdaexecutionrole0BCEB9D0
+  testretirementwatcherlambdaSqsEventSourceRestateBYOCtestretirementwatcherqueue805C85E9DF913057:
+    Type: 'AWS::Lambda::EventSourceMapping'
+    Properties:
+      BatchSize: 1
+      EventSourceArn:
+        'Fn::GetAtt':
+          - testretirementwatcherqueue71FDBFE9
+          - Arn
+      FunctionName:
+        Ref: testretirementwatcherlambdaF666308D
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/retirement-watcher-lambda
+  testretirementwatcherqueue71FDBFE9:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/retirement-watcher-queue
+      VisibilityTimeout: 60
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  testretirementwatcherqueuePolicy7D50DFC3:
+    Type: 'AWS::SQS::QueuePolicy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'sqs:SendMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
+            Condition:
+              ArnEquals:
+                'aws:SourceArn':
+                  'Fn::GetAtt':
+                    - testretirementwatcherruleBA70D9F7
+                    - Arn
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Resource:
+              'Fn::GetAtt':
+                - testretirementwatcherqueue71FDBFE9
+                - Arn
+        Version: '2012-10-17'
+      Queues:
+        - Ref: testretirementwatcherqueue71FDBFE9
+  testretirementwatcherruleBA70D9F7:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        detail:
+          eventTypeCode:
+            - equals-ignore-case: AWS_ECS_TASK_PATCHING_RETIREMENT
+          service:
+            - equals-ignore-case: ecs
+        resources:
+          - prefix:
+              'Fn::Join':
+                - /
+                - - 'Fn::Join':
+                      - ':'
+                      - - 'Fn::Select':
+                            - 0
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - testclusterDBD4D436
+                                            - Arn
+                        - 'Fn::Select':
+                            - 1
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - testclusterDBD4D436
+                                            - Arn
+                        - 'Fn::Select':
+                            - 2
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - testclusterDBD4D436
+                                            - Arn
+                        - 'Fn::Select':
+                            - 3
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - testclusterDBD4D436
+                                            - Arn
+                        - 'Fn::Select':
+                            - 4
+                            - 'Fn::Split':
+                                - ':'
+                                - 'Fn::Select':
+                                    - 0
+                                    - 'Fn::Split':
+                                        - /
+                                        - 'Fn::GetAtt':
+                                            - testclusterDBD4D436
+                                            - Arn
+                        - task
+                  - 'Fn::Select':
+                      - 1
+                      - 'Fn::Split':
+                          - /
+                          - 'Fn::GetAtt':
+                              - testclusterDBD4D436
+                              - Arn
+                  - ''
+        detail-type:
+          - equals-ignore-case: AWS Health Event
+      State: ENABLED
+      Targets:
+        - Arn:
+            'Fn::GetAtt':
+              - testretirementwatcherqueue71FDBFE9
+              - Arn
+          Id: Target0
+  testcloudwatchcustomwidgetloggroupEBFA438D:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 180
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  testcloudwatchcustomwidgetexecutionrole72F32199:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  testcloudwatchcustomwidgetexecutionroleDefaultPolicy4D8EC73B:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':logs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':log-group:'
+                  - Ref: testcloudwatchcustomwidgetloggroupEBFA438D
+                  - ':log-stream:*'
+            Sid: AWSLambdaLogStreamPermissions
+          - Action: 'lambda:InvokeFunction'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - testrestatectllambda6F1900FA
+                - Arn
+            Sid: InvokeRestatectl
+          - Action: 'ecs:DescribeTaskDefinition'
+            Effect: Allow
+            Resource: '*'
+            Sid: ECSReadActions
+          - Action: 'ecs:ListTasks'
+            Condition:
+              StringEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - testclusterDBD4D436
+                    - Arn
+            Effect: Allow
+            Resource: '*'
+            Sid: ECSListTasks
+          - Action: 'ecs:DescribeTasks'
+            Condition:
+              StringEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - testclusterDBD4D436
+                    - Arn
+            Effect: Allow
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:'
+                  - Ref: 'AWS::Partition'
+                  - ':ecs:'
+                  - Ref: 'AWS::Region'
+                  - ':'
+                  - Ref: 'AWS::AccountId'
+                  - ':task/'
+                  - Ref: testclusterDBD4D436
+                  - /*
+            Sid: ECSDescribeTasks
+          - Action: 'ecs:DescribeServices'
+            Condition:
+              StringEquals:
+                'ecs:cluster':
+                  'Fn::GetAtt':
+                    - testclusterDBD4D436
+                    - Arn
+            Effect: Allow
+            Resource:
+              - Ref: testcontrollerserviceService356186D6
+              - Ref: teststatelessserviceService5CDEA5F0
+            Sid: ECSDescribeServices
+          - Action: 'cloudwatch:GetMetricData'
+            Effect: Allow
+            Resource: '*'
+            Sid: CloudWatchReadActions
+        Version: '2012-10-17'
+      PolicyName: testcloudwatchcustomwidgetexecutionroleDefaultPolicy4D8EC73B
+      Roles:
+        - Ref: testcloudwatchcustomwidgetexecutionrole72F32199
+  testcloudwatchcustomwidgetlambdaB0DB8C59:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Architectures:
+        - arm64
+      Code: Any<Object>
+      Environment:
+        Variables:
+          ENABLE_EBS_VOLUMES: 'false'
+      Handler: index.handler
+      LoggingConfig:
+        LogGroup:
+          Ref: testcloudwatchcustomwidgetloggroupEBFA438D
+      MemorySize: 1024
+      Role:
+        'Fn::GetAtt':
+          - testcloudwatchcustomwidgetexecutionrole72F32199
+          - Arn
+      Runtime: nodejs22.x
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/cloudwatch-custom-widget-lambda
+      Timeout: 60
+    DependsOn:
+      - testcloudwatchcustomwidgetexecutionroleDefaultPolicy4D8EC73B
+      - testcloudwatchcustomwidgetexecutionrole72F32199
+  testcloudwatchcustomwidgetlambdacloudwatchcustomwidgetlambdaallowdatasource06DF513A:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - testcloudwatchcustomwidgetlambdaB0DB8C59
+          - Arn
+      Principal: lambda.datasource.cloudwatch.amazonaws.com
+  testmetricsAAAB7FF4:
+    Type: 'AWS::CloudWatch::Dashboard'
+    Properties:
+      DashboardBody:
+        'Fn::Join':
+          - ''
+          - - >-
+              {"widgets":[{"type":"metric","width":12,"height":6,"x":0,"y":0,"properties":{"view":"timeSeries","title":"Stateless
+              CPU","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"CPU","expression":"SELECT AVG(CpuUtilized)
+              FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCteststatelessdefinitionA59C4856' GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":16384,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"vCPUs","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":0,"properties":{"view":"timeSeries","title":"Stateless
+              Memory","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Memory","expression":"SELECT
+              AVG(MemoryUtilized) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCteststatelessdefinitionA59C4856' GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":32768,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"MiB","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":0,"y":6,"properties":{"view":"timeSeries","title":"Stateless
+              Network Tx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Tx","expression":"SELECT
+              AVG(NetworkTxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCteststatelessdefinitionA59C4856' GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":6,"properties":{"view":"timeSeries","title":"Stateless
+              Network Rx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Rx","expression":"SELECT
+              AVG(NetworkRxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily =
+              'RestateBYOCteststatelessdefinitionA59C4856' GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":12,"properties":{"view":"table","title":"Stateless
+              Logs","region":"region","query":"SOURCE '
+            - Ref: testrestateloggroup6C0DD0DD
+            - >-
+              ' | fields @logStream, @timestamp, level, fields.message,
+              target\\n          | sort @timestamp desc\\n          | limit
+              500"}},{"type":"metric","width":12,"height":6,"x":0,"y":18,"properties":{"view":"timeSeries","title":"Stateful
+              CPU","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"CPU","expression":"SELECT AVG(CpuUtilized)
+              FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily = 'RestateBYOCteststatefuldefinition9B15D9BA'
+              GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":16384,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"vCPUs","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":18,"properties":{"view":"timeSeries","title":"Stateful
+              Memory","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Memory","expression":"SELECT
+              AVG(MemoryUtilized) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily = 'RestateBYOCteststatefuldefinition9B15D9BA'
+              GROUP BY
+              TaskId"}]],"annotations":{"horizontal":[{"value":32768,"label":"Limit","yAxis":"left"}]},"yAxis":{"left":{"label":"MiB","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":0,"y":24,"properties":{"view":"timeSeries","title":"Stateful
+              Network Tx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Tx","expression":"SELECT
+              AVG(NetworkTxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily = 'RestateBYOCteststatefuldefinition9B15D9BA'
+              GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"metric","width":12,"height":6,"x":12,"y":24,"properties":{"view":"timeSeries","title":"Stateful
+              Network Rx","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Rx","expression":"SELECT
+              AVG(NetworkRxBytes) FROM SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily = 'RestateBYOCteststatefuldefinition9B15D9BA'
+              GROUP BY
+              TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":30,"properties":{"view":"table","title":"Stateful
+              Logs","region":"region","query":"SOURCE '
+            - Ref: testrestateloggroup6C0DD0DD
+            - >-
+              ' | fields @logStream, @timestamp, level, fields.message,
+              target\\n          | sort @timestamp desc\\n          | limit
+              500"}},{"type":"metric","width":8,"height":6,"x":0,"y":36,"properties":{"view":"timeSeries","title":"Ephemeral
+              Volume Usage (Total size 200GiB)","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Usage","expression":"SELECT
+              MAX(EphemeralStorageUtilized) FROM
+              SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily) WHERE TaskDefinitionFamily =
+              'RestateBYOCteststatefuldefinition9B15D9BA'"}]],"annotations":{"horizontal":[{"value":200,"label":"Volume
+              size","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"GiB","showUnits":false}},"liveData":false}},{"type":"metric","width":8,"height":6,"x":8,"y":36,"properties":{"view":"timeSeries","title":"Volume
+              Write Throughput (Limited to 150 MiB/sec)","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Write","expression":"RATE(count) /
+              1048576"}],[{"expression":"SELECT MAX(StorageWriteBytes) FROM
+              SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily = 'RestateBYOCteststatefuldefinition9B15D9BA'
+              GROUP BY
+              TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"metric","width":8,"height":6,"x":16,"y":36,"properties":{"view":"timeSeries","title":"Volume
+              Read Throughput (Limited to 150 MiB/sec)","region":"
+            - Ref: 'AWS::Region'
+            - >-
+              ","metrics":[[{"label":"Read","expression":"RATE(count) /
+              1048576"}],[{"expression":"SELECT MAX(StorageReadBytes) FROM
+              SCHEMA(\\"ECS/ContainerInsights\\",
+              ClusterName,TaskDefinitionFamily,TaskId) WHERE
+              TaskDefinitionFamily = 'RestateBYOCteststatefuldefinition9B15D9BA'
+              GROUP BY
+              TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":42,"properties":{"view":"table","title":"Controller
+              Logs","region":"region","query":"SOURCE '
+            - Ref: testcontrollerloggroupB61E47AC
+            - >-
+              ' | fields @logStream, @timestamp, level, fields.message,
+              target\\n          | sort @timestamp desc\\n          | limit
+              500"}}]}
+      DashboardName: RestateBYOC_test_metrics
+  testcontrolpanel0D5F1B33:
+    Type: 'AWS::CloudWatch::Dashboard'
+    Properties:
+      DashboardBody:
+        'Fn::Join':
+          - ''
+          - - >-
+              {"widgets":[{"type":"custom","width":24,"height":26,"x":0,"y":0,"properties":{"endpoint":"
+            - 'Fn::GetAtt':
+                - testcloudwatchcustomwidgetlambdaB0DB8C59
+                - Arn
+            - '","params":{"command":"controlPanel","input":{"region":"'
+            - Ref: 'AWS::Region'
+            - >-
+              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+            - Ref: testmetricsAAAB7FF4
+            - '"},"resources":{"ecsClusterArn":"'
+            - 'Fn::GetAtt':
+                - testclusterDBD4D436
+                - Arn
+            - '","statelessServiceArn":"'
+            - Ref: teststatelessserviceService5CDEA5F0
+            - '","controllerServiceArn":"'
+            - Ref: testcontrollerserviceService356186D6
+            - '","restatectlLambdaArn":"'
+            - 'Fn::GetAtt':
+                - testrestatectllambda6F1900FA
+                - Arn
+            - >-
+              "},"connectivityAndSecurity":{"connectivity":{"loadBalancerArns":{"ingress":["
+            - Ref: testsharednlb6BC10CBB
+            - '"],"admin":["'
+            - Ref: testsharednlb6BC10CBB
+            - '"]},"addresses":{"ingress":"http://'
+            - 'Fn::GetAtt':
+                - testsharednlb6BC10CBB
+                - DNSName
+            - ':8080","admin":"http://'
+            - 'Fn::GetAtt':
+                - testsharednlb6BC10CBB
+                - DNSName
+            - ':9070","webUI":"http://'
+            - 'Fn::GetAtt':
+                - testsharednlb6BC10CBB
+                - DNSName
+            - ':9070/ui"}},"networking":{"vpc":"'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcA2121C384D1B3CDE'
+            - '","availabilityZones":["dummy1a","dummy1b","dummy1c"],"subnets":["'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
+            - '","'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+            - '","'
+            - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+            - '"]},"security":{"securityGroups":["'
+            - 'Fn::GetAtt':
+                - testsecuritygroupB015C031
+                - GroupId
+            - '"]}},"storage":{"s3":{"bucket":"'
+            - Ref: testbucket731B7DE2
+            - >-
+              "}}}},"title":"","updateOn":{"refresh":true,"resize":true,"timeRange":true}}}]}
+      DashboardName: RestateBYOC_test_control-panel
+  testroleB50A37BE:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+  testroleDefaultPolicy884631E2:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'logs:FilterLogEvents'
+              - 'logs:GetLogEvents'
+              - 'logs:GetLogGroupFields'
+              - 'logs:DescribeLogGroups'
+              - 'logs:DescribeLogStreams'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - testrestateloggroup6C0DD0DD
+                - Arn
+          - Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                - testcontrollerloggroupB61E47AC
+                - Arn
+        Version: '2012-10-17'
+      PolicyName: testroleDefaultPolicy884631E2
+      Roles:
+        - Ref: testroleB50A37BE
+Outputs:
+  testSecurityGroups50C338D1:
+    Description: The security group IDs of the cluster
+    Value:
+      'Fn::GetAtt':
+        - testsecuritygroupB015C031
+        - GroupId
+  testIngressNetworkListenerA459AD14:
+    Description: The ARN of the network listener for the ingress port
+    Value:
+      Ref: testingresssharedlistenerF18D3E56
+  testIngressNetworkTargetGroup73857B83:
+    Description: The ARN of the network target group for the ingress port
+    Value:
+      Ref: testingresssharedtarget779E3570
+  testAdminNetworkListener840296BA:
+    Description: The ARN of the network listener for the admin port
+    Value:
+      Ref: testadminsharedlistener6D147D79
+  testAdminNetworkTargetGroup1541C506:
+    Description: The ARN of the network target group for the admin port
+    Value:
+      Ref: testadminsharedtarget0C095FA8
+  testNodeNetworkListener743144A9:
+    Description: The ARN of the network listener for the node port
+    Value:
+      Ref: testnodesharedlistener98A38BFD
+  testNodeNetworkTargetGroup76D5EEBA:
+    Description: The ARN of the network target group for the node port
+    Value:
+      Ref: testnodesharedtarget6337BC22
 "
 `;
 
@@ -2154,20 +4152,24 @@ exports[`BYOC With cluster name 1`] = `
             Effect: Allow
             Resource:
               'Fn::GetAtt':
-                - withclusternamestatelessdefinitionrestateLogGroupD1454406
-                - Arn
-          - Action:
-              - 'logs:CreateLogStream'
-              - 'logs:PutLogEvents'
-            Effect: Allow
-            Resource:
-              'Fn::GetAtt':
-                - withclusternamestatefuldefinitionrestateLogGroupD1D0F98D
+                - withclusternamerestateloggroupC9A99FB9
                 - Arn
         Version: '2012-10-17'
       PolicyName: withclusternamerestateexecutionroleDefaultPolicyEBAE444C
       Roles:
         - Ref: withclusternamerestateexecutionroleEAACE718
+  withclusternamerestateloggroupC9A99FB9:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withclusternamecontrollerloggroup157ABD85:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withclusternamesharednlb8C523D9C:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
@@ -2305,7 +4307,7 @@ exports[`BYOC With cluster name 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withclusternamestatelessdefinitionrestateLogGroupD1454406
+                Ref: withclusternamerestateloggroupC9A99FB9
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 32768
@@ -2341,14 +4343,6 @@ exports[`BYOC With cluster name 1`] = `
         'Fn::GetAtt':
           - withclusternamerestatetaskrole3143312B
           - Arn
-  withclusternamestatelessdefinitionrestateLogGroupD1454406:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-cluster-name/stateless-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withclusternamestatelessserviceServiceA9323A0F:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -2483,7 +4477,7 @@ exports[`BYOC With cluster name 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withclusternamestatefuldefinitionrestateLogGroupD1D0F98D
+                Ref: withclusternamerestateloggroupC9A99FB9
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 32768
@@ -2525,14 +4519,6 @@ exports[`BYOC With cluster name 1`] = `
       Volumes:
         - ConfiguredAtLaunch: false
           Name: restate-data
-  withclusternamestatefuldefinitionrestateLogGroupD1D0F98D:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-cluster-name/stateful-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withclusternameingresssharedtargetB3D385F9:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties:
@@ -2872,7 +4858,7 @@ exports[`BYOC With cluster name 1`] = `
             Effect: Allow
             Resource:
               'Fn::GetAtt':
-                - withclusternamecontrollerdefinitioncontrollerLogGroup9DEF9F32
+                - withclusternamecontrollerloggroup157ABD85
                 - Arn
         Version: '2012-10-17'
       PolicyName: withclusternamecontrollerexecutionroleDefaultPolicy352367F7
@@ -3162,7 +5148,7 @@ exports[`BYOC With cluster name 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withclusternamecontrollerdefinitioncontrollerLogGroup9DEF9F32
+                Ref: withclusternamecontrollerloggroup157ABD85
               awslogs-stream-prefix: controller
               awslogs-region: region
           Memory: 2048
@@ -3188,14 +5174,6 @@ exports[`BYOC With cluster name 1`] = `
         'Fn::GetAtt':
           - withclusternamecontrollertaskroleD965AFAA
           - Arn
-  withclusternamecontrollerdefinitioncontrollerLogGroup9DEF9F32:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-cluster-name/controller-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withclusternamecontrollerserviceService7DEFCD49:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -3234,7 +5212,7 @@ exports[`BYOC With cluster name 1`] = `
   withclusternamerestatectlloggroup03E0BF5F:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withclusternamerestatectllambdaexecutionrole0F7FCC2E:
@@ -3340,7 +5318,7 @@ exports[`BYOC With cluster name 1`] = `
   withclusternameretirementwatcherloggroup9E8494A5:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withclusternameretirementwatcherlambdaexecutionrole9364C1F9:
@@ -3625,7 +5603,7 @@ exports[`BYOC With cluster name 1`] = `
   withclusternamecloudwatchcustomwidgetloggroup4AC45DBE:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withclusternamecloudwatchcustomwidgetexecutionrole11E14880:
@@ -3802,7 +5780,7 @@ exports[`BYOC With cluster name 1`] = `
               'RestateBYOCwithclusternamestatelessdefinition07E62327' GROUP BY
               TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":12,"properties":{"view":"table","title":"Stateless
               Logs","region":"region","query":"SOURCE '
-            - Ref: withclusternamestatelessdefinitionrestateLogGroupD1454406
+            - Ref: withclusternamerestateloggroupC9A99FB9
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -3844,7 +5822,7 @@ exports[`BYOC With cluster name 1`] = `
               'RestateBYOCwithclusternamestatefuldefinitionA7F94D22' GROUP BY
               TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":30,"properties":{"view":"table","title":"Stateful
               Logs","region":"region","query":"SOURCE '
-            - Ref: withclusternamestatefuldefinitionrestateLogGroupD1D0F98D
+            - Ref: withclusternamerestateloggroupC9A99FB9
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -3879,7 +5857,7 @@ exports[`BYOC With cluster name 1`] = `
               'RestateBYOCwithclusternamestatefuldefinitionA7F94D22' GROUP BY
               TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":42,"properties":{"view":"table","title":"Controller
               Logs","region":"region","query":"SOURCE '
-            - Ref: withclusternamecontrollerdefinitioncontrollerLogGroup9DEF9F32
+            - Ref: withclusternamecontrollerloggroup157ABD85
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -4110,20 +6088,24 @@ exports[`BYOC With existing bucket 1`] = `
             Effect: Allow
             Resource:
               'Fn::GetAtt':
-                - withclusternamestatelessdefinitionrestateLogGroupD1454406
-                - Arn
-          - Action:
-              - 'logs:CreateLogStream'
-              - 'logs:PutLogEvents'
-            Effect: Allow
-            Resource:
-              'Fn::GetAtt':
-                - withclusternamestatefuldefinitionrestateLogGroupD1D0F98D
+                - withclusternamerestateloggroupC9A99FB9
                 - Arn
         Version: '2012-10-17'
       PolicyName: withclusternamerestateexecutionroleDefaultPolicyEBAE444C
       Roles:
         - Ref: withclusternamerestateexecutionroleEAACE718
+  withclusternamerestateloggroupC9A99FB9:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withclusternamecontrollerloggroup157ABD85:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withclusternamesharednlb8C523D9C:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
@@ -4251,7 +6233,7 @@ exports[`BYOC With existing bucket 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withclusternamestatelessdefinitionrestateLogGroupD1454406
+                Ref: withclusternamerestateloggroupC9A99FB9
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 32768
@@ -4287,14 +6269,6 @@ exports[`BYOC With existing bucket 1`] = `
         'Fn::GetAtt':
           - withclusternamerestatetaskrole3143312B
           - Arn
-  withclusternamestatelessdefinitionrestateLogGroupD1454406:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-cluster-name/stateless-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withclusternamestatelessserviceServiceA9323A0F:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -4419,7 +6393,7 @@ exports[`BYOC With existing bucket 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withclusternamestatefuldefinitionrestateLogGroupD1D0F98D
+                Ref: withclusternamerestateloggroupC9A99FB9
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 32768
@@ -4461,14 +6435,6 @@ exports[`BYOC With existing bucket 1`] = `
       Volumes:
         - ConfiguredAtLaunch: false
           Name: restate-data
-  withclusternamestatefuldefinitionrestateLogGroupD1D0F98D:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-cluster-name/stateful-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withclusternameingresssharedtargetB3D385F9:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties:
@@ -4809,7 +6775,7 @@ exports[`BYOC With existing bucket 1`] = `
             Effect: Allow
             Resource:
               'Fn::GetAtt':
-                - withclusternamecontrollerdefinitioncontrollerLogGroup9DEF9F32
+                - withclusternamecontrollerloggroup157ABD85
                 - Arn
         Version: '2012-10-17'
       PolicyName: withclusternamecontrollerexecutionroleDefaultPolicy352367F7
@@ -5094,7 +7060,7 @@ exports[`BYOC With existing bucket 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withclusternamecontrollerdefinitioncontrollerLogGroup9DEF9F32
+                Ref: withclusternamecontrollerloggroup157ABD85
               awslogs-stream-prefix: controller
               awslogs-region: region
           Memory: 2048
@@ -5120,14 +7086,6 @@ exports[`BYOC With existing bucket 1`] = `
         'Fn::GetAtt':
           - withclusternamecontrollertaskroleD965AFAA
           - Arn
-  withclusternamecontrollerdefinitioncontrollerLogGroup9DEF9F32:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-cluster-name/controller-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withclusternamecontrollerserviceService7DEFCD49:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -5166,7 +7124,7 @@ exports[`BYOC With existing bucket 1`] = `
   withclusternamerestatectlloggroup03E0BF5F:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withclusternamerestatectllambdaexecutionrole0F7FCC2E:
@@ -5272,7 +7230,7 @@ exports[`BYOC With existing bucket 1`] = `
   withclusternameretirementwatcherloggroup9E8494A5:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withclusternameretirementwatcherlambdaexecutionrole9364C1F9:
@@ -5557,7 +7515,7 @@ exports[`BYOC With existing bucket 1`] = `
   withclusternamecloudwatchcustomwidgetloggroup4AC45DBE:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withclusternamecloudwatchcustomwidgetexecutionrole11E14880:
@@ -5734,7 +7692,7 @@ exports[`BYOC With existing bucket 1`] = `
               'RestateBYOCwithclusternamestatelessdefinition07E62327' GROUP BY
               TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":12,"properties":{"view":"table","title":"Stateless
               Logs","region":"region","query":"SOURCE '
-            - Ref: withclusternamestatelessdefinitionrestateLogGroupD1454406
+            - Ref: withclusternamerestateloggroupC9A99FB9
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -5776,7 +7734,7 @@ exports[`BYOC With existing bucket 1`] = `
               'RestateBYOCwithclusternamestatefuldefinitionA7F94D22' GROUP BY
               TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":30,"properties":{"view":"table","title":"Stateful
               Logs","region":"region","query":"SOURCE '
-            - Ref: withclusternamestatefuldefinitionrestateLogGroupD1D0F98D
+            - Ref: withclusternamerestateloggroupC9A99FB9
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -5811,7 +7769,7 @@ exports[`BYOC With existing bucket 1`] = `
               'RestateBYOCwithclusternamestatefuldefinitionA7F94D22' GROUP BY
               TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":42,"properties":{"view":"table","title":"Controller
               Logs","region":"region","query":"SOURCE '
-            - Ref: withclusternamecontrollerdefinitioncontrollerLogGroup9DEF9F32
+            - Ref: withclusternamecontrollerloggroup157ABD85
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -6074,38 +8032,24 @@ exports[`BYOC With otel collector 1`] = `
             Effect: Allow
             Resource:
               'Fn::GetAtt':
-                - withotelcollectorstatelessdefinitionrestateLogGroup9C507C4C
-                - Arn
-          - Action:
-              - 'logs:CreateLogStream'
-              - 'logs:PutLogEvents'
-            Effect: Allow
-            Resource:
-              'Fn::GetAtt':
-                - >-
-                  withotelcollectorstatelessdefinitionotelcollectorLogGroupBD6FEFA3
-                - Arn
-          - Action:
-              - 'logs:CreateLogStream'
-              - 'logs:PutLogEvents'
-            Effect: Allow
-            Resource:
-              'Fn::GetAtt':
-                - withotelcollectorstatefuldefinitionrestateLogGroupBF29129D
-                - Arn
-          - Action:
-              - 'logs:CreateLogStream'
-              - 'logs:PutLogEvents'
-            Effect: Allow
-            Resource:
-              'Fn::GetAtt':
-                - >-
-                  withotelcollectorstatefuldefinitionotelcollectorLogGroup08E99608
+                - withotelcollectorrestateloggroupE7CD68F4
                 - Arn
         Version: '2012-10-17'
       PolicyName: withotelcollectorrestateexecutionroleDefaultPolicyC64BE7CC
       Roles:
         - Ref: withotelcollectorrestateexecutionroleEB9F4CAC
+  withotelcollectorrestateloggroupE7CD68F4:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withotelcollectorcontrollerloggroupE0170504:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withotelcollectorsharednlbB07E655C:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
@@ -6243,7 +8187,7 @@ exports[`BYOC With otel collector 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withotelcollectorstatelessdefinitionrestateLogGroup9C507C4C
+                Ref: withotelcollectorrestateloggroupE7CD68F4
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 32256
@@ -6279,8 +8223,7 @@ exports[`BYOC With otel collector 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: >-
-                  withotelcollectorstatelessdefinitionotelcollectorLogGroupBD6FEFA3
+                Ref: withotelcollectorrestateloggroupE7CD68F4
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 512
@@ -6309,22 +8252,6 @@ exports[`BYOC With otel collector 1`] = `
         'Fn::GetAtt':
           - withotelcollectorrestatetaskrole86DA1F80
           - Arn
-  withotelcollectorstatelessdefinitionrestateLogGroup9C507C4C:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-otel-collector/stateless-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
-  withotelcollectorstatelessdefinitionotelcollectorLogGroupBD6FEFA3:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-otel-collector/stateless-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withotelcollectorstatelessserviceService8ABCCEA9:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -6459,7 +8386,7 @@ exports[`BYOC With otel collector 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withotelcollectorstatefuldefinitionrestateLogGroupBF29129D
+                Ref: withotelcollectorrestateloggroupE7CD68F4
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 32256
@@ -6496,8 +8423,7 @@ exports[`BYOC With otel collector 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: >-
-                  withotelcollectorstatefuldefinitionotelcollectorLogGroup08E99608
+                Ref: withotelcollectorrestateloggroupE7CD68F4
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 512
@@ -6531,22 +8457,6 @@ exports[`BYOC With otel collector 1`] = `
       Volumes:
         - ConfiguredAtLaunch: false
           Name: restate-data
-  withotelcollectorstatefuldefinitionrestateLogGroupBF29129D:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-otel-collector/stateful-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
-  withotelcollectorstatefuldefinitionotelcollectorLogGroup08E99608:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-otel-collector/stateful-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withotelcollectoringresssharedtarget878F9905:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties:
@@ -6886,8 +8796,7 @@ exports[`BYOC With otel collector 1`] = `
             Effect: Allow
             Resource:
               'Fn::GetAtt':
-                - >-
-                  withotelcollectorcontrollerdefinitioncontrollerLogGroup514C9EF0
+                - withotelcollectorcontrollerloggroupE0170504
                 - Arn
         Version: '2012-10-17'
       PolicyName: withotelcollectorcontrollerexecutionroleDefaultPolicy435FD9C3
@@ -7177,8 +9086,7 @@ exports[`BYOC With otel collector 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: >-
-                  withotelcollectorcontrollerdefinitioncontrollerLogGroup514C9EF0
+                Ref: withotelcollectorcontrollerloggroupE0170504
               awslogs-stream-prefix: controller
               awslogs-region: region
           Memory: 2048
@@ -7204,14 +9112,6 @@ exports[`BYOC With otel collector 1`] = `
         'Fn::GetAtt':
           - withotelcollectorcontrollertaskrole025F5504
           - Arn
-  withotelcollectorcontrollerdefinitioncontrollerLogGroup514C9EF0:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-otel-collector/controller-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withotelcollectorcontrollerserviceService83299A78:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -7250,7 +9150,7 @@ exports[`BYOC With otel collector 1`] = `
   withotelcollectorrestatectlloggroup4D5886B6:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withotelcollectorrestatectllambdaexecutionroleA0831EA5:
@@ -7356,7 +9256,7 @@ exports[`BYOC With otel collector 1`] = `
   withotelcollectorretirementwatcherloggroupF6A70EF5:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withotelcollectorretirementwatcherlambdaexecutionroleC58542B9:
@@ -7643,7 +9543,7 @@ exports[`BYOC With otel collector 1`] = `
   withotelcollectorcloudwatchcustomwidgetloggroup476A8511:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withotelcollectorcloudwatchcustomwidgetexecutionrole56230195:
@@ -7822,7 +9722,7 @@ exports[`BYOC With otel collector 1`] = `
               'RestateBYOCwithotelcollectorstatelessdefinition8B26C72F' GROUP BY
               TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":12,"properties":{"view":"table","title":"Stateless
               Logs","region":"region","query":"SOURCE '
-            - Ref: withotelcollectorstatelessdefinitionrestateLogGroup9C507C4C
+            - Ref: withotelcollectorrestateloggroupE7CD68F4
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -7864,7 +9764,7 @@ exports[`BYOC With otel collector 1`] = `
               'RestateBYOCwithotelcollectorstatefuldefinition83529E5C' GROUP BY
               TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":30,"properties":{"view":"table","title":"Stateful
               Logs","region":"region","query":"SOURCE '
-            - Ref: withotelcollectorstatefuldefinitionrestateLogGroupBF29129D
+            - Ref: withotelcollectorrestateloggroupE7CD68F4
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -7899,7 +9799,7 @@ exports[`BYOC With otel collector 1`] = `
               'RestateBYOCwithotelcollectorstatefuldefinition83529E5C' GROUP BY
               TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":42,"properties":{"view":"table","title":"Controller
               Logs","region":"region","query":"SOURCE '
-            - Ref: withotelcollectorcontrollerdefinitioncontrollerLogGroup514C9EF0
+            - Ref: withotelcollectorcontrollerloggroupE0170504
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -8116,20 +10016,24 @@ exports[`BYOC With specific SG and subnets 1`] = `
             Effect: Allow
             Resource:
               'Fn::GetAtt':
-                - withvpcsubnetstatelessdefinitionrestateLogGroup3C28A574
-                - Arn
-          - Action:
-              - 'logs:CreateLogStream'
-              - 'logs:PutLogEvents'
-            Effect: Allow
-            Resource:
-              'Fn::GetAtt':
-                - withvpcsubnetstatefuldefinitionrestateLogGroupDA9395D3
+                - withvpcsubnetrestateloggroup9A66BB7A
                 - Arn
         Version: '2012-10-17'
       PolicyName: withvpcsubnetrestateexecutionroleDefaultPolicy028A2DDF
       Roles:
         - Ref: withvpcsubnetrestateexecutionrole09337314
+  withvpcsubnetrestateloggroup9A66BB7A:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  withvpcsubnetcontrollerloggroup5F5E6509:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   withvpcsubnetsharednlb5421469F:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
@@ -8266,7 +10170,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withvpcsubnetstatelessdefinitionrestateLogGroup3C28A574
+                Ref: withvpcsubnetrestateloggroup9A66BB7A
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 32768
@@ -8302,14 +10206,6 @@ exports[`BYOC With specific SG and subnets 1`] = `
         'Fn::GetAtt':
           - withvpcsubnetrestatetaskrole0DB71BBB
           - Arn
-  withvpcsubnetstatelessdefinitionrestateLogGroup3C28A574:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-vpc-subnet/stateless-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withvpcsubnetstatelessserviceService547C3679:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -8443,7 +10339,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withvpcsubnetstatefuldefinitionrestateLogGroupDA9395D3
+                Ref: withvpcsubnetrestateloggroup9A66BB7A
               awslogs-stream-prefix: restate
               awslogs-region: region
           Memory: 32768
@@ -8485,14 +10381,6 @@ exports[`BYOC With specific SG and subnets 1`] = `
       Volumes:
         - ConfiguredAtLaunch: false
           Name: restate-data
-  withvpcsubnetstatefuldefinitionrestateLogGroupDA9395D3:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-vpc-subnet/stateful-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withvpcsubnetingresssharedtargetE6C22455:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties:
@@ -8832,7 +10720,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
             Effect: Allow
             Resource:
               'Fn::GetAtt':
-                - withvpcsubnetcontrollerdefinitioncontrollerLogGroup5782775F
+                - withvpcsubnetcontrollerloggroup5F5E6509
                 - Arn
         Version: '2012-10-17'
       PolicyName: withvpcsubnetcontrollerexecutionroleDefaultPolicy84E61BC0
@@ -9073,7 +10961,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
             LogDriver: awslogs
             Options:
               awslogs-group:
-                Ref: withvpcsubnetcontrollerdefinitioncontrollerLogGroup5782775F
+                Ref: withvpcsubnetcontrollerloggroup5F5E6509
               awslogs-stream-prefix: controller
               awslogs-region: region
           Memory: 2048
@@ -9099,14 +10987,6 @@ exports[`BYOC With specific SG and subnets 1`] = `
         'Fn::GetAtt':
           - withvpcsubnetcontrollertaskrole89CF9CC3
           - Arn
-  withvpcsubnetcontrollerdefinitioncontrollerLogGroup5782775F:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      Tags:
-        - Key: Name
-          Value: RestateBYOC/with-vpc-subnet/controller-definition
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
   withvpcsubnetcontrollerserviceServiceEDFDC99A:
     Type: 'AWS::ECS::Service'
     Properties:
@@ -9144,7 +11024,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
   withvpcsubnetrestatectlloggroupEB7B5F65:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withvpcsubnetrestatectllambdaexecutionrole94FEEEE2:
@@ -9249,7 +11129,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
   withvpcsubnetretirementwatcherloggroupD98D033D:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withvpcsubnetretirementwatcherlambdaexecutionroleD1AD90F5:
@@ -9534,7 +11414,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
   withvpcsubnetcloudwatchcustomwidgetloggroupBB4CBE80:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      RetentionInDays: 30
+      RetentionInDays: 14
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
   withvpcsubnetcloudwatchcustomwidgetexecutionroleF8EB3E41:
@@ -9742,7 +11622,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
               'RestateBYOCwithvpcsubnetstatelessdefinitionFB34AE10' GROUP BY
               TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":12,"properties":{"view":"table","title":"Stateless
               Logs","region":"region","query":"SOURCE '
-            - Ref: withvpcsubnetstatelessdefinitionrestateLogGroup3C28A574
+            - Ref: withvpcsubnetrestateloggroup9A66BB7A
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -9784,7 +11664,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
               'RestateBYOCwithvpcsubnetstatefuldefinition3D0F1E76' GROUP BY
               TaskId"}]],"yAxis":{"left":{"label":"Bytes/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":30,"properties":{"view":"table","title":"Stateful
               Logs","region":"region","query":"SOURCE '
-            - Ref: withvpcsubnetstatefuldefinitionrestateLogGroupDA9395D3
+            - Ref: withvpcsubnetrestateloggroup9A66BB7A
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
@@ -9819,7 +11699,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
               'RestateBYOCwithvpcsubnetstatefuldefinition3D0F1E76' GROUP BY
               TaskId","visible":false,"id":"count"}]],"annotations":{"horizontal":[{"value":150,"label":"Limit","visible":false,"yAxis":"left"}]},"yAxis":{"left":{"label":"MiB/sec","showUnits":false}}}},{"type":"log","width":24,"height":6,"x":0,"y":42,"properties":{"view":"table","title":"Controller
               Logs","region":"region","query":"SOURCE '
-            - Ref: withvpcsubnetcontrollerdefinitioncontrollerLogGroup5782775F
+            - Ref: withvpcsubnetcontrollerloggroup5F5E6509
             - >-
               ' | fields @logStream, @timestamp, level, fields.message,
               target\\n          | sort @timestamp desc\\n          | limit
