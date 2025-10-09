@@ -408,6 +408,12 @@ export interface TaskRetirementWatcherProps {
    * Default: false
    */
   securityGroups?: cdk.aws_ec2.ISecurityGroup[];
+
+  /**
+   * Encryption key to use for the internal retirement events SQS queue
+   * Default: No encryption (uses default SQS encryption)
+   */
+  queueEncryptionKey?: cdk.aws_kms.IKey;
 }
 
 export const DEFAULT_OTEL_COLLECTOR_IMAGE =

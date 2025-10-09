@@ -334,6 +334,36 @@ describe("BYOC", () => {
     });
   });
 
+  test("Retirement watcher with KMS encryption key", () => {
+    const { stack, vpc } = createStack();
+
+    const kmsKey = new cdk.aws_kms.Key(stack, "queue-key", {
+      description: "KMS key for retirement watcher queue encryption",
+      enableKeyRotation: true,
+    });
+
+    new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+      retirementWatcher: {
+        queueEncryptionKey: kmsKey,
+      },
+      _useLocalArtifacts: true,
+    });
+
+    const template = cdk.assertions.Template.fromStack(stack);
+    template.hasResourceProperties("AWS::SQS::Queue", {
+      KmsMasterKeyId: {
+        "Fn::GetAtt": [cdk.assertions.Match.stringLikeRegexp("queuekey.*"), "Arn"],
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
+
   test("Set up custom ALB for authenticated access", () => {
     const { stack, vpc } = createStack();
 
