@@ -394,6 +394,36 @@ describe("BYOC", () => {
       yaml: true,
     });
   });
+
+  test("Dashboards can be completely disabled", () => {
+    const { stack, vpc } = createStack();
+
+    const cluster = new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+      monitoring: {
+        dashboard: {
+          metrics: {
+            disabled: true,
+          },
+          controlPanel: {
+            disabled: true,
+          },
+        },
+      },
+    });
+
+    expect(cluster.monitoring.metricsDashboard).toBeUndefined();
+    expect(cluster.monitoring.controlPanelDashboard).toBeUndefined();
+
+    const template = cdk.assertions.Template.fromStack(stack);
+    template.resourceCountIs("AWS::CloudWatch::Dashboard", 0);
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
 });
 
 function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {
