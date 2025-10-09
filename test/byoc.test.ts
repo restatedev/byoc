@@ -477,7 +477,6 @@ describe("BYOC", () => {
   test("Container Insights defaults to enhanced", () => {
     const { stack, vpc } = createStack();
 
-    // Test default Container Insights (should be 'enhanced')
     new RestateEcsFargateCluster(stack, "default-insights", {
       vpc,
       licenseKey,
@@ -502,7 +501,6 @@ describe("BYOC", () => {
   test("Container Insights can be overridden to enabled", () => {
     const { stack, vpc } = createStack();
 
-    // Test overriding to standard Container Insights
     new RestateEcsFargateCluster(stack, "with-enabled-insights", {
       vpc,
       licenseKey,

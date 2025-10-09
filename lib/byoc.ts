@@ -825,7 +825,7 @@ function createStateless(
     minHealthyPercent: 100,
     availabilityZoneRebalancing:
       cdk.aws_ecs.AvailabilityZoneRebalancing.ENABLED,
-    propagateTags: cdk.aws_ecs.PropagatedTagSource.SERVICE,
+    propagateTags: cdk.aws_ecs.PropagatedTagSource.TASK_DEFINITION,
     deploymentController: {
       type: cdk.aws_ecs.DeploymentControllerType.ECS,
     },
@@ -1529,7 +1529,7 @@ function createController(
     maxHealthyPercent: 100,
     minHealthyPercent: 0,
     vpcSubnets,
-    propagateTags: cdk.aws_ecs.PropagatedTagSource.SERVICE,
+    propagateTags: cdk.aws_ecs.PropagatedTagSource.TASK_DEFINITION,
     deploymentController: {
       type: cdk.aws_ecs.DeploymentControllerType.ECS,
     },
