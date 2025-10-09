@@ -368,6 +368,7 @@ export class RestateEcsFargateCluster
         cdk.aws_ecs.LogDriver.awsLogs({
           streamPrefix: "restate",
           logGroup: restateLogGroup,
+          mode: cdk.aws_ecs.AwsLogDriverMode.NON_BLOCKING,
         }),
       enableExecuteCommand: props.restateTasks?.enableExecuteCommand ?? false,
       cpuArchitecture:
@@ -1222,6 +1223,7 @@ function createController(
       cdk.aws_ecs.LogDriver.awsLogs({
         streamPrefix: "controller",
         logGroup,
+        mode: cdk.aws_ecs.AwsLogDriverMode.NON_BLOCKING,
       }),
     enableExecuteCommand: controllerProps?.tasks?.enableExecuteCommand ?? false,
     cpuArchitecture:

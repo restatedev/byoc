@@ -424,6 +424,55 @@ describe("BYOC", () => {
       yaml: true,
     });
   });
+
+  test("Task log driver mode can be customized", () => {
+    const { stack, vpc } = createStack();
+
+    // Create custom log groups
+    const restateLogGroup = new aws_logs.LogGroup(
+      stack,
+      "custom-restate-logs",
+      {
+        retention: aws_logs.RetentionDays.ONE_WEEK,
+      },
+    );
+
+    const controllerLogGroup = new aws_logs.LogGroup(
+      stack,
+      "custom-controller-logs",
+      {
+        retention: aws_logs.RetentionDays.ONE_WEEK,
+      },
+    );
+
+    new RestateEcsFargateCluster(stack, "test", {
+      vpc,
+      licenseKey,
+      restateTasks: {
+        logDriver: cdk.aws_ecs.LogDriver.awsLogs({
+          streamPrefix: "restate",
+          logGroup: restateLogGroup,
+          mode: cdk.aws_ecs.AwsLogDriverMode.NON_BLOCKING,
+          maxBufferSize: cdk.Size.mebibytes(5),
+        }),
+      },
+      controller: {
+        tasks: {
+          logDriver: cdk.aws_ecs.LogDriver.awsLogs({
+            streamPrefix: "controller",
+            logGroup: controllerLogGroup,
+            mode: cdk.aws_ecs.AwsLogDriverMode.BLOCKING,
+            datetimeFormat: "custom-format",
+          }),
+        },
+      },
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
+    });
+  });
 });
 
 function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {
