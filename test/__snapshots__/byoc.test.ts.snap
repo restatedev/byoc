@@ -1219,6 +1219,7 @@ exports[`BYOC Container Insights defaults to enhanced 1`] = `
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/default-insights/controller-service
@@ -3196,6 +3197,7 @@ exports[`BYOC Dashboards can be completely disabled 1`] = `
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/test/controller-service
@@ -4983,6 +4985,7 @@ exports[`BYOC Default parameters 1`] = `
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/default/controller-service
@@ -6970,6 +6973,7 @@ exports[`BYOC Log groups can be customized after creation 1`] = `
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/test/controller-service
@@ -8985,6 +8989,7 @@ exports[`BYOC Retirement watcher queue can be customized 1`] = `
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/test/controller-service
@@ -10994,6 +10999,7 @@ exports[`BYOC Set up custom ALB for authenticated access 1`] = `
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/test/controller-service
@@ -13168,6 +13174,7 @@ exports[`BYOC Task log driver mode can be customized 1`] = `
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/test/controller-service
@@ -15146,6 +15153,7 @@ exports[`BYOC With cluster name 1`] = `
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/with-cluster-name/controller-service
@@ -17065,6 +17073,7 @@ exports[`BYOC With existing bucket 1`] = `
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/with-cluster-name/controller-service
@@ -19100,6 +19109,7 @@ exports[`BYOC With otel collector 1`] = `
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet3Subnet985AC459F9514491'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/with-otel-collector/controller-service
@@ -20981,6 +20991,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
           Subnets:
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet1Subnet934893E8236E2271'
             - 'Fn::ImportValue': 'VPCStack:ExportsOutputRefvpcPrivateSubnet2Subnet7031C2BA60DCB1EE'
+      PropagateTags: SERVICE
       Tags:
         - Key: Name
           Value: RestateBYOC/with-vpc-subnet/controller-service

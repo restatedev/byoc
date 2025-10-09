@@ -1529,6 +1529,7 @@ function createController(
     maxHealthyPercent: 100,
     minHealthyPercent: 0,
     vpcSubnets,
+    propagateTags: cdk.aws_ecs.PropagatedTagSource.SERVICE,
     deploymentController: {
       type: cdk.aws_ecs.DeploymentControllerType.ECS,
     },
