@@ -241,16 +241,26 @@ export interface EbsVolumeProps {
 }
 
 export const DEFAULT_RESTATE_IMAGE =
-  "docker.restate.dev/restatedev/restate:1.4";
+  "docker.restate.dev/restatedev/restate:1.5";
 
 export const DEFAULT_RESTATE_CPU = 16384;
 export const DEFAULT_RESTATE_MEMORY_LIMIT_MIB = 32768;
 
-export type SupportedRestateVersion = `1.4.${string}` | `1.4`;
+export type SupportedRestateVersion =
+  | `1.5.${string}`
+  | `1.5`
+  | `1.4.${string}`
+  | `1.4`;
 export function assertSupportedRestateVersion(
   version: string,
 ): asserts version is SupportedRestateVersion {
-  if (version == "1.4" || version.startsWith("1.4.")) return;
+  if (
+    version == "1.4" ||
+    version.startsWith("1.4.") ||
+    version == "1.5" ||
+    version.startsWith("1.5.")
+  )
+    return;
   throw new Error(`Restate version ${version} is not supported by this stack`);
 }
 

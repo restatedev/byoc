@@ -1900,7 +1900,7 @@ exports[`BYOC Container Insights defaults to enhanced 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/default-insights","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/default-insights","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: defaultinsightsmetrics6D653E2B
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -5674,7 +5674,7 @@ exports[`BYOC Default parameters 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/default","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/default","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: defaultmetrics63974EF8
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -7666,7 +7666,7 @@ exports[`BYOC Log groups can be customized after creation 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: testmetricsAAAB7FF4
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -9698,7 +9698,7 @@ exports[`BYOC Retirement watcher queue can be customized 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: testmetricsAAAB7FF4
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -11712,7 +11712,7 @@ exports[`BYOC Retirement watcher with KMS encryption key 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: testmetricsAAAB7FF4
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -13714,7 +13714,7 @@ exports[`BYOC Set up custom ALB for authenticated access 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: testmetricsAAAB7FF4
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -15893,7 +15893,7 @@ exports[`BYOC Task log driver mode can be customized 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/test","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: testmetricsAAAB7FF4
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -17876,7 +17876,7 @@ exports[`BYOC With cluster name 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"restate-byoc-cluster","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"restate-byoc-cluster","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: withclusternamemetrics035F2329
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -19800,7 +19800,7 @@ exports[`BYOC With existing bucket 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/with-cluster-name","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/with-cluster-name","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: withclusternamemetrics035F2329
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -21844,7 +21844,7 @@ exports[`BYOC With otel collector 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/with-otel-collector","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/with-otel-collector","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: withotelcollectormetrics493AA233
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
@@ -23756,7 +23756,7 @@ exports[`BYOC With specific SG and subnets 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/with-vpc-subnet","restateVersion":"1.4","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/with-vpc-subnet","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
             - Ref: withvpcsubnetmetrics67F0AF3D
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
