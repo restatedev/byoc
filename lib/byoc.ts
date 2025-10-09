@@ -825,7 +825,7 @@ function createStateless(
     minHealthyPercent: 100,
     availabilityZoneRebalancing:
       cdk.aws_ecs.AvailabilityZoneRebalancing.ENABLED,
-    propagateTags: cdk.aws_ecs.PropagatedTagSource.SERVICE,
+    propagateTags: cdk.aws_ecs.PropagatedTagSource.TASK_DEFINITION,
     deploymentController: {
       type: cdk.aws_ecs.DeploymentControllerType.ECS,
     },
@@ -1529,7 +1529,7 @@ function createController(
     maxHealthyPercent: 100,
     minHealthyPercent: 0,
     vpcSubnets,
-    propagateTags: cdk.aws_ecs.PropagatedTagSource.SERVICE,
+    propagateTags: cdk.aws_ecs.PropagatedTagSource.TASK_DEFINITION,
     deploymentController: {
       type: cdk.aws_ecs.DeploymentControllerType.ECS,
     },
@@ -1641,6 +1641,14 @@ function createRetirementWatcher(
   // get two retries. We could have a dead letter here and then alert when events go into it.
   const queue = new cdk.aws_sqs.Queue(scope, "retirement-watcher-queue", {
     visibilityTimeout: cdk.Duration.seconds(60),
+    ...(retirementWatcherProps?.queueEncryptionKey
+      ? {
+          encryption: cdk.aws_sqs.QueueEncryption.KMS,
+          encryptionMasterKey: retirementWatcherProps.queueEncryptionKey,
+        }
+      : {
+          encryption: cdk.aws_sqs.QueueEncryption.SQS_MANAGED,
+        }),
   });
   cdk.Tags.of(queue).add("Name", queue.node.path);
 
