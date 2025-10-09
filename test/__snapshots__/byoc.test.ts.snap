@@ -1613,6 +1613,9 @@ exports[`BYOC Container Insights defaults to enhanced 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/default-insights/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
@@ -3591,6 +3594,9 @@ exports[`BYOC Dashboards can be completely disabled 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
@@ -5379,6 +5385,9 @@ exports[`BYOC Default parameters 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/default/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
@@ -7367,6 +7376,9 @@ exports[`BYOC Log groups can be customized after creation 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
@@ -9395,6 +9407,9 @@ exports[`BYOC Retirement watcher queue can be customized 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
@@ -11393,6 +11408,9 @@ exports[`BYOC Set up custom ALB for authenticated access 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
@@ -13568,6 +13586,9 @@ exports[`BYOC Task log driver mode can be customized 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/test/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
@@ -15547,6 +15568,9 @@ exports[`BYOC With cluster name 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-cluster-name/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
@@ -17467,6 +17491,9 @@ exports[`BYOC With existing bucket 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-cluster-name/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
@@ -19505,6 +19532,9 @@ exports[`BYOC With otel collector 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-otel-collector/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
@@ -21384,6 +21414,9 @@ exports[`BYOC With specific SG and subnets 1`] = `
         detail-type:
           - equals-ignore-case: AWS Health Event
       State: ENABLED
+      Tags:
+        - Key: Name
+          Value: RestateBYOC/with-vpc-subnet/retirement-watcher-rule
       Targets:
         - Arn:
             'Fn::GetAtt':
