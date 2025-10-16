@@ -796,8 +796,6 @@ function createStateless(
 
       RESTATE_BIFROST__DEFAULT_PROVIDER: "replicated",
 
-      RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE:
-        "true",
       RESTATE_INGRESS__ADVERTISED_INGRESS_ENDPOINT:
         statelessProps?.ingressAdvertisedAddress ?? ingressAdvertisedAddress,
 
@@ -918,9 +916,6 @@ function createStatefulDefinition(
 
       RESTATE_LOG_SERVER__ROCKSDB_DISABLE_WAL_FSYNC: "true",
       RESTATE_LOG_SERVER__ROCKSDB_DISABLE_DIRECT_IO_FOR_READS: "true",
-
-      RESTATE_INGRESS__EXPERIMENTAL_FEATURE_ENABLE_SEPARATE_INGRESS_ROLE:
-        "true",
 
       ...otelEnv,
       ...(statefulProps?.environment ?? {}),
