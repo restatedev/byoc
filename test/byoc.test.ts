@@ -354,7 +354,10 @@ describe("BYOC", () => {
     const template = cdk.assertions.Template.fromStack(stack);
     template.hasResourceProperties("AWS::SQS::Queue", {
       KmsMasterKeyId: {
-        "Fn::GetAtt": [cdk.assertions.Match.stringLikeRegexp("queuekey.*"), "Arn"],
+        "Fn::GetAtt": [
+          cdk.assertions.Match.stringLikeRegexp("queuekey.*"),
+          "Arn",
+        ],
       },
     });
 
@@ -547,6 +550,96 @@ describe("BYOC", () => {
           Value: "enabled",
         },
       ],
+    });
+  });
+
+  test("Stateless service can be customized", () => {
+    // Demonstrates the extension points for customizing the Stateless service definition
+    class CustomRestateEcsFargateCluster extends RestateEcsFargateCluster {
+      protected customizeStatelessServiceProperties(
+        props: cdk.aws_ecs.FargateServiceProps,
+      ): cdk.aws_ecs.FargateServiceProps {
+        // You can override any of the default properties - or even replace them completely
+        return {
+          ...props,
+          deploymentController: {
+            type: cdk.aws_ecs.DeploymentControllerType.EXTERNAL,
+          },
+        };
+      }
+    }
+
+    const { stack, vpc } = createStack();
+
+    const cluster = new CustomRestateEcsFargateCluster(
+      stack,
+      "custom-cluster",
+      {
+        vpc,
+        licenseKey,
+        loadBalancer: {
+          createAlbTargets: true,
+        },
+        statelessNode: {
+          statelessService: {
+            // Skip adding to NLB as this might conflict with custom target groups, e.g. in blue-green deploys
+            disableSharedNlbPorts: {
+              ingress: true,
+              admin: true,
+            },
+          },
+        },
+      },
+    );
+
+    const ingressAlb =
+      new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
+        stack,
+        "ingress-alb",
+        { vpc },
+      );
+
+    ingressAlb.addListener("ingress-prod-listener", {
+      port: 8080,
+      protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
+      defaultAction: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
+        cluster.targetGroups.ingress.application, // default blue target group
+      ]),
+    });
+
+    // create a secondary test listener and "green" target group
+    new cdk.aws_elasticloadbalancingv2.ApplicationTargetGroup(
+      stack,
+      "green-target-group",
+      {
+        vpc,
+        port: 8080,
+        healthCheck: {
+          enabled: true,
+          interval: cdk.Duration.seconds(5),
+          timeout: cdk.Duration.seconds(2),
+          path: "/restate/health",
+          protocol: cdk.aws_elasticloadbalancingv2.Protocol.HTTP,
+        },
+        targets: [
+          cluster.stateless.service.loadBalancerTarget({
+            containerName: "restate",
+            containerPort: 8080,
+          }),
+        ],
+      },
+    );
+    ingressAlb.addListener("ingress-test-listener", {
+      port: 8081,
+      protocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
+      defaultAction: cdk.aws_elasticloadbalancingv2.ListenerAction.forward([
+        cluster.targetGroups.ingress.application,
+      ]),
+    });
+
+    expect(stack).toMatchCdkSnapshot({
+      ignoreAssets: true,
+      yaml: true,
     });
   });
 });
