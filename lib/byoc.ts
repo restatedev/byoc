@@ -24,6 +24,7 @@ import {
   RestatectlProps,
   StatefulNodeProps,
   StatelessNodeProps,
+  StatelessServiceProps,
   SupportedRestateVersion,
   TaskRetirementWatcherProps,
 } from "./props";
@@ -70,7 +71,7 @@ export class RestateEcsFargateCluster
     /**
      * The stateless node service
      */
-    service: cdk.aws_ecs.IFargateService;
+    service: cdk.aws_ecs.FargateService;
     /**
      * The stateless node task definition
      */
@@ -134,7 +135,10 @@ export class RestateEcsFargateCluster
        * To enable the ALB target group, set `loadBalancer.createAlbTargets` = `true` in {@link ClusterProps}.
        */
       application: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
-      network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
+      /**
+       * The NLB target group for ingress port. May be undefined if `statelessService.disableSharedNlbPorts.ingress` is true.
+       */
+      network?: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
     };
     /**
      * The admin target groups
@@ -144,7 +148,10 @@ export class RestateEcsFargateCluster
        * To enable the ALB target group, set `loadBalancer.createAlbTargets` = `true` in {@link ClusterProps}.
        */
       application: cdk.aws_elasticloadbalancingv2.IApplicationTargetGroup;
-      network: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
+      /**
+       * The NLB target group for admin port. May be undefined if `statelessService.disableSharedNlbPorts.admin` is true.
+       */
+      network?: cdk.aws_elasticloadbalancingv2.INetworkTargetGroup;
     };
     /**
      * The node target group. Only an NLB target group is created as a ECS service has a limit of 5 overall.
@@ -386,6 +393,7 @@ export class RestateEcsFargateCluster
       this.securityGroups,
       this.vpcSubnets,
       props.loadBalancer,
+      props.statelessNode?.statelessService?.disableSharedNlbPorts,
     );
 
     const otelCollectorContainer = otelCollectorContainerProps(
@@ -407,7 +415,7 @@ export class RestateEcsFargateCluster
         }
       : {};
 
-    const stateless = createStateless(
+    const stateless = this.createStateless(
       this,
       this.clusterName,
       bucketPath,
@@ -455,24 +463,37 @@ export class RestateEcsFargateCluster
       stateless.service,
     );
 
-    const ingressTargetGroup = createNetworkTargetGroup(
-      this,
-      "ingress",
-      this.listeners.ingress,
-      nlbTargetProps.ingress,
-    );
-    stateless.service.node.addDependency(
-      ingressTargetGroup.loadBalancerAttached,
-    );
+    // Conditionally create target groups based on disableSharedNlbPorts
+    const ingressTargetGroup = props.statelessNode?.statelessService
+      ?.disableSharedNlbPorts?.ingress
+      ? undefined
+      : createNetworkTargetGroup(
+          this,
+          "ingress",
+          this.listeners.ingress,
+          nlbTargetProps.ingress,
+        );
+    if (ingressTargetGroup) {
+      stateless.service.node.addDependency(
+        ingressTargetGroup.loadBalancerAttached,
+      );
+    }
+    const adminTargetGroup = props.statelessNode?.statelessService
+      ?.disableSharedNlbPorts?.admin
+      ? undefined
+      : createNetworkTargetGroup(
+          this,
+          "admin",
+          this.listeners.admin,
+          nlbTargetProps.admin,
+        );
+    if (adminTargetGroup) {
+      stateless.service.node.addDependency(
+        adminTargetGroup.loadBalancerAttached,
+      );
+    }
 
-    const adminTargetGroup = createNetworkTargetGroup(
-      this,
-      "admin",
-      this.listeners.admin,
-      nlbTargetProps.admin,
-    );
-    stateless.service.node.addDependency(adminTargetGroup.loadBalancerAttached);
-
+    // Node port is always enabled; revisit if this causes issues with customization
     const nodeTargetGroup = createNetworkTargetGroup(
       this,
       "node",
@@ -702,135 +723,154 @@ export class RestateEcsFargateCluster
 
     createOutputs(this);
   }
-}
 
-function createStateless(
-  scope: Construct,
-  clusterName: string,
-  bucketPath: `s3://${string}`,
-  cluster: cdk.aws_ecs.ICluster,
-  securityGroups: cdk.aws_ec2.ISecurityGroup[],
-  vpcSubnets: cdk.aws_ec2.SubnetSelection,
-  taskProps: TaskProps,
-  ingressAdvertisedAddress: string,
-  otelEnv: Record<string, string>,
-  statelessProps?: StatelessNodeProps,
-  otelCollectorContainer?: cdk.aws_ecs.ContainerDefinitionOptions,
-): {
-  service: cdk.aws_ecs.FargateService;
-  taskDefinition: cdk.aws_ecs.FargateTaskDefinition;
-} {
-  const totalCpu = statelessProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
-  const totalMemoryLimitMiB =
-    statelessProps?.resources?.memoryLimitMiB ??
-    DEFAULT_RESTATE_MEMORY_LIMIT_MIB;
-
-  const restateCpu = totalCpu - (otelCollectorContainer?.cpu ?? 0);
-  const restateMemoryLimitMiB =
-    totalMemoryLimitMiB - (otelCollectorContainer?.memoryLimitMiB ?? 0);
-
-  const taskDefinition = new cdk.aws_ecs.FargateTaskDefinition(
-    scope,
-    "stateless-definition",
-    {
-      cpu: totalCpu,
-      memoryLimitMiB: totalMemoryLimitMiB,
-      runtimePlatform: {
-        cpuArchitecture: taskProps.cpuArchitecture,
-        operatingSystemFamily: cdk.aws_ecs.OperatingSystemFamily.LINUX,
+  // TODO(pavel): make private if extension here not needed
+  protected createStateless(
+    scope: Construct,
+    clusterName: string,
+    bucketPath: `s3://${string}`,
+    cluster: cdk.aws_ecs.ICluster,
+    securityGroups: cdk.aws_ec2.ISecurityGroup[],
+    vpcSubnets: cdk.aws_ec2.SubnetSelection,
+    taskProps: TaskProps,
+    ingressAdvertisedAddress: string,
+    otelEnv: Record<string, string>,
+    statelessProps?: StatelessNodeProps,
+    otelCollectorContainer?: cdk.aws_ecs.ContainerDefinitionOptions,
+  ): {
+    service: cdk.aws_ecs.FargateService;
+    taskDefinition: cdk.aws_ecs.FargateTaskDefinition;
+  } {
+    const totalCpu = statelessProps?.resources?.cpu ?? DEFAULT_RESTATE_CPU;
+    const totalMemoryLimitMiB =
+      statelessProps?.resources?.memoryLimitMiB ??
+      DEFAULT_RESTATE_MEMORY_LIMIT_MIB;
+  
+    const restateCpu = totalCpu - (otelCollectorContainer?.cpu ?? 0);
+    const restateMemoryLimitMiB =
+      totalMemoryLimitMiB - (otelCollectorContainer?.memoryLimitMiB ?? 0);
+  
+    const taskDefinition = new cdk.aws_ecs.FargateTaskDefinition(
+      scope,
+      "stateless-definition",
+      {
+        cpu: totalCpu,
+        memoryLimitMiB: totalMemoryLimitMiB,
+        runtimePlatform: {
+          cpuArchitecture: taskProps.cpuArchitecture,
+          operatingSystemFamily: cdk.aws_ecs.OperatingSystemFamily.LINUX,
+        },
+        taskRole: taskProps.taskRole,
+        executionRole: taskProps.executionRole,
       },
-      taskRole: taskProps.taskRole,
-      executionRole: taskProps.executionRole,
-    },
-  );
-  cdk.Tags.of(taskDefinition).add("Name", taskDefinition.node.path);
-
-  let replication = "{zone: 2}";
-  if (statelessProps?.defaultReplication) {
-    if ("zone" in statelessProps.defaultReplication) {
-      replication = `{zone: ${statelessProps?.defaultReplication.zone}}`;
-    } else {
-      replication = `{node: ${statelessProps?.defaultReplication.node}}`;
+    );
+    cdk.Tags.of(taskDefinition).add("Name", taskDefinition.node.path);
+  
+    let replication = "{zone: 2}";
+    if (statelessProps?.defaultReplication) {
+      if ("zone" in statelessProps.defaultReplication) {
+        replication = `{zone: ${statelessProps?.defaultReplication.zone}}`;
+      } else {
+        replication = `{node: ${statelessProps?.defaultReplication.node}}`;
+      }
     }
+
+    taskDefinition.addContainer("restate", {
+      cpu: restateCpu,
+      memoryLimitMiB: restateMemoryLimitMiB,
+      entryPoint: ["bash", "-c", statelessEntryPointScript],
+      image:
+        statelessProps?._restateImage ??
+        cdk.aws_ecs.ContainerImage.fromRegistry(
+          statelessProps?.restateImage ?? DEFAULT_RESTATE_IMAGE,
+        ),
+      portMappings: [
+        {
+          name: "ingress",
+          containerPort: 8080,
+        },
+        {
+          name: "admin",
+          containerPort: 9070,
+        },
+        {
+          name: "node",
+          containerPort: 5122,
+        },
+      ],
+      logging: taskProps.logDriver,
+      stopTimeout: cdk.Duration.seconds(120), // the max
+      healthCheck: {
+        command: ["curl", "--fail", "http://127.0.0.1:8080/restate/health"],
+      },
+      environment: {
+        RESTATE_LOG_FORMAT: "json",
+        RESTATE_CLUSTER_NAME: clusterName,
+        RESTATE_ROLES: '["admin","http-ingress"]',
+        RESTATE_AUTO_PROVISION: "true",
+        RESTATE_SHUTDOWN_TIMEOUT: "100s", // fargate allows 120s
+        RESTATE_DEFAULT_NUM_PARTITIONS: `${statelessProps?.defaultPartitions ?? DEFAULT_PARTITIONS}`,
+        RESTATE_DEFAULT_REPLICATION: replication,
+
+        RESTATE_METADATA_CLIENT__TYPE: "object-store",
+        RESTATE_METADATA_CLIENT__PATH: `${bucketPath}/metadata`,
+
+        RESTATE_BIFROST__DEFAULT_PROVIDER: "replicated",
+
+        RESTATE_INGRESS__ADVERTISED_INGRESS_ENDPOINT:
+          statelessProps?.ingressAdvertisedAddress ?? ingressAdvertisedAddress,
+
+        // why? this isn't a worker! because the admin uses the presence of this flag as a signal of how to trim
+        RESTATE_WORKER__SNAPSHOTS__DESTINATION: `${bucketPath}/snapshots`,
+
+        ...otelEnv,
+        ...statelessProps?.environment,
+      },
+    });
+  
+    if (otelCollectorContainer) {
+      taskDefinition.addContainer("otel-collector", otelCollectorContainer);
+    }
+  
+    const service = this.createStatelessService(scope, "stateless-service", {
+      cluster,
+      taskDefinition: taskDefinition,
+      enableExecuteCommand: taskProps.enableExecuteCommand,
+      vpcSubnets,
+      securityGroups,
+      desiredCount:
+        statelessProps?.desiredCount ?? DEFAULT_STATELESS_DESIRED_COUNT,
+      maxHealthyPercent: 200,
+      minHealthyPercent: 100,
+      availabilityZoneRebalancing:
+        cdk.aws_ecs.AvailabilityZoneRebalancing.ENABLED,
+      propagateTags: cdk.aws_ecs.PropagatedTagSource.TASK_DEFINITION,
+      deploymentController: {
+        type: cdk.aws_ecs.DeploymentControllerType.ECS,
+      },
+    });
+    cdk.Tags.of(service).add("Name", service.node.path);
+
+    return { service, taskDefinition };
   }
 
-  taskDefinition.addContainer("restate", {
-    cpu: restateCpu,
-    memoryLimitMiB: restateMemoryLimitMiB,
-    entryPoint: ["bash", "-c", statelessEntryPointScript],
-    image:
-      statelessProps?._restateImage ??
-      cdk.aws_ecs.ContainerImage.fromRegistry(
-        statelessProps?.restateImage ?? DEFAULT_RESTATE_IMAGE,
-      ),
-    portMappings: [
-      {
-        name: "ingress",
-        containerPort: 8080,
-      },
-      {
-        name: "admin",
-        containerPort: 9070,
-      },
-      {
-        name: "node",
-        containerPort: 5122,
-      },
-    ],
-    logging: taskProps.logDriver,
-    stopTimeout: cdk.Duration.seconds(120), // the max
-    healthCheck: {
-      command: ["curl", "--fail", "http://127.0.0.1:8080/restate/health"],
-    },
-    environment: {
-      RESTATE_LOG_FORMAT: "json",
-      RESTATE_CLUSTER_NAME: clusterName,
-      RESTATE_ROLES: '["admin","http-ingress"]',
-      RESTATE_AUTO_PROVISION: "true",
-      RESTATE_SHUTDOWN_TIMEOUT: "100s", // fargate allows 120s
-      RESTATE_DEFAULT_NUM_PARTITIONS: `${statelessProps?.defaultPartitions ?? DEFAULT_PARTITIONS}`,
-      RESTATE_DEFAULT_REPLICATION: replication,
-
-      RESTATE_METADATA_CLIENT__TYPE: "object-store",
-      RESTATE_METADATA_CLIENT__PATH: `${bucketPath}/metadata`,
-
-      RESTATE_BIFROST__DEFAULT_PROVIDER: "replicated",
-
-      RESTATE_INGRESS__ADVERTISED_INGRESS_ENDPOINT:
-        statelessProps?.ingressAdvertisedAddress ?? ingressAdvertisedAddress,
-
-      // why? this isn't a worker! because the admin uses the presence of this flag as a signal of how to trim
-      RESTATE_WORKER__SNAPSHOTS__DESTINATION: `${bucketPath}/snapshots`,
-
-      ...otelEnv,
-      ...statelessProps?.environment,
-    },
-  });
-
-  if (otelCollectorContainer) {
-    taskDefinition.addContainer("otel-collector", otelCollectorContainer);
+  protected createStatelessService(
+    scope: Construct,
+    name: string,
+    props: cdk.aws_ecs.FargateServiceProps,
+  ) {
+    return new cdk.aws_ecs.FargateService(
+      scope,
+      name,
+      this.customizeStatelessServiceProperties(props),
+    );
   }
 
-  const service = new cdk.aws_ecs.FargateService(scope, "stateless-service", {
-    cluster,
-    taskDefinition: taskDefinition,
-    enableExecuteCommand: taskProps.enableExecuteCommand,
-    vpcSubnets,
-    securityGroups,
-    desiredCount:
-      statelessProps?.desiredCount ?? DEFAULT_STATELESS_DESIRED_COUNT,
-    maxHealthyPercent: 200,
-    minHealthyPercent: 100,
-    availabilityZoneRebalancing:
-      cdk.aws_ecs.AvailabilityZoneRebalancing.ENABLED,
-    propagateTags: cdk.aws_ecs.PropagatedTagSource.TASK_DEFINITION,
-    deploymentController: {
-      type: cdk.aws_ecs.DeploymentControllerType.ECS,
-    },
-  });
-  cdk.Tags.of(service).add("Name", service.node.path);
-
-  return { service, taskDefinition };
+  protected customizeStatelessServiceProperties(
+    props: cdk.aws_ecs.FargateServiceProps,
+  ): cdk.aws_ecs.FargateServiceProps {
+    return props;
+  }
 }
 
 function createStatefulDefinition(
@@ -985,6 +1025,7 @@ function createSharedLb(
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   vpcSubnets: cdk.aws_ec2.SubnetSelection,
   props?: LoadBalancerProps,
+  disableSharedNlbPorts?: StatelessServiceProps["disableSharedNlbPorts"],
 ): { ingress: Listener; admin: Listener; node: Listener } {
   let sharedLb: LoadBalancer;
   if (!props?.shared) {
@@ -1019,9 +1060,52 @@ function createSharedLb(
     throw new Error(`Invalid LoadBalancerProps: ${props}`);
   }
 
+  // When ports are disabled, we create a stub listener that points to a dummy port so that other
+  // code can still reference the load balancer properties
+
+  class NullNetworkListener
+    implements cdk.aws_elasticloadbalancingv2.INetworkListener
+  {
+    public readonly listenerArn = "";
+    public readonly connections = new cdk.aws_ec2.Connections();
+    public readonly node = scope.node;
+    public readonly stack = cdk.Stack.of(scope);
+    public readonly env = { account: "", region: "" };
+
+    addAction(
+      _id: string,
+      _props: cdk.aws_elasticloadbalancingv2.AddNetworkActionProps,
+    ): void {
+      throw new Error("Cannot add action to disabled listener");
+    }
+
+    addTargets(
+      _id: string,
+      _props: cdk.aws_elasticloadbalancingv2.AddNetworkTargetsProps,
+    ): cdk.aws_elasticloadbalancingv2.NetworkTargetGroup {
+      throw new Error("Cannot add targets to disabled listener");
+    }
+
+    applyRemovalPolicy(_policy: cdk.RemovalPolicy): void {}
+  }
+
+  const dummyListener = (name: string, port: number): Listener => ({
+    type: "network",
+    lb: sharedLb.lb,
+    listener:
+      new NullNetworkListener() as unknown as cdk.aws_elasticloadbalancingv2.NetworkListener,
+    port,
+    protocol: "http",
+    address: `http://${sharedLb.lb.loadBalancerDnsName}:${port}`,
+  });
+
   return {
-    ingress: createSharedListener(scope, "ingress", 8080, sharedLb),
-    admin: createSharedListener(scope, "admin", 9070, sharedLb),
+    ingress: disableSharedNlbPorts?.ingress
+      ? dummyListener("ingress", 8080)
+      : createSharedListener(scope, "ingress", 8080, sharedLb),
+    admin: disableSharedNlbPorts?.admin
+      ? dummyListener("admin", 9070)
+      : createSharedListener(scope, "admin", 9070, sharedLb),
     node: createSharedListener(scope, "node", 5122, sharedLb),
   };
 }
@@ -1071,6 +1155,7 @@ function createListeners(
   securityGroups: cdk.aws_ec2.ISecurityGroup[],
   vpcSubnets: cdk.aws_ec2.SubnetSelection,
   props?: LoadBalancerProps,
+  disableSharedNlbPorts?: StatelessServiceProps["disableSharedNlbPorts"],
 ): {
   ingress: Listener;
   admin: Listener;
@@ -1082,6 +1167,7 @@ function createListeners(
     securityGroups,
     vpcSubnets,
     props,
+    disableSharedNlbPorts,
   );
 
   return sharedListeners;
