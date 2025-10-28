@@ -190,6 +190,45 @@ export interface StatelessNodeProps extends NodeProps {
    * Default: An address will be determined based on the configured load balancer for the ingress.
    */
   ingressAdvertisedAddress?: string;
+  /**
+   * Options for customizing the stateless ECS service deployment and load balancing
+   * Default: Standard ECS deployment controller, target groups attached to shared NLB
+   */
+  statelessService?: StatelessServiceProps;
+}
+
+/**
+ * Configuration for the stateless ECS service deployment and load balancing.
+ * These properties only affect the stateless service (which handles ingress and admin traffic).
+ * The stateful service and controller service are not affected by these settings.
+ */
+export interface StatelessServiceProps {
+  /**
+   * Control which stateless service ports on the shared NLB should have listeners and target groups created.
+   * Set a port to true to skip creating its listener and target group on the shared NLB.
+   *
+   * This is useful when using CodeDeploy blue-green deployments with an ALB, as
+   * CodeDeploy's blue-green controller conflicts with attaching ECS services to NLB target groups.
+   *
+   * When a port is disabled, you are responsible for creating and managing your own load balancer
+   * configuration for that port.
+   *
+   * Note: The node port (5122) cannot be disabled.
+   *
+   * Default: All ports have listeners and target groups created on the shared NLB
+   */
+  disableSharedNlbPorts?: {
+    /**
+     * If true, do not create NLB listener and target group for the stateless service ingress port (8080)
+     * Default: false
+     */
+    ingress?: boolean;
+    /**
+     * If true, do not create NLB listener and target group for the stateless service admin port (9070)
+     * Default: false
+     */
+    admin?: boolean;
+  };
 }
 
 export const DEFAULT_STATEFUL_NODES_PER_AZ = 1;
