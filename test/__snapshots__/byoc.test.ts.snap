@@ -15800,7 +15800,7 @@ exports[`BYOC Stateless service can be customized 1`] = `
             - '","params":{"command":"controlPanel","input":{"region":"'
             - Ref: 'AWS::Region'
             - >-
-              ","summary":{"clusterName":"RestateBYOC/custom-cluster","restateVersion":"1.5","stackVersion":"0.4.1-dev","metricsDashboardName":"
+              ","summary":{"clusterName":"RestateBYOC/custom-cluster","restateVersion":"1.5","stackVersion":"0.5.0","metricsDashboardName":"
             - Ref: customclustermetrics3880FE63
             - '"},"resources":{"ecsClusterArn":"'
             - 'Fn::GetAtt':
