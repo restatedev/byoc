@@ -1,0 +1,66 @@
+name: Publish to NPM
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    # prevent from running on forks
+    if: github.repository_owner == 'restatedev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+      - uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: arn:aws:iam::654654156625:role/restate-byoc-artifacts-upload
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: eu-central-1
+      - run: npm ci
+      - run: npm run download-restatectl
+      - run: npm run build
+      - run: npm run test
+      - name: Update package version for snapshot
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          # We're using 0.0.0 to avoid this version to be higher than released versions.
+          # To use it:
+          # "@restatedev/byoc": "^0.0.0-SNAPSHOT"
+          npm version 0.0.0-SNAPSHOT-$(date '+%Y%m%d%H%M%S') --git-tag-version false
+      - run: npm run publish-stack
+        env:
+          AWS_REGION: eu-central-1
+      - name: Upload artifact
+        if: ${{ github.event_name == 'push' }}
+        run: mv $(npm pack) restatedev-byoc.tgz
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'push' }}
+        with:
+          name: restatedev-byoc
+          path: restatedev-byoc.tgz
+          retention-days: 1
+          if-no-files-found: error
+      - name: Publish to npm
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            # We use dist-tag dev for the snapshot releases, see https://docs.npmjs.com/cli/v9/commands/npm-dist-tag for more info
+            # A snapshot MUST not be published with latest tag (omitting --tag defaults to latest) to avoid users to install snapshot releases
+            # when using npm install
+            npm publish --tag dev --access public
+          elif [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+            npm publish --tag next --access public
+          else
+            npm publish --tag latest --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ""
