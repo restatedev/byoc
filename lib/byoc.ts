@@ -1863,7 +1863,8 @@ function createRestatectl(
   return { fn, logGroup };
 }
 
-// RESTATE_NODE_NAME: task ARN
+// RESTATE_NODE_NAME: ECS task UUID (last segment of the task ARN). Restate 1.6+ creates a
+// unix socket under <data-dir>/<node-name>/fabric.sock; the full task ARN exceeds SUN_LEN (108).
 // RESTATE_LOCATION: region.availability-zone
 // RESTATE_ADVERTISED_ADDRESS: container IPv4 address
 // RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE: 75% of container's memory limit
@@ -1872,7 +1873,7 @@ const statefulEntryPointScript = String.raw`
 curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o container-metadata && \
 curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o task-metadata && \
 export \
-  RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \
+  RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \
   RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \
   RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \
   RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \
@@ -1884,7 +1885,7 @@ const statelessEntryPointScript = String.raw`
 curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4 -o container-metadata && \
 curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o task-metadata && \
 export \
-  RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \
+  RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \
   RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \
   RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
 exec restate-server
