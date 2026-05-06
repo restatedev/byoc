@@ -326,8 +326,8 @@ export class RestateExampleStack extends cdk.Stack {
         defaultReplication: { zone: 2 },
         defaultPartitions: 128,
         ingressAdvertisedAddress: "internal-nlb-address:8080", // derived from load balancer
-        restateImage: "docker.restate.dev/restatedev/restate:1.4",
-        restateVersion: "1.4", // derived from restateImage,
+        restateImage: "docker.restate.dev/restatedev/restate:1.6",
+        restateVersion: "1.6", // derived from restateImage,
         environment: {},
       },
       statefulNode: {
@@ -336,8 +336,8 @@ export class RestateExampleStack extends cdk.Stack {
           cpu: 16384,
           memoryLimitMiB: 32768,
         },
-        restateImage: "docker.restate.dev/restatedev/restate:1.4",
-        restateVersion: "1.4", // derived from restateImage
+        restateImage: "docker.restate.dev/restatedev/restate:1.6",
+        restateVersion: "1.6", // derived from restateImage
         environment: {},
       },
       controller: {
