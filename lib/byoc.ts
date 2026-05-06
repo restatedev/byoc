@@ -1866,6 +1866,9 @@ function createRestatectl(
 // RESTATE_NODE_NAME: task ARN
 // RESTATE_LOCATION: region.availability-zone
 // RESTATE_ADVERTISED_ADDRESS: container IPv4 address
+// RESTATE_LISTEN_MODE: force TCP for the message-fabric listener. The default unix-socket mode in
+// Restate 1.6+ builds a path of the form <data-dir>/<node-name>/fabric.sock, which exceeds SUN_LEN
+// (108) when the node name is the full ECS task ARN.
 // RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE: 75% of container's memory limit
 // RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET: evaluate math in the string env var
 const statefulEntryPointScript = String.raw`
@@ -1875,6 +1878,7 @@ export \
   RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \
   RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \
   RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \
+  RESTATE_LISTEN_MODE=tcp \
   RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \
   RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
 exec restate-server
@@ -1886,7 +1890,8 @@ curl --no-progress-meter $ECS_CONTAINER_METADATA_URI_V4/task -o task-metadata &&
 export \
   RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \
   RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \
-  RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+  RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \
+  RESTATE_LISTEN_MODE=tcp
 exec restate-server
 `;
 

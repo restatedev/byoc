@@ -280,12 +280,14 @@ export interface EbsVolumeProps {
 }
 
 export const DEFAULT_RESTATE_IMAGE =
-  "docker.restate.dev/restatedev/restate:1.5";
+  "docker.restate.dev/restatedev/restate:1.6";
 
 export const DEFAULT_RESTATE_CPU = 16384;
 export const DEFAULT_RESTATE_MEMORY_LIMIT_MIB = 32768;
 
 export type SupportedRestateVersion =
+  | `1.6.${string}`
+  | `1.6`
   | `1.5.${string}`
   | `1.5`
   | `1.4.${string}`
@@ -295,6 +297,7 @@ export function assertSupportedRestateVersion(
 ): asserts version is SupportedRestateVersion {
   if (version == "1.4" || version.startsWith("1.4.")) return;
   if (version == "1.5" || version.startsWith("1.5.")) return;
+  if (version == "1.6" || version.startsWith("1.6.")) return;
   throw new Error(`Restate version ${version} is not supported by this stack`);
 }
 
@@ -302,7 +305,7 @@ export interface NodeProps {
   /**
    * The Restate image to use for the node
    *
-   * Default: docker.restate.dev/restatedev/restate:1.4
+   * Default: docker.restate.dev/restatedev/restate:1.6
    */
   restateImage?: string;
 

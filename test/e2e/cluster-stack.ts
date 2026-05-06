@@ -52,7 +52,7 @@ export class RestateClusterStack extends cdk.Stack {
       },
       statefulNode: {
         restateImage: "ghcr.io/restatedev/restate:main",
-        restateVersion: "1.4.x",
+        restateVersion: "1.6.x",
         resources: {
           cpu: 512,
           memoryLimitMiB: 1024,
@@ -70,7 +70,7 @@ export class RestateClusterStack extends cdk.Stack {
       },
       statelessNode: {
         restateImage: "ghcr.io/restatedev/restate:main",
-        restateVersion: "1.4.x",
+        restateVersion: "1.6.x",
         resources: {
           cpu: 512,
           memoryLimitMiB: 1024,
