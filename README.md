@@ -46,10 +46,9 @@ export class RestateStack extends cdk.Stack {
 ```
 
 ## Documentation
+- [Overview](./docs/index.md)
 - [Authentication](./docs/authentication.md)
-- [Service Deployer construct](./docs/deployer.md)
 - [Monitoring](./docs/monitoring.md)
-
 
 ## Releasing
 1. Update the NPM version in package.json and ensure it propagates to package-lock.json
