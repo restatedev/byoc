@@ -254,9 +254,10 @@ exports[`BYOC Container Insights defaults to enhanced 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -425,9 +426,10 @@ exports[`BYOC Container Insights defaults to enhanced 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -2230,9 +2232,10 @@ exports[`BYOC Dashboards can be completely disabled 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -2401,9 +2404,10 @@ exports[`BYOC Dashboards can be completely disabled 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -4016,9 +4020,10 @@ exports[`BYOC Default parameters 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -4187,9 +4192,10 @@ exports[`BYOC Default parameters 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -6002,9 +6008,10 @@ exports[`BYOC Log groups can be customized after creation 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -6173,9 +6180,10 @@ exports[`BYOC Log groups can be customized after creation 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -8016,9 +8024,10 @@ exports[`BYOC Retirement watcher queue can be customized 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -8187,9 +8196,10 @@ exports[`BYOC Retirement watcher queue can be customized 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -10033,9 +10043,10 @@ exports[`BYOC Retirement watcher with KMS encryption key 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -10204,9 +10215,10 @@ exports[`BYOC Retirement watcher with KMS encryption key 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -12027,9 +12039,10 @@ exports[`BYOC Set up custom ALB for authenticated access 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -12203,9 +12216,10 @@ exports[`BYOC Set up custom ALB for authenticated access 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -14168,9 +14182,10 @@ exports[`BYOC Stateless service can be customized 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -14325,9 +14340,10 @@ exports[`BYOC Stateless service can be customized 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -16225,9 +16241,10 @@ exports[`BYOC Task log driver mode can be customized 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -16397,9 +16414,10 @@ exports[`BYOC Task log driver mode can be customized 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -18205,9 +18223,10 @@ exports[`BYOC With cluster name 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -18376,9 +18395,10 @@ exports[`BYOC With cluster name 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -20147,9 +20167,10 @@ exports[`BYOC With existing bucket 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -20308,9 +20329,10 @@ exports[`BYOC With existing bucket 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -22097,9 +22119,10 @@ exports[`BYOC With otel collector 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -22298,9 +22321,10 @@ exports[`BYOC With otel collector 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
@@ -24088,9 +24112,10 @@ exports[`BYOC With specific SG and subnets 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
-                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122"
+                RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp
               exec restate-server
           Environment:
             - Name: RESTATE_LOG_FORMAT
@@ -24258,9 +24283,10 @@ exports[`BYOC With specific SG and subnets 1`] = `
               task-metadata && \\
 
               export \\
-                RESTATE_NODE_NAME=$(jq -r '.TaskARN | split("/") | last' task-metadata) \\
+                RESTATE_NODE_NAME=$(jq -r '.TaskARN' task-metadata) \\
                 RESTATE_LOCATION="$AWS_REGION.$(jq -r '.AvailabilityZone' task-metadata)" \\
                 RESTATE_ADVERTISED_ADDRESS="http://$(jq -r '.Networks[0].IPv4Addresses[0]' container-metadata):5122" \\
+                RESTATE_LISTEN_MODE=tcp \\
                 RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE="$(($(jq -r '.Limits.Memory' container-metadata) * 3 / 4))MiB" \\
                 RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET=$(("$RESTATE_WORKER__STORAGE__NUM_PARTITIONS_TO_SHARE_MEMORY_BUDGET"))
               exec restate-server
