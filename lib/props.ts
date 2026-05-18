@@ -117,10 +117,33 @@ export interface ClusterProps {
   logRetention?: LogRetentionProps;
 
   /**
+   * Override the source location for bundled Lambda artifacts (retirement watcher, restatectl,
+   * CloudWatch custom widget). Use this when the default public bucket
+   * `restate-byoc-artifacts-public-<region>` is unreachable in your environment, for example
+   * due to VPC endpoint policies, organization SCPs, or operating in a region without a mirror.
+   *
+   * Mirror the contents of the public bucket into your own bucket; the construct will look up
+   * keys at `${prefix}<version>/assets/{retirement-watcher,restatectl,cloudwatch-custom-widget}.zip`.
+   * If you mirror the keys 1:1, omit `prefix`.
+   *
+   * Default: the BYOC public artifact bucket for the region
+   */
+  artifacts?: {
+    bucket: cdk.aws_s3.IBucket;
+    /**
+     * Optional key prefix within the bucket. If set, must end with a `/`. For example, with
+     * `prefix: "restate-byoc/"` the construct reads `restate-byoc/<version>/assets/<name>.zip`.
+     * Default: no prefix (keys are mirrored 1:1 from the public bucket)
+     */
+    prefix?: string;
+  };
+
+  /**
    * @internal
    *
    * Override the artifact distribution mode for development. Set this to `true` to use artifacts
    * like `restatectl` and the CloudWatch widget handler directly from within the codebase.
+   * Takes precedence over `artifacts` if both are set.
    *
    * Default: use the artifacts from the BYOC public bucket
    */
