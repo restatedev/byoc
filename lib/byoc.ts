@@ -601,6 +601,7 @@ export class RestateEcsFargateCluster
     const controller = createController(
       this,
       props.licenseKey,
+      props.licenseToken,
       bucketPath,
       this.ecsCluster,
       ctPrefix,
@@ -1286,6 +1287,7 @@ function createTargetProps(
 function createController(
   scope: Construct,
   licenseKey: string,
+  licenseToken: cdk.aws_ecs.Secret | undefined,
   bucketPath: `s3://${string}`,
   cluster: cdk.aws_ecs.ICluster,
   clusterTaskPrefix: string,
@@ -1457,6 +1459,9 @@ function createController(
       RUST_LOG: "info,restate_fargate_controller=debug",
       ...config,
     },
+    secrets: licenseToken
+      ? { CONTROLLER_LICENSE_TOKEN: licenseToken }
+      : undefined,
   });
 
   taskDefinition.taskRole.addToPrincipalPolicy(

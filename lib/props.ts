@@ -11,6 +11,23 @@ export interface ClusterProps {
    * occasionally validate the product license by contacting <https://license.restate.cloud>.
    */
   licenseKey: string;
+
+  /**
+   * Optional pre-issued license JWT for offline operation. When set, the controller validates the
+   * token locally on startup and never contacts <https://license.restate.cloud>. The token must
+   * be signed for the same `licenseKey` (its `sub` claim must equal `licenseKey` exactly), and
+   * the controller exits when the token expires.
+   *
+   * The token is sensitive material; wire it via Secrets Manager or SSM Parameter Store using
+   * `cdk.aws_ecs.Secret`, for example:
+   *
+   * ```
+   * licenseToken: cdk.aws_ecs.Secret.fromSecretsManager(myJwtSecret)
+   * ```
+   *
+   * Default: not set; the controller contacts license.restate.cloud to acquire a license
+   */
+  licenseToken?: cdk.aws_ecs.Secret;
   /**
    * The VPC in which to run the cluster
    */

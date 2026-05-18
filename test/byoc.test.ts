@@ -690,6 +690,60 @@ describe("BYOC", () => {
       yaml: true,
     });
   });
+
+  test("License token from Secrets Manager", () => {
+    const { stack, vpc } = createStack();
+
+    const licenseTokenSecret = new cdk.aws_secretsmanager.Secret(
+      stack,
+      "license-token",
+      {
+        description: "Pre-issued Restate BYOC license JWT for offline operation",
+      },
+    );
+
+    new RestateEcsFargateCluster(stack, "with-license-token", {
+      vpc,
+      licenseKey,
+      licenseToken: cdk.aws_ecs.Secret.fromSecretsManager(licenseTokenSecret),
+    });
+
+    const template = cdk.assertions.Template.fromStack(stack);
+
+    // The controller container exposes CONTROLLER_LICENSE_TOKEN as a secret, not a plain env var.
+    template.hasResourceProperties("AWS::ECS::TaskDefinition", {
+      ContainerDefinitions: cdk.assertions.Match.arrayWith([
+        cdk.assertions.Match.objectLike({
+          Name: "controller",
+          Secrets: [
+            cdk.assertions.Match.objectLike({
+              Name: "CONTROLLER_LICENSE_TOKEN",
+              ValueFrom: {
+                Ref: cdk.assertions.Match.stringLikeRegexp("licensetoken.*"),
+              },
+            }),
+          ],
+        }),
+      ]),
+    });
+
+    // The controller execution role can read the secret at task start.
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: cdk.assertions.Match.arrayWith([
+          cdk.assertions.Match.objectLike({
+            Action: cdk.assertions.Match.arrayWith([
+              "secretsmanager:GetSecretValue",
+            ]),
+            Effect: "Allow",
+            Resource: {
+              Ref: cdk.assertions.Match.stringLikeRegexp("licensetoken.*"),
+            },
+          }),
+        ]),
+      },
+    });
+  });
 });
 
 function createStack(): { stack: cdk.Stack; vpc: cdk.aws_ec2.IVpc } {
