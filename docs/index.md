@@ -95,6 +95,28 @@ new cdk.CfnOutput(this, "dashboardName", {
 
 On successful deployment, the stack outputs will show the cluster's ingress and admin URLs, and CloudWatch dashboard name.
 
+### Offline operation with a pre-issued license token
+
+By default the controller periodically contacts `https://license.restate.cloud` to validate the license. If your deployment environment cannot reach that endpoint, ask Restate for a pre-issued license JWT for your `licenseKey` and pass it via the optional `licenseToken` prop. When set, the controller validates the token locally on startup, never contacts the license server, and exits cleanly when the token expires.
+
+The token is sensitive material; store it in AWS Secrets Manager (or SSM Parameter Store) and wire it through using `cdk.aws_ecs.Secret` so the value is fetched at task start instead of being baked into the CloudFormation template:
+
+```ts
+const licenseTokenSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+  this,
+  "restate-license-token",
+  "arn:aws:secretsmanager:eu-west-1:123456789012:secret:restate/license-token-AbCdEf",
+);
+
+const cluster = new RestateEcsFargateCluster(this, "restate-byoc", {
+  licenseKey: "00000000-0000-0000-0000-000000000000",
+  licenseToken: cdk.aws_ecs.Secret.fromSecretsManager(licenseTokenSecret),
+  vpc,
+});
+```
+
+The construct grants the controller's execution role permission to read the secret at task start. When you rotate the token (for example before the current one expires), update the secret value and restart the controller service to pick up the new value.
+
 ## Deploying services
 
 The [`@restatedev/restate-cdk`](https://www.npmjs.com/package/@restatedev/restate-cdk) library provides a `ServiceDeployer` construct which you can use to register Lambda functions in your BYOC cluster. This is documented in the [Restate CDK Documentation](https://docs.restate.dev/deploy/lambda/cdk).
