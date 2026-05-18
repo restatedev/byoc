@@ -22,7 +22,7 @@ export default defineConfig([
     },
   },
   {
-    ignores: ["dist/*", "jest.config.js", "cdk.out"],
+    ignores: ["dist/*", "jest.config.js", "cdk.out", "byoc-artifacts/*"],
   },
   tseslint.configs.recommended,
 ]);

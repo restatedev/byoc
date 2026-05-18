@@ -2,6 +2,8 @@ import * as cdk from "aws-cdk-lib";
 import "jest-cdk-snapshot";
 import { RestateEcsFargateCluster } from "../lib/byoc";
 import { aws_logs, aws_s3 } from "aws-cdk-lib";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 describe("BYOC", () => {
   const licenseKey = "foo";
@@ -74,6 +76,93 @@ describe("BYOC", () => {
           "^restate-byoc/[^/]+/assets/[^/]+\\.zip$",
         ),
       }),
+    });
+  });
+
+  test("With bundled artifacts", () => {
+    // The bundled opt-in resolves zip paths from @restatedev/byoc-artifacts and wires them in
+    // via Code.fromAsset, so CDK uploads them to the customer's bootstrap bucket at synth time
+    // instead of fetching from the public S3 bucket at deploy time.
+    const artifactsDir = path.dirname(
+      require.resolve("@restatedev/byoc-artifacts/package.json"),
+    );
+    const stubs = [
+      "retirement-watcher.zip",
+      "restatectl.zip",
+      "cloudwatch-custom-widget.zip",
+    ].map((name) => path.join(artifactsDir, name));
+    const createdStubs: string[] = [];
+    for (const stub of stubs) {
+      if (!fs.existsSync(stub)) {
+        fs.writeFileSync(stub, "");
+        createdStubs.push(stub);
+      }
+    }
+
+    try {
+      const { stack, vpc } = createStack();
+
+      new RestateEcsFargateCluster(stack, "with-bundled-artifacts", {
+        vpc,
+        licenseKey,
+        artifacts: { bundled: true },
+      });
+
+      const template = cdk.assertions.Template.fromStack(stack);
+      template.resourceCountIs("AWS::Lambda::Function", 3);
+      // Each Lambda's Code now points to an asset in the CDK bootstrap bucket - no
+      // restate-byoc-artifacts-public references anywhere in the template.
+      template.allResourcesProperties("AWS::Lambda::Function", {
+        Code: cdk.assertions.Match.objectLike({
+          S3Bucket: cdk.assertions.Match.anyValue(),
+          S3Key: cdk.assertions.Match.stringLikeRegexp("\\.zip$"),
+        }),
+      });
+      expect(JSON.stringify(template.toJSON())).not.toContain(
+        "restate-byoc-artifacts-public",
+      );
+    } finally {
+      for (const stub of createdStubs) fs.unlinkSync(stub);
+    }
+  });
+
+  test("Bundled opt-in rejects an artifacts package version mismatch", () => {
+    jest.isolateModules(() => {
+      jest.doMock("@restatedev/byoc-artifacts/package.json", () => ({
+        version: "9.9.9-totally-wrong",
+      }));
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getArtifacts } = require("../lib/artifacts");
+
+      const app = new cdk.App();
+      const stack = new cdk.Stack(app, "mismatched-artifacts", {
+        env: { account: "account-id", region: "region" },
+      });
+
+      expect(() => getArtifacts(stack, "0.5.0", { bundled: true })).toThrow(
+        /9\.9\.9-totally-wrong.*0\.5\.0.*exact version match/s,
+      );
+    });
+  });
+
+  test("Bundled opt-in fails with a helpful message if peer dep is missing", () => {
+    // Simulate the peer dep being uninstalled. jest.isolateModules scopes the mock so it can't
+    // leak into other tests in this file.
+    jest.isolateModules(() => {
+      jest.doMock("@restatedev/byoc-artifacts", () => {
+        throw new Error("Cannot find module '@restatedev/byoc-artifacts'");
+      });
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getArtifacts } = require("../lib/artifacts");
+
+      const app = new cdk.App();
+      const stack = new cdk.Stack(app, "missing-peer", {
+        env: { account: "account-id", region: "region" },
+      });
+
+      expect(() => getArtifacts(stack, "0.0.0", { bundled: true })).toThrow(
+        /requires the optional peer dependency `@restatedev\/byoc-artifacts`/,
+      );
     });
   });
 

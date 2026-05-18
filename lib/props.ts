@@ -135,25 +135,32 @@ export interface ClusterProps {
 
   /**
    * Override the source location for bundled Lambda artifacts (retirement watcher, restatectl,
-   * CloudWatch custom widget). Use this when the default public bucket
-   * `restate-byoc-artifacts-public-<region>` is unreachable in your environment, for example
-   * due to VPC endpoint policies, organization SCPs, or operating in a region without a mirror.
+   * CloudWatch custom widget). Two shapes are supported:
    *
-   * Mirror the contents of the public bucket into your own bucket; the construct will look up
-   * keys at `${prefix}<version>/assets/{retirement-watcher,restatectl,cloudwatch-custom-widget}.zip`.
-   * If you mirror the keys 1:1, omit `prefix`.
+   * - `{ bucket, prefix? }` - mirror the contents of the public bucket
+   *   `restate-byoc-artifacts-public-<region>` into your own bucket. The construct will look up
+   *   keys at `${prefix}<version>/assets/{retirement-watcher,restatectl,cloudwatch-custom-widget}.zip`.
+   *   Use this when the public bucket is unreachable (VPC endpoint policies, organization SCPs,
+   *   regions without a mirror).
    *
-   * Default: the BYOC public artifact bucket for the region
+   * - `{ bundled: true }` - load the artifacts from the optional peer dependency
+   *   `@restatedev/byoc-artifacts`. Install it explicitly at the same version as
+   *   `@restatedev/byoc`. CDK uploads the zips to your own bootstrap bucket at synth time as
+   *   part of the standard asset pipeline, so no public-bucket egress is required at deploy time.
+   *
+   * Default: the BYOC public artifact bucket for the region.
    */
-  artifacts?: {
-    bucket: cdk.aws_s3.IBucket;
-    /**
-     * Optional key prefix within the bucket. If set, must end with a `/`. For example, with
-     * `prefix: "restate-byoc/"` the construct reads `restate-byoc/<version>/assets/<name>.zip`.
-     * Default: no prefix (keys are mirrored 1:1 from the public bucket)
-     */
-    prefix?: string;
-  };
+  artifacts?:
+    | {
+        bucket: cdk.aws_s3.IBucket;
+        /**
+         * Optional key prefix within the bucket. If set, must end with a `/`. For example, with
+         * `prefix: "restate-byoc/"` the construct reads `restate-byoc/<version>/assets/<name>.zip`.
+         * Default: no prefix (keys are mirrored 1:1 from the public bucket)
+         */
+        prefix?: string;
+      }
+    | { bundled: true };
 
   /**
    * @internal

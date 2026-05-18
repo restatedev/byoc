@@ -615,7 +615,12 @@ export class RestateEcsFargateCluster
     );
     this.controller = controller;
 
-    if (props.artifacts?.prefix && !props.artifacts.prefix.endsWith("/")) {
+    if (
+      props.artifacts &&
+      "prefix" in props.artifacts &&
+      props.artifacts.prefix &&
+      !props.artifacts.prefix.endsWith("/")
+    ) {
       throw new Error(
         `artifacts.prefix must end with a "/" if set, got: ${props.artifacts.prefix}`,
       );
