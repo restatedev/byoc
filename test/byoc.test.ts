@@ -49,6 +49,54 @@ describe("BYOC", () => {
     });
   });
 
+  test("With mirrored artifacts bucket", () => {
+    const { stack, vpc } = createStack();
+
+    new RestateEcsFargateCluster(stack, "with-mirrored-artifacts", {
+      vpc,
+      licenseKey,
+      artifacts: {
+        bucket: aws_s3.Bucket.fromBucketName(
+          stack,
+          "mirrored-artifacts",
+          "my-restate-byoc-artifacts-mirror",
+        ),
+        prefix: "restate-byoc/",
+      },
+    });
+
+    const template = cdk.assertions.Template.fromStack(stack);
+    template.resourceCountIs("AWS::Lambda::Function", 3);
+    template.allResourcesProperties("AWS::Lambda::Function", {
+      Code: cdk.assertions.Match.objectLike({
+        S3Bucket: "my-restate-byoc-artifacts-mirror",
+        S3Key: cdk.assertions.Match.stringLikeRegexp(
+          "^restate-byoc/[^/]+/assets/[^/]+\\.zip$",
+        ),
+      }),
+    });
+  });
+
+  test("Rejects artifacts prefix without trailing slash", () => {
+    const { stack, vpc } = createStack();
+
+    expect(
+      () =>
+        new RestateEcsFargateCluster(stack, "bad-prefix", {
+          vpc,
+          licenseKey,
+          artifacts: {
+            bucket: aws_s3.Bucket.fromBucketName(
+              stack,
+              "mirrored-artifacts",
+              "my-restate-byoc-artifacts-mirror",
+            ),
+            prefix: "restate-byoc",
+          },
+        }),
+    ).toThrow('artifacts.prefix must end with a "/"');
+  });
+
   test("With volume", () => {
     const { stack, vpc } = createStack();
 

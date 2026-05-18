@@ -268,6 +268,37 @@ Please use `@restatedev/restate-cdk` version `0.0.0-SNAPSHOT-20250521082206`; th
 
 Deleting a CDK/CloudFormation stack containing a Restate cluster may fail as the task controller is destroyed before the stateful tasks. To resolve, open the ECS cluster in the AWS ECS console, navigate to "Tasks", select all the remaining running tasks, and click on "Stop" -> "Stop Selected". Automatic cleanup will be included in a future release of the BYOC cluster construct.
 
+## Cannot reach the public Lambda artifact bucket
+
+The construct pulls a few small Lambda artifacts (the retirement watcher, the `restatectl` wrapper, and the CloudWatch custom widget handler) from the public bucket `restate-byoc-artifacts-public-<region>` at deploy time. If your deployment account cannot reach this bucket (for example due to VPC endpoint policies that restrict S3 access to in-account buckets, organization SCPs, or operating in a region without a mirror) you have two options:
+
+1. **Disable the retirement watcher** if it is the only artifact you need to work around (typical for non-production / proof-of-concept deployments). Without it, Fargate task retirement notifications from AWS Health will not be handled automatically and you will need an alternative path to drain stateful tasks before retirement.
+
+   ```ts
+   new RestateEcsFargateCluster(this, "restate-byoc", {
+     licenseKey: "...",
+     vpc,
+     retirementWatcher: { disabled: true },
+   });
+   ```
+
+2. **Mirror the artifacts into your own S3 bucket** and point the construct at it via `artifacts`. See [Mirroring Lambda artifacts](./mirroring-artifacts.md) for a step-by-step guide, including how to discover which objects you need.
+
+   ```ts
+   new RestateEcsFargateCluster(this, "restate-byoc", {
+     licenseKey: "...",
+     vpc,
+     artifacts: {
+       bucket: cdk.aws_s3.Bucket.fromBucketName(
+         this,
+         "restate-byoc-artifacts-mirror",
+         "my-restate-byoc-artifacts-mirror",
+       ),
+       // prefix: "restate-byoc/"
+     },
+   });
+   ```
+
 # Appendix A: RestateEcsFargateCluster construct reference
 
 ```ts

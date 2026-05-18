@@ -614,8 +614,18 @@ export class RestateEcsFargateCluster
     );
     this.controller = controller;
 
+    if (props.artifacts?.prefix && !props.artifacts.prefix.endsWith("/")) {
+      throw new Error(
+        `artifacts.prefix must end with a "/" if set, got: ${props.artifacts.prefix}`,
+      );
+    }
+
     const artifacts = !props._useLocalArtifacts
-      ? getArtifacts(this, props._artifactsVersion ?? PACKAGE_INFO.version)
+      ? getArtifacts(
+          this,
+          props._artifactsVersion ?? PACKAGE_INFO.version,
+          props.artifacts,
+        )
       : bundleArtifacts();
 
     const lambdaRetention =

@@ -5,25 +5,29 @@ import * as path from "node:path";
 export function getArtifacts(
   scope: Construct,
   version: string,
+  override?: { bucket: cdk.aws_s3.IBucket; prefix?: string },
 ): Record<string, cdk.aws_lambda.Code> {
-  const artifactsBucket = cdk.aws_s3.Bucket.fromBucketName(
-    scope,
-    "artifacts-bucket",
-    `restate-byoc-artifacts-public-${cdk.Aws.REGION}`,
-  );
+  const artifactsBucket =
+    override?.bucket ??
+    cdk.aws_s3.Bucket.fromBucketName(
+      scope,
+      "artifacts-bucket",
+      `restate-byoc-artifacts-public-${cdk.Aws.REGION}`,
+    );
+  const prefix = override?.prefix ?? "";
 
   return {
     "retirement-watcher.zip": cdk.aws_lambda.Code.fromBucketV2(
       artifactsBucket,
-      `${version}/assets/retirement-watcher.zip`,
+      `${prefix}${version}/assets/retirement-watcher.zip`,
     ),
     "restatectl.zip": cdk.aws_lambda.Code.fromBucketV2(
       artifactsBucket,
-      `${version}/assets/restatectl.zip`,
+      `${prefix}${version}/assets/restatectl.zip`,
     ),
     "cloudwatch-custom-widget.zip": cdk.aws_lambda.Code.fromBucketV2(
       artifactsBucket,
-      `${version}/assets/cloudwatch-custom-widget.zip`,
+      `${prefix}${version}/assets/cloudwatch-custom-widget.zip`,
     ),
   };
 }
