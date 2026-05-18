@@ -33,10 +33,22 @@ jobs:
       - name: Update package version for snapshot
         if: ${{ github.event_name == 'push' }}
         run: |
-          # We're using 0.0.0 to avoid this version to be higher than released versions.
-          # To use it:
-          # "@restatedev/byoc": "^0.0.0-SNAPSHOT"
-          npm version 0.0.0-SNAPSHOT-$(date '+%Y%m%d%H%M%S') --git-tag-version false
+          # 0.0.0 keeps snapshot versions below released versions.
+          # Consumers: "@restatedev/byoc": "^0.0.0-SNAPSHOT"
+          SNAPSHOT_VERSION=0.0.0-SNAPSHOT-$(date '+%Y%m%d%H%M%S')
+          npm version "$SNAPSHOT_VERSION" --workspaces --include-workspace-root --git-tag-version false
+      - name: Sync byoc-artifacts version with root
+        # On a release the root version is already set from the release tag; propagate it to the
+        # workspace so both packages always publish at the same version. (No-op for snapshots,
+        # which already synced above.)
+        run: |
+          ROOT_VERSION=$(node -p "require('./package.json').version")
+          npm version "$ROOT_VERSION" --workspace=@restatedev/byoc-artifacts --git-tag-version false --allow-same-version
+      - name: Pin byoc-artifacts peer dep to current version
+        # Keeps the optional peer-dep range in @restatedev/byoc in lockstep with whatever version
+        # @restatedev/byoc-artifacts is about to be published at.
+        run: |
+          node -e "const fs=require('fs');const p=require('./package.json');p.peerDependencies['@restatedev/byoc-artifacts']=p.version;fs.writeFileSync('./package.json', JSON.stringify(p, null, 2) + '\n');"
       - run: npm run publish-stack
         env:
           AWS_REGION: eu-central-1
@@ -51,16 +63,20 @@ jobs:
           retention-days: 1
           if-no-files-found: error
       - name: Publish to npm
+        # Publishes @restatedev/byoc-artifacts first so the peer-dep is resolvable when consumers
+        # install @restatedev/byoc and opt into `artifacts: { bundled: true }`.
         run: |
           if [[ "${{ github.event_name }}" == "push" ]]; then
-            # We use dist-tag dev for the snapshot releases, see https://docs.npmjs.com/cli/v9/commands/npm-dist-tag for more info
-            # A snapshot MUST not be published with latest tag (omitting --tag defaults to latest) to avoid users to install snapshot releases
-            # when using npm install
-            npm publish --tag dev --access public
+            # dist-tag dev for snapshots, see https://docs.npmjs.com/cli/v9/commands/npm-dist-tag
+            # Snapshots MUST NOT be published with the latest tag (default of `npm publish`)
+            # or `npm install` will pull them in.
+            DIST_TAG=dev
           elif [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
-            npm publish --tag next --access public
+            DIST_TAG=next
           else
-            npm publish --tag latest --access public
+            DIST_TAG=latest
           fi
+          npm publish --workspace=@restatedev/byoc-artifacts --tag "$DIST_TAG" --access public
+          npm publish --tag "$DIST_TAG" --access public
         env:
           NODE_AUTH_TOKEN: ""

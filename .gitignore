@@ -1,7 +1,11 @@
 *.js
 !jest.config.js
 *.d.ts
+!byoc-artifacts/index.d.ts
 node_modules
+
+# Built Lambda artifacts populated by artifacts/upload.sh
+byoc-artifacts/*.zip
 
 # CDK asset staging directory
 .cdk.staging

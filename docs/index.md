@@ -321,6 +321,22 @@ The construct pulls a few small Lambda artifacts (the retirement watcher, the `r
    });
    ```
 
+3. **Bundle the artifacts via npm** by installing the optional peer dependency `@restatedev/byoc-artifacts` at the same version as `@restatedev/byoc` and setting `artifacts: { bundled: true }`. CDK then uploads the Lambda zips to your own CDK bootstrap bucket at synth time, so no public-bucket egress is needed at deploy time. This is useful when your deploy account can reach `registry.npmjs.org` but cannot reach the BYOC artifact bucket. The two packages are versioned in lockstep; the artifacts package adds a small amount of disk to your `node_modules` (the three zips, on the order of a few megabytes).
+
+   ```sh
+   npm install @restatedev/byoc @restatedev/byoc-artifacts
+   ```
+
+   ```ts
+   new RestateEcsFargateCluster(this, "restate-byoc", {
+     licenseKey: "...",
+     vpc,
+     artifacts: { bundled: true },
+   });
+   ```
+
+   Upgrade both packages together: the peer-dep version pin is exact, so installing only one of them will surface an `npm` peer-dep warning (and a hard error on pnpm/yarn-strict).
+
 # Appendix A: RestateEcsFargateCluster construct reference
 
 ```ts

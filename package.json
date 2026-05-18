@@ -33,6 +33,9 @@
     "dist/*.js",
     "dist/*.d.ts"
   ],
+  "workspaces": [
+    "byoc-artifacts"
+  ],
   "scripts": {
     "attw": "attw --pack",
     "download-restatectl": "mkdir -p lib/lambda/restatectl && curl -L https://restate.gateway.scarf.sh/v1.6.2/restatectl-aarch64-unknown-linux-musl.tar.xz | tar -Jx --strip-components=1 -C lib/lambda/restatectl restatectl-aarch64-unknown-linux-musl/restatectl",
@@ -81,6 +84,12 @@
   },
   "peerDependencies": {
     "aws-cdk-lib": "^2.0.0",
-    "constructs": "^10.0.0"
+    "constructs": "^10.0.0",
+    "@restatedev/byoc-artifacts": "0.5.0"
+  },
+  "peerDependenciesMeta": {
+    "@restatedev/byoc-artifacts": {
+      "optional": true
+    }
   }
 }
