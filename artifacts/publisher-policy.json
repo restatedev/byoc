@@ -1,0 +1,37 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CreateArtifactsOnly",
+      "Effect": "Allow",
+      "Action": "s3:PutObject",
+      "Resource": [
+        "arn:aws:s3:::restate-byoc-artifacts-public-eu-central-1/*/assets/cloudwatch-custom-widget.zip",
+        "arn:aws:s3:::restate-byoc-artifacts-public-eu-central-1/*/assets/restatectl.zip",
+        "arn:aws:s3:::restate-byoc-artifacts-public-eu-central-1/*/assets/retirement-watcher.zip",
+        "arn:aws:s3:::restate-byoc-artifacts-public-eu-central-1/*/templates/medium.template.json",
+        "arn:aws:s3:::restate-byoc-artifacts-public-eu-central-1/*/templates/xlarge.template.json"
+      ],
+      "Condition": { "StringEquals": { "s3:if-none-match": "*" } }
+    },
+    {
+      "Sid": "VerifyIdenticalRetries",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::restate-byoc-artifacts-public-eu-central-1/*"
+    },
+    {
+      "Sid": "DenyUnconditionalWrites",
+      "Effect": "Deny",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::restate-byoc-artifacts-public-eu-central-1/*",
+      "Condition": { "StringNotEqualsIfExists": { "s3:if-none-match": "*" } }
+    },
+    {
+      "Sid": "DenyArtifactDeletion",
+      "Effect": "Deny",
+      "Action": ["s3:DeleteObject", "s3:DeleteObjectVersion"],
+      "Resource": "arn:aws:s3:::restate-byoc-artifacts-public-eu-central-1/*"
+    }
+  ]
+}

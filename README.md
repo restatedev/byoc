@@ -57,3 +57,5 @@ update the snapshots.
 3. Push a tag eg `git tag v0.1.0 && git push origin v0.1.0`
 4. Create a release from the tag
 5. GHA will publish the NPM package and the S3 assets once the release exists
+
+Publishing uses isolated jobs and create-only S3 uploads. See [publishing artifacts](docs/publishing.md) for the one-time IAM/environment setup and retry behavior.
