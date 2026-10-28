@@ -1,95 +1,69 @@
 #!/usr/bin/env node
 
-import {
-  S3Client,
-  PutObjectCommand,
-  HeadBucketCommand,
-} from "@aws-sdk/client-s3";
-import * as fs from "fs";
-import * as path from "path";
-import { execSync } from "child_process";
-import packageJson from "../package.json" with { type: "json" };
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { execFileSync } from "node:child_process";
 
-// --- begin configuration ---
+const outputDirectory = path.resolve(process.argv[2] ?? "publish/s3");
+fs.mkdirSync(outputDirectory, { recursive: true });
 
-const STACK_NAME = "RestateBYOCStack"; // The CDK stack to publish
-const REGION = "eu-central-1"; // AWS region
+function sourceFiles(directory: string): string[] {
+  return fs
+    .readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => {
+      const filename = path.join(directory, entry.name);
+      return entry.isDirectory() ? sourceFiles(filename) : [filename];
+    })
+    .sort();
+}
 
-// --- end configuration ---
-
-async function publishStack(templateName: string) {
-  try {
-    const BUCKET_NAME = `restate-byoc-artifacts-public-${REGION}`;
-    console.log(`Using hosting bucket: ${BUCKET_NAME}`);
-
-    // Step 1: Upload the lambdas
-    execSync(`./artifacts/upload.sh ${packageJson.version}`, {
-      stdio: "inherit",
-    });
-
-    // Step 2: Initialize S3 client
-    const s3Client = new S3Client({ region: REGION });
-
-    // Verify bucket exists
-    try {
-      await s3Client.send(new HeadBucketCommand({ Bucket: BUCKET_NAME }));
-    } catch (err) {
-      throw new Error(`Hosting bucket ${BUCKET_NAME} not accessible: ${err}`);
-    }
-
-    // Step 3: Synthesize the CDK stack
-    console.log(`Synthesizing stack ${STACK_NAME}...`);
-    execSync(
-      `npm run cdk -- --app './templates/${templateName}.ts' synth ${STACK_NAME}`,
-      {
-        stdio: "inherit",
-      },
+const archives = {
+  "cloudwatch-custom-widget.zip": sourceFiles(
+    "dist/lambda/cloudwatch-custom-widget",
+  ).filter((filename) => filename.endsWith(".mjs")),
+  "restatectl.zip": sourceFiles("lib/lambda/restatectl"),
+  "retirement-watcher.zip": sourceFiles(
+    "dist/lambda/retirement-watcher",
+  ).filter((filename) => filename.endsWith(".mjs")),
+};
+for (const [name, files] of Object.entries(archives)) {
+  if (files.length === 0) throw new Error(`No input files for ${name}`);
+  const archive = path.resolve("byoc-artifacts", name);
+  fs.rmSync(archive, { force: true });
+  for (const filename of files)
+    fs.utimesSync(
+      filename,
+      new Date("1980-01-01T00:00:00Z"),
+      new Date("1980-01-01T00:00:00Z"),
     );
+  execFileSync("zip", ["-X", "-j", archive, ...files], {
+    stdio: "inherit",
+    env: { ...process.env, TZ: "UTC" },
+  });
+  fs.copyFileSync(archive, path.join(outputDirectory, name));
+}
 
-    // Step 4: Read the asset manifest
-    const cdkOutDir = path.join(process.cwd(), "cdk.out");
-    const assetManifestPath = path.join(cdkOutDir, `${STACK_NAME}.assets.json`);
-
-    if (!fs.existsSync(assetManifestPath)) {
-      throw new Error(`Asset manifest not found at ${assetManifestPath}`);
-    }
-
-    // Step 6: Update and upload the CloudFormation template
-    const templatePath = path.join(cdkOutDir, `${STACK_NAME}.template.json`);
-    const templateContent = fs.readFileSync(templatePath, "utf8");
-    const template = JSON.parse(templateContent);
-
-    // Remove CDK bootstrap dependencies and update asset references
-    console.log("Removing CDK bootstrap dependencies from template...");
-    const cleanTemplate = removeBootstrapDependencies(template);
-
-    const modifiedTemplate = JSON.stringify(cleanTemplate, null, 2);
-
-    // Upload the modified template
-    const templateKey = `${packageJson.version}/templates/${templateName}.template.json`;
-    console.log(
-      `Uploading modified CloudFormation template to ${templateKey}...`,
-    );
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: templateKey,
-        Body: modifiedTemplate,
-        ContentType: "application/json",
-      }),
-    );
-
-    // Generate the CloudFormation quick-create URL
-    const templateUrl = `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${templateKey}`;
-    const quickCreateUrl = `https://console.aws.amazon.com/cloudformation/home?region=${REGION}#/stacks/create/review?templateURL=${encodeURIComponent(templateUrl)}&stackName=${STACK_NAME}`;
-
-    console.log("\nDEPLOYMENT SUCCESSFUL!");
-    console.log(`Template URL: ${templateUrl}`);
-    console.log(`Quick Create URL: ${quickCreateUrl}`);
-  } catch (err) {
-    console.error("Error publishing stack:", err);
-    throw err;
-  }
+for (const name of ["xlarge", "medium"]) {
+  execFileSync(
+    "npm",
+    [
+      "run",
+      "cdk",
+      "--",
+      "--app",
+      `./templates/${name}.ts`,
+      "synth",
+      "RestateBYOCStack",
+    ],
+    { stdio: "inherit" },
+  );
+  const template = JSON.parse(
+    fs.readFileSync("cdk.out/RestateBYOCStack.template.json", "utf8"),
+  );
+  fs.writeFileSync(
+    path.join(outputDirectory, `${name}.template.json`),
+    JSON.stringify(removeBootstrapDependencies(template), null, 2),
+  );
 }
 
 function removeBootstrapDependencies(templateJson: {
@@ -217,6 +191,3 @@ function removeBootstrapDependencies(templateJson: {
 
   return modifiedTemplate;
 }
-
-await publishStack("xlarge");
-await publishStack("medium");

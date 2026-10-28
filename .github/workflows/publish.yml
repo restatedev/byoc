@@ -6,77 +6,146 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
-  publish:
-    # prevent from running on forks
-    if: github.repository_owner == 'restatedev'
+  prepare:
+    if: github.repository == 'restatedev/byoc'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-      - uses: aws-actions/configure-aws-credentials@v1.7.0
-        with:
-          role-to-assume: arn:aws:iam::654654156625:role/restate-byoc-artifacts-upload
-          role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: eu-central-1
       - run: npm ci
       - run: npm run download-restatectl
       - run: npm run build
       - run: npm run test
-      - name: Update package version for snapshot
-        if: ${{ github.event_name == 'push' }}
-        run: |
-          # 0.0.0 keeps snapshot versions below released versions.
-          # Consumers: "@restatedev/byoc": "^0.0.0-SNAPSHOT"
-          SNAPSHOT_VERSION=0.0.0-SNAPSHOT-$(date '+%Y%m%d%H%M%S')
-          npm version "$SNAPSHOT_VERSION" --workspaces --include-workspace-root --git-tag-version false
-      - name: Sync byoc-artifacts version with root
-        # On a release the root version is already set from the release tag; propagate it to the
-        # workspace so both packages always publish at the same version. (No-op for snapshots,
-        # which already synced above.)
+      - name: Set snapshot version
+        if: github.event_name == 'push'
+        env:
+          SNAPSHOT_VERSION: 0.0.0-SNAPSHOT-${{ github.run_id }}-${{ github.run_attempt }}
+        run: npm version "$SNAPSHOT_VERSION" --workspaces --include-workspace-root --git-tag-version false --ignore-scripts
+      - name: Prepare package versions
+        id: version
         run: |
           ROOT_VERSION=$(node -p "require('./package.json').version")
-          npm version "$ROOT_VERSION" --workspace=@restatedev/byoc-artifacts --git-tag-version false --allow-same-version
-      - name: Pin byoc-artifacts peer dep to current version
-        # Keeps the optional peer-dep range in @restatedev/byoc in lockstep with whatever version
-        # @restatedev/byoc-artifacts is about to be published at.
+          npm version "$ROOT_VERSION" --workspace=@restatedev/byoc-artifacts --git-tag-version false --allow-same-version --ignore-scripts
+          node -e "const fs=require('node:fs');const p=require('./package.json');p.peerDependencies['@restatedev/byoc-artifacts']=p.version;fs.writeFileSync('./package.json',JSON.stringify(p,null,2)+'\n');fs.appendFileSync(process.env.GITHUB_OUTPUT,'version='+p.version+'\n');"
+      - run: npm run prepare-publish
+      - name: Pack npm payloads
         run: |
-          node -e "const fs=require('fs');const p=require('./package.json');p.peerDependencies['@restatedev/byoc-artifacts']=p.version;fs.writeFileSync('./package.json', JSON.stringify(p, null, 2) + '\n');"
-      - run: npm run publish-stack
-        env:
-          AWS_REGION: eu-central-1
-      - name: Upload artifact
-        if: ${{ github.event_name == 'push' }}
-        run: mv $(npm pack) restatedev-byoc.tgz
+          mkdir -p publish/npm
+          node <<'JS'
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          for (const [workspace, target] of [['--workspace=@restatedev/byoc-artifacts', 'artifacts.tgz'], [null, 'main.tgz']]) {
+            const args = ['pack', '--ignore-scripts', '--pack-destination', 'publish/npm', '--json'];
+            if (workspace) args.push(workspace);
+            const [result] = JSON.parse(execFileSync('npm', args, { encoding: 'utf8' }));
+            fs.renameSync('publish/npm/' + result.filename, 'publish/npm/' + target);
+          }
+          JS
       - uses: actions/upload-artifact@v4
-        if: ${{ github.event_name == 'push' }}
+        with:
+          name: publication
+          path: |
+            publish/s3/cloudwatch-custom-widget.zip
+            publish/s3/restatectl.zip
+            publish/s3/retirement-watcher.zip
+            publish/s3/medium.template.json
+            publish/s3/xlarge.template.json
+            publish/npm/artifacts.tgz
+            publish/npm/main.tgz
+          retention-days: 1
+          if-no-files-found: error
+      - run: cp publish/npm/main.tgz restatedev-byoc.tgz
+        if: github.event_name == 'push'
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
         with:
           name: restatedev-byoc
           path: restatedev-byoc.tgz
           retention-days: 1
           if-no-files-found: error
-      - name: Publish to npm
-        # Publishes @restatedev/byoc-artifacts first so the peer-dep is resolvable when consumers
-        # install @restatedev/byoc and opt into `artifacts: { bundled: true }`.
+
+  publish-s3:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: byoc-artifact-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: artifacts/publish_artifacts.mts
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: actions/download-artifact@v4
+        with:
+          name: publication
+          path: publish
+      - name: Restrict the session to this version
+        id: scope
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            # dist-tag dev for snapshots, see https://docs.npmjs.com/cli/v9/commands/npm-dist-tag
-            # Snapshots MUST NOT be published with the latest tag (default of `npm publish`)
-            # or `npm install` will pull them in.
+          POLICY=$(node artifacts/publish_artifacts.mts policy "$VERSION")
+          echo "policy=$POLICY" >> "$GITHUB_OUTPUT"
+      - uses: aws-actions/configure-aws-credentials@v4
+        id: aws
+        with:
+          role-to-assume: arn:aws:iam::654654156625:role/restate-byoc-artifacts-upload
+          role-session-name: byoc-publish-${{ github.run_id }}
+          aws-region: eu-central-1
+          role-duration-seconds: 900
+          inline-session-policy: ${{ steps.scope.outputs.policy }}
+          output-credentials: true
+          output-env-credentials: false
+      - name: Publish immutable S3 artifacts
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          AWS_ACCESS_KEY_ID: ${{ steps.aws.outputs.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.aws.outputs.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ steps.aws.outputs.aws-session-token }}
+        run: node artifacts/publish_artifacts.mts upload "$VERSION" publish/s3
+
+  publish-npm:
+    needs: [prepare, publish-s3]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
+        with:
+          name: publication
+          path: publish
+      - name: Publish prepared npm packages
+        env:
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          EVENT_NAME: ${{ github.event_name }}
+          NODE_AUTH_TOKEN: ""
+        run: |
+          if [ "$EVENT_NAME" = push ]; then
             DIST_TAG=dev
-          elif [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+          elif [ "$RELEASE_PRERELEASE" = true ]; then
             DIST_TAG=next
           else
             DIST_TAG=latest
           fi
-          npm publish --workspace=@restatedev/byoc-artifacts --tag "$DIST_TAG" --access public
-          npm publish --tag "$DIST_TAG" --access public
-        env:
-          NODE_AUTH_TOKEN: ""
+          npm publish ./publish/npm/artifacts.tgz --ignore-scripts --tag "$DIST_TAG" --access public
+          npm publish ./publish/npm/main.tgz --ignore-scripts --tag "$DIST_TAG" --access public
