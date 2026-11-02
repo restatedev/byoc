@@ -18,17 +18,17 @@ jobs:
       STACK_NAME: restatedev-byoc-e2e-fargate-cluster
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v4.4.0
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: "latest"
-      - uses: grafana/setup-k6-action@v1
+      - uses: grafana/setup-k6-action@v1.2.2
 
       - run: npm clean-install
       - run: npm run build
       - run: npm run download-restatectl
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4.3.1
         with:
           aws-region: us-east-1
           role-to-assume: "arn:aws:iam::307946634685:role/github-restatedev-byoc-actions-role"
